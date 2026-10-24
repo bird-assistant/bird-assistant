@@ -6,6 +6,8 @@
 > 结论：检测/跟踪可直接用（CPU 24 ms/帧）；图像物种需换词表；音频可用但须服务端 + 阈值 0.5。
 > 详见 [report.md](report.md) 与 [visual-findings.md](visual-findings.md) / [audio-findings.md](audio-findings.md)。
 
+第 2 周已经在预研之外新增独立的[视觉识别后端](../视觉识别后端/README.md)，生产服务不再使用本目录的 ImageNet-59 临时分类器。
+
 ## 文档导航
 
 | 文档 | 内容 | 适合谁看 |

@@ -1,0 +1,8 @@
+# Resolver input for CPU dependency compatibility tests, not GPU deployment.
+# These builds were imported and exercised on CPython 3.14 / Linux x86_64.
+# Generate all transitive pins/hashes: python scripts/lock_dependencies.py --profile cpu-test
+# The generator and generated lock select CPU wheels via PyTorch's torch/torchvision find-links pages.
+torch==2.10.0+cpu
+torchvision==0.25.0+cpu
+open-clip-torch==3.2.0
+ultralytics==8.4.0

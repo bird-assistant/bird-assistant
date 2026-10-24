@@ -1,0 +1,21 @@
+# Repository-wide generated files and secrets.
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+*.log
+backend/models/
+backend/runtime/
+backend/results/
+

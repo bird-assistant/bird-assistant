@@ -1,0 +1,4 @@
+# Runtime-independent API dependencies. Safe on CPU and GPU hosts.
+# This is an unlocked development input, not a deployment lock.
+# Generate a platform-specific lock: python scripts/lock_dependencies.py --profile base
+-e .

@@ -1,0 +1,123 @@
+name: vision-backend-ci
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/vision-backend-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/vision-backend-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          # The hashed wheel lock was resolved and tested on Linux x86_64 / CPython 3.14.4.
+          python-version: "3.14.4"
+          cache: pip
+          cache-dependency-path: |
+            backend/pyproject.toml
+            backend/requirements-dev-lock.txt
+      - run: |
+          python -m pip install --only-binary=:all: --require-hashes -r requirements-dev-lock.txt
+      - run: |
+          python scripts/lock_dependencies.py --profile base --check
+          python scripts/lock_dependencies.py --profile dev --check
+      - run: python -m pip install --no-deps --no-build-isolation -e '.[test]'
+      - run: python -m pip check
+      - run: ruff check src tests scripts
+      - run: ruff format --check scripts tests/test_scripts.py
+      - run: pytest -W error::DeprecationWarning
+      - name: Check CPU smoke and strict GPU refusal
+        run: |
+          python scripts/check_runtime.py --iterations 2 --warmup 1 --batch-sizes 1 8 --output smoke.json
+          if python scripts/check_runtime.py --require-gpu --output gpu-refusal.json; then
+            exit 1
+          fi
+        env:
+          BIRD_VISION_ENVIRONMENT: test
+          BIRD_VISION_DETECTOR_BACKEND: mock
+          BIRD_VISION_SPECIES_BACKEND: mock
+          BIRD_VISION_DEVICE: cpu
+      - run: ruff format --check src tests scripts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runtime-smoke
+          path: |
+            backend/smoke.json
+            backend/gpu-refusal.json
+
+  cpu-compatibility:
+    name: Real dependency compatibility (CPU only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      YOLO_AUTOINSTALL: "false"
+      YOLO_CONFIG_DIR: ${{ runner.temp }}
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.4"
+          cache: pip
+          cache-dependency-path: |
+            backend/pyproject.toml
+            backend/requirements-cpu-test.txt
+            backend/requirements-cpu-test-lock.txt
+      - run: python scripts/lock_dependencies.py --profile cpu-test --check
+      - run: |
+          python -m pip install --only-binary=:all: --require-hashes -r requirements-cpu-test-lock.txt
+      - run: python -m pip install --no-deps --no-build-isolation -e '.[test,gpu]'
+      - run: python -m pip check
+      - name: Exercise CPU NMS and real ByteTrack without model downloads
+        run: |
+          python - <<'PY'
+          from datetime import UTC, datetime, timedelta
+
+          import open_clip
+          import torch
+          import torchvision
+
+          from bird_vision.domain import Box, RawDetection
+          from bird_vision.tracking import ByteTrackAdapter
+
+          assert torch.version.cuda is None
+          boxes = torch.tensor([[0., 0., 2., 2.], [0., 0., 2., 2.]])
+          assert torchvision.ops.nms(boxes, torch.tensor([0.9, 0.8]), 0.5).tolist() == [0]
+          tracker = ByteTrackAdapter(
+              iou_threshold=0.3, max_missed_frames=2,
+              high_confidence=0.25, low_confidence=0.1,
+          )
+          now = datetime.now(UTC)
+          first = tracker.update((RawDetection(Box(10, 10, 50, 50), 0.9),), now)[0]
+          second = tracker.update(
+              (RawDetection(Box(12, 10, 52, 50), 0.2),), now + timedelta(milliseconds=100)
+          )[0]
+          assert second is first and second.hits == 2 and second.detection_score == 0.2
+          assert not tracker.update((), now + timedelta(milliseconds=200))
+          tracker.clear()
+          print(f"CPU compatibility passed: torch={torch.__version__}, torchvision={torchvision.__version__}")
+          PY
+      - name: Test local OpenCLIP checkpoint, species, and tracking
+        run: pytest -o addopts=-q tests/test_models.py tests/test_species.py tests/test_tracking.py -rs

@@ -1,0 +1,9 @@
+# Install from backend/ after verifying that the cloud image already exposes
+# a CUDA-enabled torch build. Do not add a +cpu torch wheel here.
+# UNLOCKED bootstrap input; pip may replace torch while resolving extras.
+# After validating CUDA and the full pipeline, archive all dependency wheels and run:
+# python scripts/lock_dependencies.py --profile gpu --wheelhouse /path/to/wheelhouse
+# Restore the generated lock using --no-index --find-links /path/to/wheelhouse --require-hashes,
+# then install this project with --no-deps --no-build-isolation -e .
+# No GPU lock is supplied until a real CUDA environment has been validated.
+-e .[gpu]

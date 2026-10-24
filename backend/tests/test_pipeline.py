@@ -1,0 +1,270 @@
+from __future__ import annotations
+
+import time
+from datetime import UTC, datetime
+
+from PIL import Image
+
+import bird_vision.inference.pipeline as pipeline_module
+from bird_vision.domain import FrameJob, SpeciesCandidate, SpeciesPrediction
+from bird_vision.inference.detectors import MockDetector
+from bird_vision.inference.pipeline import VisionPipeline
+from bird_vision.inference.species import MockSpeciesProvider
+
+
+def test_pipeline_confirms_track_and_emits_species_candidate(test_settings) -> None:
+    detector = MockDetector()
+    detector.load()
+    species = MockSpeciesProvider()
+    species.load()
+    pipeline = VisionPipeline(test_settings, detector, species)
+    tracker = pipeline.new_tracker()
+    image = Image.new("RGB", (320, 240), (100, 120, 80))
+
+    result = None
+    for index in range(3):
+        now = datetime.now(UTC)
+        result = pipeline.process(
+            session_id="vs_test",
+            job=FrameJob(
+                frame_id=str(index),
+                image=image,
+                captured_at=now,
+                received_at=now,
+                received_monotonic=time.monotonic(),
+            ),
+            tracker=tracker,
+            queue_ms=0.0,
+            decode_ms=0.0,
+        )
+    assert result is not None
+    assert result.tracks[0].state == "confirmed"
+    assert result.tracks[0].species.state == "candidate"
+    assert result.tracks[0].species.candidates[0].species_id == "mock_bird"
+
+
+def test_pipeline_emits_unknown_when_open_set_gate_rejects(test_settings) -> None:
+    class RejectingSpeciesProvider(MockSpeciesProvider):
+        def classify(self, images, top_k, region_code=None):
+            candidate = SpeciesCandidate(
+                species_id="bird_a",
+                scientific_name="Avis alpha",
+                common_name_zh=None,
+                common_name_en="Alpha bird",
+                score=0.1,
+                similarity=0.1,
+            )
+            return [
+                SpeciesPrediction(
+                    candidates=(candidate,),
+                    accepted=False,
+                    reason="below_similarity_threshold",
+                    top_similarity=0.1,
+                    margin=0.001,
+                    candidate_count=10_970,
+                    region_code=region_code,
+                    catalog_version="v2026",
+                )
+                for _ in images
+            ]
+
+    detector = MockDetector()
+    detector.load()
+    species = RejectingSpeciesProvider()
+    species.load()
+    pipeline = VisionPipeline(test_settings, detector, species)
+    tracker = pipeline.new_tracker()
+    image = Image.new("RGB", (320, 240), (100, 120, 80))
+
+    for index in range(3):
+        now = datetime.now(UTC)
+        result = pipeline.process(
+            session_id="vs_test",
+            job=FrameJob(
+                frame_id=str(index),
+                image=image,
+                captured_at=now,
+                received_at=now,
+                received_monotonic=time.monotonic(),
+                region_code="CN",
+            ),
+            tracker=tracker,
+            queue_ms=0.0,
+            decode_ms=0.0,
+        )
+
+    assert result.tracks[0].species.state == "unknown"
+    assert result.tracks[0].species.decision is not None
+    assert result.tracks[0].species.decision.reason == "below_similarity_threshold"
+    assert result.tracks[0].species.decision.candidate_count == 10_970
+
+
+def test_pipeline_reclassifies_after_refresh_and_uses_recent_species_evidence(
+    test_settings, monkeypatch
+) -> None:
+    class SequenceSpeciesProvider(MockSpeciesProvider):
+        backend = "open-clip"
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.calls = 0
+
+        def classify(self, images, top_k, region_code=None):
+            self.calls += 1
+            species_id, similarity = ("wrong_first", 0.9) if self.calls == 1 else ("correct_later", 0.8)
+            candidate = SpeciesCandidate(
+                species_id=species_id,
+                scientific_name=f"Avis {species_id}",
+                common_name_zh=None,
+                common_name_en=species_id,
+                score=similarity,
+                similarity=similarity,
+            )
+            return [
+                SpeciesPrediction(
+                    candidates=(candidate,),
+                    accepted=True,
+                    reason="accepted",
+                    top_similarity=similarity,
+                    margin=None,
+                    candidate_count=2,
+                    region_code=region_code,
+                    catalog_version="test",
+                )
+                for _ in images
+            ]
+
+    settings = test_settings.model_copy(
+        update={
+            "classification_cooldown_seconds": 0.0,
+            "classification_refresh_seconds": 10.0,
+            "species_evidence_window": 3,
+        }
+    )
+    detector = MockDetector()
+    detector.load()
+    species = SequenceSpeciesProvider()
+    species.load()
+    pipeline = VisionPipeline(settings, detector, species)
+    tracker = pipeline.new_tracker()
+    image = Image.new("RGB", (320, 240), (100, 120, 80))
+    monotonic_values = iter((0.0, 1.0, 2.0, 3.0, 13.0))
+    monkeypatch.setattr(pipeline_module.time, "monotonic", lambda: next(monotonic_values))
+
+    result = None
+    for index in range(5):
+        now = datetime.now(UTC)
+        result = pipeline.process(
+            session_id="vs_test",
+            job=FrameJob(
+                frame_id=str(index),
+                image=image,
+                captured_at=now,
+                received_at=now,
+                received_monotonic=0.0,
+            ),
+            tracker=tracker,
+            queue_ms=0.0,
+            decode_ms=0.0,
+        )
+
+    assert result is not None
+    assert species.calls == 2
+    assert result.tracks[0].species.candidates[0].species_id == "correct_later"
+    assert tracker._tracks[1].pending_best_crop is None
+
+
+def test_aggregate_open_clip_uses_region_bonus_but_keeps_raw_similarity(test_settings) -> None:
+    settings = test_settings.model_copy(update={"species_top_k": 2, "species_region_prior_bonus": 0.015})
+    species = MockSpeciesProvider()
+    species.backend = "open-clip"
+    pipeline = VisionPipeline(settings, MockDetector(), species)
+    candidate_a = SpeciesCandidate(
+        species_id="a",
+        scientific_name="Avis alpha",
+        common_name_zh=None,
+        common_name_en="Alpha",
+        score=0.60,
+        similarity=0.50,
+    )
+    candidate_b = SpeciesCandidate(
+        species_id="b",
+        scientific_name="Avis beta",
+        common_name_zh=None,
+        common_name_en="Beta",
+        score=0.40,
+        similarity=0.49,
+        region_match=True,
+    )
+    history = [
+        SpeciesPrediction(
+            candidates=(candidate_a, candidate_b),
+            accepted=True,
+            reason="accepted",
+            top_similarity=0.50,
+            margin=0.02,
+            candidate_count=100,
+            region_code="CN",
+            catalog_version="test",
+        ),
+        SpeciesPrediction(
+            candidates=(candidate_b, candidate_a),
+            accepted=True,
+            reason="accepted",
+            top_similarity=0.49,
+            margin=0.005,
+            candidate_count=100,
+            region_code="CN",
+            catalog_version="test",
+        ),
+    ]
+
+    aggregate = pipeline._aggregate_predictions(history)
+
+    assert aggregate.candidates[0].species_id == "b"
+    assert aggregate.top_similarity == 0.49
+    assert aggregate.accepted is False
+    assert aggregate.reason == "ambiguous_candidates"
+
+
+def test_aggregate_top1_uses_latest_margin_and_respects_latest_rejection(test_settings) -> None:
+    settings = test_settings.model_copy(update={"species_top_k": 1})
+    species = MockSpeciesProvider()
+    species.backend = "open-clip"
+    pipeline = VisionPipeline(settings, MockDetector(), species)
+    candidate = SpeciesCandidate(
+        species_id="a",
+        scientific_name="Avis alpha",
+        common_name_zh=None,
+        common_name_en="Alpha",
+        score=0.8,
+        similarity=0.8,
+    )
+    accepted = SpeciesPrediction(
+        candidates=(candidate,),
+        accepted=True,
+        reason="accepted",
+        top_similarity=0.8,
+        margin=0.02,
+        candidate_count=100,
+        region_code="CN",
+        catalog_version="test",
+    )
+    rejected = SpeciesPrediction(
+        candidates=(candidate,),
+        accepted=False,
+        reason="ambiguous_candidates",
+        top_similarity=0.8,
+        margin=0.001,
+        candidate_count=100,
+        region_code="CN",
+        catalog_version="test",
+    )
+
+    aggregate = pipeline._aggregate_predictions([accepted, accepted])
+    rejected_aggregate = pipeline._aggregate_predictions([accepted, rejected])
+
+    assert aggregate.accepted is True
+    assert aggregate.margin == 0.02
+    assert rejected_aggregate.accepted is False
+    assert rejected_aggregate.reason == "ambiguous_candidates"

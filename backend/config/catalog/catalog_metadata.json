@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-10-23T14:29:10.494927+00:00",
+  "canonical_taxonomy": {
+    "name": "AviList",
+    "version": "v2026",
+    "released": "2026-10-20",
+    "citation": "AviList Core Team. 2026. AviList: The Global Avian Checklist, v2026.",
+    "doi": "https://doi.org/10.2173/avilist.v2026",
+    "source": "https://explore.avilist.org/data/avilist-2026.json",
+    "license": "CC BY 4.0"
+  },
+  "common_names_and_region_enrichment": {
+    "source": "eBird/Clements taxonomy (zh_SIM) and eBird regional species list",
+    "taxonomy_endpoint": "https://api.ebird.org/v2/ref/taxonomy/ebird?locale=zh_SIM&fmt=json&cat=species",
+    "region_endpoint": "https://api.ebird.org/v2/product/spplist/CN",
+    "region_code": "CN",
+    "note": "The regional file is an eBird occurrence-derived candidate subset, not an official national legal checklist. The global file remains the runtime source of truth."
+  },
+  "catalogs": {
+    "avilist_v2026_global.csv": {
+      "species": 11172,
+      "enabled_species": 10970,
+      "chinese_names": 1857,
+      "sha256": "40152332a2da42d7a1c094301ec204720f9974614ea8eef20d75c61ca183262c"
+    },
+    "avilist_v2026_cn.csv": {
+      "species": 1420,
+      "enabled_species": 1420,
+      "chinese_names": 1411,
+      "sha256": "8a8096e5d5187bb81480c1e1caaac02c960226b282b15181f012253f81248a66"
+    }
+  }
+}

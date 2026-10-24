@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bird-vision-service"
+version = "0.2.0"
+description = "Realtime visual recognition backend for Bird Assistant"
+requires-python = ">=3.11,<3.15"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "pillow>=11,<13",
+  "prometheus-client>=0.21,<1",
+  "pydantic-settings>=2.7,<3",
+  "python-multipart>=0.0.18,<1",
+  "uvicorn[standard]>=0.34,<1",
+]
+
+[project.optional-dependencies]
+gpu = [
+  # Exact builds, including CUDA torch/torchvision, are locked on the target GPU host.
+  "huggingface-hub",
+  "lap>=0.5,<1",
+  "open-clip-torch>=3.2,<4",
+  "torch",
+  "torchvision",
+  "ultralytics>=8.4,<9",
+]
+test = [
+  "httpx>=0.28,<1",
+  "httpx2>=2.16,<3",
+  "pytest>=8.3,<10",
+  "pytest-asyncio>=0.25,<2",
+  "pytest-cov>=7,<8",
+  "ruff>=0.11,<1",
+]
+
+[project.scripts]
+bird-vision = "bird_vision.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q --cov=bird_vision --cov-report=term-missing --cov-fail-under=80"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

@@ -1,0 +1,3 @@
+# Unlocked input. CI uses the generated, hashed requirements-dev-lock.txt.
+# Regenerate on the target Python/platform: python scripts/lock_dependencies.py --profile dev
+-e .[test]

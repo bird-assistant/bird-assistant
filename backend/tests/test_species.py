@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -14,7 +15,9 @@ from PIL import Image
 from bird_vision.config import Settings
 from bird_vision.inference.species import (
     BioClipSpeciesProvider,
+    CandidateSelection,
     DisabledSpeciesProvider,
+    Taxon,
     _directory_fingerprint,
     load_catalog,
 )
@@ -113,7 +116,9 @@ def test_repository_catalog_is_complete_and_versioned() -> None:
 
 
 @pytest.fixture
-def bioclip_provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Any, ...]:
+def bioclip_provider(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[tuple[Any, ...]]:
     torch = pytest.importorskip("torch")
     snapshot = tmp_path / ".cache" / "huggingface" / "snapshots" / ("a" * 40)
     snapshot.mkdir(parents=True)
@@ -139,11 +144,13 @@ def bioclip_provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[A
             species_backend="bioclip",
             species_catalog_path=catalog,
             species_text_cache_dir=tmp_path / "text-cache",
+            species_live_occurrence_cache_path=tmp_path / "occurrence-cache.sqlite3",
             species_warmup_on_start=False,
             device="cpu",
         )
     )
-    return provider, snapshot, open_clip, hub
+    yield provider, snapshot, open_clip, hub
+    provider.close()
 
 
 @pytest.mark.parametrize("revision", [None, "main", "a" * 40])
@@ -161,6 +168,9 @@ def test_bioclip_resolves_same_snapshot_for_model_and_tokenizer(bioclip_provider
     assert provider.ready
     assert provider.metadata()["resolved_revision"] == snapshot.name
     assert provider.metadata()["artifact_fingerprint_sha256"] == _directory_fingerprint(snapshot)
+    cache = provider.metadata()["live_occurrence"]["coordinate_cache"]
+    assert cache["backend"] == "sqlite"
+    assert cache["persistent"]
 
 
 @pytest.mark.parametrize("revision", [None, "main", "v1.0", "abcdef0"])
@@ -428,3 +438,130 @@ def test_bioclip_can_classify_after_cache_hit(bioclip_provider) -> None:
     assert predictions[0].candidate_count == 2
     assert predictions[0].top_similarity == 1.0
     assert predictions[0].reason == "ambiguous_candidates"
+
+
+def test_gbif_preference_keeps_local_candidate_above_similarity_threshold(
+    bioclip_provider,
+) -> None:
+    provider, _, _, _ = bioclip_provider
+    assert provider._prefer_local_ranking(
+        local_top_similarity=0.70,
+    )
+
+
+def test_gbif_preference_ignores_stronger_global_candidate_when_local_is_viable(
+    bioclip_provider,
+) -> None:
+    provider, _, _, _ = bioclip_provider
+    assert provider._prefer_local_ranking(
+        local_top_similarity=0.65,
+    )
+
+
+def test_gbif_preference_keeps_reported_mugimaki_over_little_minivet(
+    bioclip_provider,
+) -> None:
+    provider, _, _, _ = bioclip_provider
+    # Local Mugimaki was 0.689453; global Little Minivet was 0.699707.
+    assert provider._prefer_local_ranking(local_top_similarity=0.689453)
+    assert provider._prefer_local_ranking(
+        local_top_similarity=provider.settings.species_min_similarity
+    )
+    assert provider._decision(0.689453, 0.001) == (False, "ambiguous_candidates")
+
+
+def test_gbif_preference_falls_back_only_when_all_local_matches_are_low(
+    bioclip_provider,
+) -> None:
+    provider, _, _, _ = bioclip_provider
+    assert not provider._prefer_local_ranking(
+        local_top_similarity=0.19,
+    )
+
+
+def test_bioclip_keeps_viable_local_candidate_even_when_global_candidate_is_stronger(
+    bioclip_provider, monkeypatch
+) -> None:
+    provider, _, _, _ = bioclip_provider
+    provider.load()
+    provider._active_taxa.append(Taxon("outside", "Avis outside", None, None, None, None))
+    provider._active_taxon_indices["avis outside"] = 2
+    provider._text_features = provider._torch.tensor(
+        [[1.0, 0.0, 0.0], [0.8, 0.6, 0.0], [0.6, 0.8, 0.0]],
+        dtype=provider._text_features.dtype,
+    )
+    monkeypatch.setattr(
+        provider,
+        "_candidate_selection",
+        lambda region_code, context: CandidateSelection(
+            indices=(0, 1),
+            scope="local_seasonal",
+            region_code="CN",
+            occurrence_counts={"Avis alpha": 3, "Avis beta": 2},
+            coordinates_used=True,
+        ),
+    )
+    prediction = provider.classify([Image.new("RGB", (8, 8))], top_k=2)[0]
+    assert prediction.candidates[0].scientific_name == "Avis beta"
+    assert prediction.candidate_scope == "local_seasonal"
+    assert prediction.candidate_count == 2
+    assert prediction.coordinates_used
+    assert prediction.fallback_reason is None
+
+
+def test_bioclip_uses_global_model_when_all_local_candidates_are_low(
+    bioclip_provider, monkeypatch
+) -> None:
+    provider, _, _, _ = bioclip_provider
+    provider.load()
+    provider._active_taxa.append(Taxon("outside", "Avis outside", None, None, None, None))
+    provider._active_taxon_indices["avis outside"] = 2
+    provider._text_features = provider._torch.tensor(
+        [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.6, 0.8, 0.0]],
+        dtype=provider._text_features.dtype,
+    )
+    monkeypatch.setattr(
+        provider,
+        "_candidate_selection",
+        lambda region_code, context: CandidateSelection(
+            indices=(0, 1),
+            scope="local_seasonal",
+            region_code="CN",
+            occurrence_counts={"Avis alpha": 3, "Avis beta": 2},
+            coordinates_used=True,
+        ),
+    )
+    prediction = provider.classify([Image.new("RGB", (8, 8))], top_k=2)[0]
+    assert prediction.candidates[0].scientific_name == "Avis outside"
+    assert prediction.candidate_scope == "global"
+    assert prediction.candidate_count == 3
+    assert not prediction.coordinates_used
+    assert prediction.fallback_reason == "local_candidates_not_visually_supported"
+
+
+def test_bioclip_keeps_ambiguous_result_inside_viable_local_list(
+    bioclip_provider, monkeypatch
+) -> None:
+    provider, _, _, _ = bioclip_provider
+    provider.load()
+    provider._text_features = provider._torch.tensor(
+        [[1.0, 0.0, 0.0], [0.99995, 0.01, 0.0]],
+        dtype=provider._text_features.dtype,
+    )
+    monkeypatch.setattr(
+        provider,
+        "_candidate_selection",
+        lambda region_code, context: CandidateSelection(
+            indices=(0, 1),
+            scope="local_seasonal",
+            region_code="CN",
+            occurrence_counts={"Avis alpha": 3, "Avis beta": 2},
+            coordinates_used=True,
+        ),
+    )
+    prediction = provider.classify([Image.new("RGB", (8, 8))], top_k=2)[0]
+    assert not prediction.accepted
+    assert prediction.reason == "ambiguous_candidates"
+    assert prediction.candidate_scope == "local_seasonal"
+    assert prediction.coordinates_used
+    assert prediction.fallback_reason is None

@@ -53,8 +53,12 @@ class Settings(BaseSettings):
     species_occurrence_path: Path | None = None
     species_live_occurrence_enabled: bool = True
     species_live_occurrence_radius_km: float = Field(default=100.0, ge=1.0, le=500.0)
-    species_live_occurrence_facet_limit: int = Field(default=100, ge=2, le=1000)
-    species_live_occurrence_cache_ttl_seconds: int = Field(default=86_400, ge=60, le=2_592_000)
+    species_live_occurrence_facet_limit: int = Field(default=300, ge=2, le=1000)
+    species_live_occurrence_cache_path: Path = Path("runtime/gbif-occurrence-cache.sqlite3")
+    species_live_occurrence_cache_max_entries: int = Field(default=2048, ge=16, le=100_000)
+    species_live_occurrence_cache_ttl_seconds: int = Field(
+        default=2_592_000, ge=60, le=31_536_000
+    )
     species_live_occurrence_timeout_seconds: float = Field(default=8.0, gt=1.0, le=30.0)
     species_temporal_window_months: int = Field(default=1, ge=0, le=3)
     species_min_local_candidates: int = Field(default=2, ge=2, le=10_000)

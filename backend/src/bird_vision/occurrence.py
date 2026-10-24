@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import random
+import sqlite3
 import time
 import urllib.error
 import urllib.parse
@@ -186,6 +187,316 @@ class OccurrenceIndex:
         }
 
 
+class _CorruptOccurrenceCache(sqlite3.DatabaseError):
+    pass
+
+
+class OccurrenceCacheStore:
+    """Persist completed regional GBIF queries across service restarts."""
+
+    SCHEMA_VERSION = 1
+
+    def __init__(self, path: Path, *, max_entries: int) -> None:
+        self.path = path.expanduser().resolve()
+        self.max_entries = max_entries
+        self._lock = RLock()
+        self._connection: sqlite3.Connection | None = None
+        self._hits = 0
+        self._misses = 0
+        self._writes = 0
+        self._evictions = 0
+        self._invalid_rows = 0
+        self._last_error: str | None = None
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            self._open()
+        except sqlite3.DatabaseError as exc:
+            if not isinstance(exc, _CorruptOccurrenceCache) and getattr(
+                exc, "sqlite_errorcode", None
+            ) not in {
+                sqlite3.SQLITE_CORRUPT,
+                sqlite3.SQLITE_NOTADB,
+            }:
+                raise
+            self._recover_corrupt_database()
+            self._open()
+
+    def _open(self) -> None:
+        connection = sqlite3.connect(self.path, timeout=0.25, check_same_thread=False)
+        try:
+            connection.execute("PRAGMA journal_mode=WAL")
+            connection.execute("PRAGMA synchronous=NORMAL")
+            connection.execute("PRAGMA busy_timeout=250")
+            version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+            if version not in {0, self.SCHEMA_VERSION}:
+                raise ValueError(f"unsupported occurrence cache schema {version}")
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS occurrence_cache (
+                    cache_key TEXT PRIMARY KEY,
+                    payload_json TEXT,
+                    created_at REAL NOT NULL,
+                    expires_at REAL NOT NULL,
+                    last_accessed REAL NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS occurrence_cache_expiry "
+                "ON occurrence_cache(expires_at)"
+            )
+            connection.execute(f"PRAGMA user_version={self.SCHEMA_VERSION}")
+            check = connection.execute("PRAGMA quick_check").fetchone()
+            if not check or check[0] != "ok":
+                raise _CorruptOccurrenceCache(
+                    f"occurrence cache integrity check failed: {check}"
+                )
+            connection.commit()
+        except Exception:
+            connection.close()
+            raise
+        self._connection = connection
+
+    def _recover_corrupt_database(self) -> None:
+        if self._connection is not None:
+            self._connection.close()
+            self._connection = None
+        suffix = f".corrupt-{time.time_ns()}"
+        for path in (self.path, Path(f"{self.path}-wal"), Path(f"{self.path}-shm")):
+            if path.exists():
+                path.replace(Path(f"{path}{suffix}"))
+        self._last_error = "recovered corrupt occurrence cache"
+
+    def get(self, cache_key: str, *, ttl_seconds: int) -> tuple[bool, dict[str, int] | None]:
+        found, payload, _ = self.get_entry(cache_key, ttl_seconds=ttl_seconds)
+        return found, payload
+
+    def get_entry(
+        self, cache_key: str, *, ttl_seconds: int
+    ) -> tuple[bool, dict[str, int] | None, float]:
+        now = time.time()
+        with self._lock:
+            connection = self._require_connection()
+            row = connection.execute(
+                "SELECT payload_json, created_at, expires_at FROM occurrence_cache WHERE cache_key = ?",
+                (cache_key,),
+            ).fetchone()
+            if row is None:
+                self._misses += 1
+                return False, None, 0.0
+            payload_json, created_at, expires_at = row
+            if now >= min(float(expires_at), float(created_at) + ttl_seconds):
+                try:
+                    connection.execute(
+                        "DELETE FROM occurrence_cache WHERE cache_key = ?", (cache_key,)
+                    )
+                    connection.commit()
+                except sqlite3.Error as exc:
+                    connection.rollback()
+                    self._last_error = f"{type(exc).__name__}: {exc}"
+                self._misses += 1
+                return False, None, 0.0
+            try:
+                payload = None if payload_json is None else json.loads(payload_json)
+                if payload is not None and (
+                    not isinstance(payload, dict)
+                    or any(
+                        not isinstance(name, str)
+                        or not name
+                        or not isinstance(count, int)
+                        or isinstance(count, bool)
+                        or count < 1
+                        for name, count in payload.items()
+                    )
+                ):
+                    raise ValueError("invalid occurrence cache payload")
+            except (TypeError, ValueError, json.JSONDecodeError):
+                try:
+                    connection.execute(
+                        "DELETE FROM occurrence_cache WHERE cache_key = ?", (cache_key,)
+                    )
+                    connection.commit()
+                except sqlite3.Error as exc:
+                    connection.rollback()
+                    self._last_error = f"{type(exc).__name__}: {exc}"
+                self._invalid_rows += 1
+                self._misses += 1
+                return False, None, 0.0
+            try:
+                connection.execute(
+                    "UPDATE occurrence_cache SET last_accessed = ? WHERE cache_key = ?",
+                    (now, cache_key),
+                )
+                connection.commit()
+            except sqlite3.Error as exc:
+                connection.rollback()
+                self._last_error = f"{type(exc).__name__}: {exc}"
+            self._hits += 1
+            remaining = min(float(expires_at), float(created_at) + ttl_seconds) - now
+            return True, payload, max(0.0, remaining)
+
+    def put(self, cache_key: str, payload: dict[str, int] | None, *, ttl_seconds: int) -> None:
+        now = time.time()
+        payload_json = (
+            json.dumps(payload, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+            if payload is not None
+            else None
+        )
+        with self._lock:
+            connection = self._require_connection()
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO occurrence_cache (
+                        cache_key, payload_json, created_at, expires_at, last_accessed
+                    ) VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(cache_key) DO UPDATE SET
+                        payload_json = excluded.payload_json,
+                        created_at = excluded.created_at,
+                        expires_at = excluded.expires_at,
+                        last_accessed = excluded.last_accessed
+                    """,
+                    (cache_key, payload_json, now, now + ttl_seconds, now),
+                )
+                connection.execute("DELETE FROM occurrence_cache WHERE expires_at <= ?", (now,))
+                count = int(
+                    connection.execute("SELECT COUNT(*) FROM occurrence_cache").fetchone()[0]
+                )
+                excess = max(0, count - self.max_entries)
+                if excess:
+                    connection.execute(
+                        "DELETE FROM occurrence_cache WHERE cache_key IN ("
+                        "SELECT cache_key FROM occurrence_cache ORDER BY last_accessed ASC LIMIT ?)",
+                        (excess,),
+                    )
+                connection.commit()
+            except sqlite3.Error:
+                connection.rollback()
+                raise
+            self._evictions += excess
+            self._writes += 1
+
+    def metadata(self) -> dict[str, Any]:
+        with self._lock:
+            connection = self._require_connection()
+            now = time.time()
+            entries = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM occurrence_cache WHERE expires_at > ?", (now,)
+                ).fetchone()[0]
+            )
+            files = (self.path, Path(f"{self.path}-wal"), Path(f"{self.path}-shm"))
+            return {
+                "backend": "sqlite",
+                "persistent": True,
+                "path": str(self.path),
+                "schema_version": self.SCHEMA_VERSION,
+                "max_entries": self.max_entries,
+                "entries": entries,
+                "bytes": sum(path.stat().st_size for path in files if path.exists()),
+                "hits": self._hits,
+                "misses": self._misses,
+                "writes": self._writes,
+                "evictions": self._evictions,
+                "invalid_rows": self._invalid_rows,
+                "last_error": self._last_error,
+            }
+
+    def merge_from(self, source_path: Path) -> int:
+        source = source_path.expanduser().resolve()
+        if source == self.path:
+            return 0
+        source_connection = sqlite3.connect(f"file:{source}?mode=ro", uri=True, timeout=0.25)
+        try:
+            version = int(source_connection.execute("PRAGMA user_version").fetchone()[0])
+            if version != self.SCHEMA_VERSION:
+                raise ValueError(f"unsupported source occurrence cache schema {version}")
+            now = time.time()
+            rows = source_connection.execute(
+                "SELECT cache_key, payload_json, created_at, expires_at, last_accessed "
+                "FROM occurrence_cache WHERE expires_at > ?",
+                (now,),
+            ).fetchall()
+        finally:
+            source_connection.close()
+        if not rows:
+            return 0
+        with self._lock:
+            connection = self._require_connection()
+            try:
+                connection.execute("DELETE FROM occurrence_cache WHERE expires_at <= ?", (now,))
+                connection.executemany(
+                    """
+                    INSERT INTO occurrence_cache (
+                        cache_key, payload_json, created_at, expires_at, last_accessed
+                    ) VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(cache_key) DO UPDATE SET
+                        payload_json = excluded.payload_json,
+                        created_at = excluded.created_at,
+                        expires_at = excluded.expires_at,
+                        last_accessed = excluded.last_accessed
+                    WHERE excluded.created_at >= occurrence_cache.created_at
+                    """,
+                    rows,
+                )
+                count = int(
+                    connection.execute("SELECT COUNT(*) FROM occurrence_cache").fetchone()[0]
+                )
+                excess = max(0, count - self.max_entries)
+                if excess:
+                    connection.execute(
+                        "DELETE FROM occurrence_cache WHERE cache_key IN ("
+                        "SELECT cache_key FROM occurrence_cache ORDER BY last_accessed ASC LIMIT ?)",
+                        (excess,),
+                    )
+                connection.commit()
+            except sqlite3.Error:
+                connection.rollback()
+                raise
+            self._evictions += excess
+        return len(rows)
+
+    def snapshot(self, destination: Path) -> Path:
+        destination = destination.expanduser().resolve()
+        if destination == self.path:
+            raise ValueError("occurrence cache snapshot must not replace its source")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temporary = destination.with_name(f".{destination.name}.{time.time_ns()}.tmp")
+        with self._lock:
+            connection = self._require_connection()
+            snapshot = sqlite3.connect(temporary)
+            try:
+                connection.backup(snapshot)
+                snapshot.commit()
+            except Exception:
+                temporary.unlink(missing_ok=True)
+                raise
+            finally:
+                snapshot.close()
+        temporary.replace(destination)
+        return destination
+
+    def record_error(self, error: Exception) -> None:
+        with self._lock:
+            self._last_error = f"{type(error).__name__}: {error}"
+
+    def close(self) -> None:
+        with self._lock:
+            if self._connection is not None:
+                try:
+                    self._connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                except sqlite3.Error as exc:
+                    self._last_error = f"{type(exc).__name__}: {exc}"
+                finally:
+                    self._connection.close()
+                    self._connection = None
+
+    def _require_connection(self) -> sqlite3.Connection:
+        if self._connection is None:
+            raise RuntimeError("occurrence cache is closed")
+        return self._connection
+
+
 class DynamicOccurrenceResolver:
     """Look up birds around arbitrary coordinates through GBIF and cache the result."""
 
@@ -194,8 +505,11 @@ class DynamicOccurrenceResolver:
         *,
         api_url: str = "https://api.gbif.org/v1",
         radius_km: float = 100.0,
-        facet_limit: int = 100,
-        cache_ttl_seconds: int = 86_400,
+        facet_limit: int = 300,
+        cache_ttl_seconds: int = 2_592_000,
+        cache_path: Path | None = None,
+        cache_max_entries: int = 2048,
+        allowed_names: set[str] | frozenset[str] | None = None,
         request_timeout_seconds: float = 8.0,
     ) -> None:
         self.api_url = api_url.rstrip("/")
@@ -203,11 +517,31 @@ class DynamicOccurrenceResolver:
         self.facet_limit = facet_limit
         self.cache_ttl_seconds = cache_ttl_seconds
         self.request_timeout_seconds = request_timeout_seconds
+        self.allowed_names = frozenset(allowed_names) if allowed_names is not None else None
+        self._allowed_names_by_genus: dict[str, tuple[str, ...]] = {}
+        if self.allowed_names is not None:
+            names_by_genus: dict[str, list[str]] = {}
+            for name in self.allowed_names:
+                parts = name.split()
+                names_by_genus.setdefault(parts[0].casefold(), []).append(name)
+            self._allowed_names_by_genus = {
+                genus: tuple(sorted(names, key=len, reverse=True))
+                for genus, names in names_by_genus.items()
+            }
+        self._allowed_names_sha256 = (
+            hashlib.sha256("\n".join(sorted(self.allowed_names)).encode()).hexdigest()
+            if self.allowed_names is not None
+            else None
+        )
+        self._cache_store = (
+            OccurrenceCacheStore(cache_path, max_entries=cache_max_entries)
+            if cache_path is not None
+            else None
+        )
         self._cache: dict[
-            tuple[Any, ...], tuple[float, OccurrenceSelection | OccurrenceLookupError | None]
+            str, tuple[float, OccurrenceSelection | OccurrenceLookupError | None]
         ] = {}
-        self._name_cache: dict[int, tuple[str, ...]] = {}
-        self._pending: dict[tuple[Any, ...], Future[OccurrenceSelection | None]] = {}
+        self._pending: dict[str, Future[OccurrenceSelection | None]] = {}
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="gbif-occurrence")
         self._closed = Event()
         self._lock = RLock()
@@ -223,7 +557,9 @@ class DynamicOccurrenceResolver:
         """Return cached candidates or start one bounded background lookup."""
         if not _valid_coordinate(latitude, longitude):
             return None
-        cache_key = self._cache_key(latitude, longitude, self._query_months(observed_at.month, window_months))
+        query_months = self._query_months(observed_at.month, window_months)
+        latitude, longitude = self._cache_coordinates(latitude, longitude)
+        cache_key = self._cache_key(latitude, longitude, query_months)
         with self._lock:
             if self._closed.is_set():
                 raise OccurrenceLookupError("GBIF resolver is closed")
@@ -232,6 +568,15 @@ class DynamicOccurrenceResolver:
                 if isinstance(cached[1], OccurrenceLookupError):
                     raise OccurrenceLookupError(str(cached[1]))
                 return cached[1]
+            persisted = self._persistent_result(
+                cache_key,
+                latitude=latitude,
+                longitude=longitude,
+                observed_at=observed_at,
+                window_months=window_months,
+            )
+            if persisted[0]:
+                return persisted[1]
             if cache_key not in self._pending:
                 if len(self._pending) >= 8:
                     raise OccurrenceLookupError("GBIF background lookup capacity reached")
@@ -268,6 +613,7 @@ class DynamicOccurrenceResolver:
         if not _valid_coordinate(latitude, longitude):
             return None
         query_months = self._query_months(observed_at.month, window_months)
+        latitude, longitude = self._cache_coordinates(latitude, longitude)
         cache_key = self._cache_key(latitude, longitude, query_months)
         with self._lock:
             if self._closed.is_set():
@@ -277,17 +623,23 @@ class DynamicOccurrenceResolver:
                 if isinstance(cached[1], OccurrenceLookupError):
                     raise OccurrenceLookupError(str(cached[1]))
                 return cached[1]
+            persisted = self._persistent_result(
+                cache_key,
+                latitude=latitude,
+                longitude=longitude,
+                observed_at=observed_at,
+                window_months=window_months,
+            )
+            if persisted[0]:
+                return persisted[1]
 
         try:
-            key_counts: dict[int, int] = {}
-            for month in query_months:
-                for species_key, count in self._facet(latitude, longitude, month).items():
-                    key_counts[species_key] = key_counts.get(species_key, 0) + count
-            names = self._scientific_names(key_counts)
             occurrence_counts: dict[str, int] = {}
-            for species_key, count in key_counts.items():
-                for name in names.get(species_key, ()):
-                    occurrence_counts[name] = occurrence_counts.get(name, 0) + count
+            for month in query_months:
+                for scientific_name, count in self._facet(latitude, longitude, month).items():
+                    name = self._catalog_name(scientific_name)
+                    if name is not None:
+                        occurrence_counts[name] = occurrence_counts.get(name, 0) + count
             selection = None
             if occurrence_counts:
                 site = OccurrenceSite(
@@ -314,11 +666,99 @@ class DynamicOccurrenceResolver:
 
     def _cache_key(
         self, latitude: float, longitude: float, query_months: tuple[int | None, ...]
-    ) -> tuple[Any, ...]:
-        return (round(latitude, 3), round(longitude, 3), query_months, self.radius_km)
+    ) -> str:
+        payload = json.dumps(
+            {
+                "version": 6,
+                "latitude": latitude,
+                "longitude": longitude,
+                "months": query_months,
+                "radius_km": self.radius_km,
+                "api_url": self.api_url,
+                "taxon_key": 212,
+                "facet": "scientificName",
+                "allowed_names_sha256": self._allowed_names_sha256,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(payload.encode()).hexdigest()
+
+    def _cache_coordinates(self, latitude: float, longitude: float) -> tuple[float, float]:
+        target_degrees = min(0.1, self.radius_km / 1110.0)
+        precision = max(0, min(3, round(-math.log10(target_degrees))))
+        return round(latitude, precision), round(longitude, precision)
+
+    def _persistent_result(
+        self,
+        cache_key: str,
+        *,
+        latitude: float,
+        longitude: float,
+        observed_at: datetime,
+        window_months: int | None,
+    ) -> tuple[bool, OccurrenceSelection | None]:
+        if self._cache_store is None:
+            return False, None
+        try:
+            found, counts, remaining = self._cache_store.get_entry(
+                cache_key, ttl_seconds=self.cache_ttl_seconds
+            )
+        except (OSError, RuntimeError, sqlite3.Error) as exc:
+            raise OccurrenceLookupError(f"persistent occurrence cache read failed: {exc}") from exc
+        if not found:
+            return False, None
+        selection = self._selection_from_counts(
+            latitude=latitude,
+            longitude=longitude,
+            observed_at=observed_at,
+            window_months=window_months,
+            occurrence_counts=counts,
+        )
+        self._remember(cache_key, time.monotonic() + remaining, selection)
+        return True, selection
+
+    def _remember(
+        self,
+        cache_key: str,
+        expires_monotonic: float,
+        result: OccurrenceSelection | OccurrenceLookupError | None,
+    ) -> None:
+        self._cache.pop(cache_key, None)
+        self._cache[cache_key] = (expires_monotonic, result)
+        if len(self._cache) > 256:
+            self._cache.pop(next(iter(self._cache)))
+
+    def _selection_from_counts(
+        self,
+        *,
+        latitude: float,
+        longitude: float,
+        observed_at: datetime,
+        window_months: int | None,
+        occurrence_counts: dict[str, int] | None,
+    ) -> OccurrenceSelection | None:
+        if not occurrence_counts:
+            return None
+        site = OccurrenceSite(
+            site_id=self._site_id(latitude, longitude),
+            name=f"GBIF cached radius {self.radius_km:g} km",
+            latitude=latitude,
+            longitude=longitude,
+            radius_km=self.radius_km,
+            country_code=None,
+            monthly_counts={1: occurrence_counts},
+        )
+        return OccurrenceSelection(
+            site=site,
+            distance_km=0.0,
+            observation_month=observed_at.month if window_months is not None else None,
+            occurrence_counts=occurrence_counts,
+            dataset_version="gbif-live",
+        )
 
     def _store_cache(
-        self, cache_key: tuple[Any, ...], result: OccurrenceSelection | OccurrenceLookupError | None
+        self, cache_key: str, result: OccurrenceSelection | OccurrenceLookupError | None
     ) -> None:
         with self._lock:
             if self._closed.is_set():
@@ -328,20 +768,32 @@ class DynamicOccurrenceResolver:
                 if isinstance(result, OccurrenceLookupError)
                 else self.cache_ttl_seconds
             )
-            self._cache.pop(cache_key, None)
-            self._cache[cache_key] = (time.monotonic() + ttl, result)
-            if len(self._cache) > 256:
-                self._cache.pop(next(iter(self._cache)))
+            self._remember(cache_key, time.monotonic() + ttl, result)
+            if self._cache_store is not None and not isinstance(result, OccurrenceLookupError):
+                try:
+                    self._cache_store.put(
+                        cache_key,
+                        result.occurrence_counts if result is not None else None,
+                        ttl_seconds=self.cache_ttl_seconds,
+                    )
+                except (OSError, RuntimeError, sqlite3.Error) as exc:
+                    self._cache_store.record_error(exc)
 
     def close(self) -> None:
         with self._lock:
             self._closed.set()
             self._cache.clear()
-            self._name_cache.clear()
+            if self._cache_store is not None:
+                self._cache_store.close()
         self._executor.shutdown(wait=False, cancel_futures=True)
 
     def metadata(self) -> dict[str, Any]:
         with self._lock:
+            persistent_cache = (
+                self._cache_store.metadata()
+                if self._cache_store is not None and not self._closed.is_set()
+                else {"backend": "memory", "persistent": False}
+            )
             return {
                 "enabled": True,
                 "api_url": self.api_url,
@@ -349,17 +801,38 @@ class DynamicOccurrenceResolver:
                 "facet_limit": self.facet_limit,
                 "cache_ttl_seconds": self.cache_ttl_seconds,
                 "cached_coordinate_queries": len(self._cache),
-                "cached_species_names": len(self._name_cache),
                 "pending_coordinate_queries": len(self._pending),
+                "coordinate_cache": persistent_cache,
             }
+
+    def persistent_result_available(
+        self,
+        *,
+        latitude: float,
+        longitude: float,
+        observed_at: datetime,
+        window_months: int | None,
+    ) -> bool:
+        if self._cache_store is None or not _valid_coordinate(latitude, longitude):
+            return False
+        latitude, longitude = self._cache_coordinates(latitude, longitude)
+        cache_key = self._cache_key(
+            latitude,
+            longitude,
+            self._query_months(observed_at.month, window_months),
+        )
+        found, _, _ = self._cache_store.get_entry(
+            cache_key, ttl_seconds=self.cache_ttl_seconds
+        )
+        return found
 
     def _query_months(self, month: int, window_months: int | None) -> tuple[int | None, ...]:
         if window_months is None:
             return (None,)
         return tuple(((month - 1 + delta) % 12) + 1 for delta in range(-window_months, window_months + 1))
 
-    def _facet(self, latitude: float, longitude: float, month: int | None) -> dict[int, int]:
-        merged: dict[int, int] = {}
+    def _facet(self, latitude: float, longitude: float, month: int | None) -> dict[str, int]:
+        merged: dict[str, int] = {}
         offset = 0
         seen_pages: set[tuple[tuple[str, str], ...]] = set()
         while True:
@@ -371,7 +844,7 @@ class DynamicOccurrenceResolver:
                 "occurrence_status": "PRESENT",
                 "geometry": _circle_wkts(latitude, longitude, self.radius_km),
                 "limit": 0,
-                "facet": "speciesKey",
+                "facet": "scientificName",
                 "facetLimit": self.facet_limit,
                 "facetOffset": offset,
             }
@@ -397,55 +870,28 @@ class DynamicOccurrenceResolver:
                 raise ValueError("GBIF species facet pagination returned a repeated page")
             seen_pages.add(page_signature)
             for item in counts:
-                name = str(item.get("name", ""))
+                name = str(item.get("name", "")).strip()
                 count = int(item.get("count", 0))
-                if name.isdigit() and count > 0:
-                    key = int(name)
-                    merged[key] = merged.get(key, 0) + count
+                if count > 0 and not name:
+                    raise ValueError("GBIF scientific name facet contains an empty name")
+                if name and count > 0:
+                    merged[name] = merged.get(name, 0) + count
             if len(counts) < self.facet_limit:
                 return merged
             offset += len(counts)
 
-    def _scientific_names(self, key_counts: dict[int, int]) -> dict[int, tuple[str, ...]]:
-        names: dict[int, tuple[str, ...]] = {}
-        missing: list[int] = []
-        with self._lock:
-            for species_key in key_counts:
-                cached = self._name_cache.get(species_key)
-                if cached is None:
-                    missing.append(species_key)
-                else:
-                    names[species_key] = cached
-        # Resolve every page so record frequency never excludes a local species.
-        with ThreadPoolExecutor(max_workers=min(8, max(1, len(missing)))) as executor:
-            resolved = executor.map(self._species_names, missing)
-            for species_key, candidates in zip(missing, resolved, strict=True):
-                names[species_key] = candidates
-            with self._lock:
-                if not self._closed.is_set():
-                    self._name_cache.update(names)
-        return names
-
-    def _species_names(self, species_key: int) -> tuple[str, ...]:
-        if self._closed.is_set():
-            raise OccurrenceLookupError("GBIF resolver is closed")
-        payload = _request_json(
-            f"{self.api_url}/species/{species_key}",
-            timeout=self.request_timeout_seconds,
-            stop_event=self._closed,
-        )
-        candidates: list[str] = []
-        for value in (
-            payload.get("acceptedScientificName"),
-            payload.get("canonicalName"),
-            payload.get("scientificName"),
-            payload.get("species"),
-        ):
-            if isinstance(value, str) and value.strip() and value.strip() not in candidates:
-                candidates.append(value.strip())
-        if not candidates:
-            raise ValueError(f"GBIF species {species_key} has no scientific name")
-        return tuple(candidates)
+    def _catalog_name(self, scientific_name: str) -> str | None:
+        normalized = " ".join(scientific_name.split())
+        if self.allowed_names is None:
+            parts = normalized.split()
+            return " ".join(parts[:2]) if len(parts) >= 2 else None
+        genus = normalized.split(maxsplit=1)[0].casefold()
+        folded = normalized.casefold()
+        for candidate in self._allowed_names_by_genus.get(genus, ()):
+            candidate_folded = candidate.casefold()
+            if folded == candidate_folded or folded.startswith(f"{candidate_folded} "):
+                return candidate
+        return None
 
     @staticmethod
     def _site_id(latitude: float, longitude: float) -> str:

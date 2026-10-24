@@ -31,6 +31,9 @@ def test_location_defaults_are_global_and_unscoped() -> None:
     assert settings.species_default_region_code is None
     assert settings.species_occurrence_path is None
     assert settings.species_live_occurrence_enabled
+    assert settings.species_live_occurrence_cache_path.name == "gbif-occurrence-cache.sqlite3"
+    assert settings.species_live_occurrence_cache_ttl_seconds == 2_592_000
+    assert settings.species_live_occurrence_facet_limit == 300
 
 
 def test_principal_session_quota_cannot_exceed_global_capacity() -> None:

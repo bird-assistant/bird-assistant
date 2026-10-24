@@ -273,6 +273,26 @@ def test_openapi_documents_realtime_contract(test_settings) -> None:
     assert "/api/v1/vision/sessions/{session_id}/events" not in schema["paths"]
     assert "FrameAcceptedResponse" in schema["components"]["schemas"]
     assert "/api/v1/species/catalog" in schema["paths"]
+    assert "/api/v1/species/occurrence/cache/prepare" in schema["paths"]
+
+
+def test_occurrence_cache_prepare_reports_unavailable_for_disabled_provider(test_settings) -> None:
+    with TestClient(create_app(test_settings)) as client:
+        response = client.post(
+            "/api/v1/species/occurrence/cache/prepare",
+            json={
+                "latitude": 31.8206,
+                "longitude": 117.2272,
+                "observed_at": "2026-05-28T19:06:51+08:00",
+                "time_precision": "exact",
+            },
+        )
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "unavailable",
+        "source": None,
+        "candidate_count": 0,
+    }
 
 
 def test_catalog_info_and_search_are_available_without_loading_model(tmp_path) -> None:

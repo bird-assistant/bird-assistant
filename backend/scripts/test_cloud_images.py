@@ -25,8 +25,10 @@ import shlex
 import shutil
 import signal
 import socket
+import sqlite3
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -97,7 +99,7 @@ def parse_args() -> argparse.Namespace:
         "--frames",
         type=int,
         default=0,
-        help="每张图模拟的连续帧数；0 表示自动使用云端轨迹确认帧数",
+        help="每张图模拟的连续帧数；实际值不会低于云端轨迹确认帧数",
     )
     parser.add_argument(
         "--startup-timeout",
@@ -109,7 +111,12 @@ def parse_args() -> argparse.Namespace:
         "--local-candidate-timeout",
         type=int,
         default=90,
-        help="等待合肥 GBIF 当地候选后台查询完成的秒数",
+        help="等待当地 GBIF 候选后台查询完成的秒数",
+    )
+    parser.add_argument(
+        "--occurrence-cache-seed",
+        type=Path,
+        help="本地预热的 SQLite 区域缓存；上传后与云端缓存合并",
     )
     parser.add_argument(
         "--prepare-only",
@@ -122,6 +129,8 @@ def parse_args() -> argparse.Namespace:
 def validate_args(args: argparse.Namespace) -> None:
     args.image_dir = args.image_dir.expanduser().resolve()
     args.output_root = args.output_root.expanduser().resolve()
+    if args.occurrence_cache_seed is not None:
+        args.occurrence_cache_seed = args.occurrence_cache_seed.expanduser().resolve()
     args.region_code = args.region_code.upper()
     if not args.image_dir.is_dir():
         raise TestFailure(f"测试图片目录不存在：{args.image_dir}")
@@ -137,6 +146,60 @@ def validate_args(args: argparse.Namespace) -> None:
         raise TestFailure("--local-candidate-timeout 必须在 0 到 600 秒之间")
     if not -90.0 <= args.latitude <= 90.0 or not -180.0 <= args.longitude <= 180.0:
         raise TestFailure("经纬度超出有效范围")
+    if args.occurrence_cache_seed is not None and not args.occurrence_cache_seed.is_file():
+        raise TestFailure("--occurrence-cache-seed 必须是现有 SQLite 文件")
+
+
+def sync_backend(args: argparse.Namespace) -> None:
+    source = PROJECT_ROOT / "backend"
+    command = [
+        "rsync",
+        "-rz",
+        "--links",
+        "--exclude",
+        ".venv",
+        "--exclude",
+        ".env",
+        "--exclude",
+        "runtime",
+        "--exclude",
+        "results",
+        f"{source}/",
+        f"{args.ssh_host}:{args.remote_backend.rstrip('/')}/",
+    ]
+    try:
+        result = subprocess.run(command, text=True, timeout=120, check=False)
+    except FileNotFoundError as exc:
+        raise TestFailure("本机未安装 rsync，无法同步后端代码") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise TestFailure("同步后端代码超时") from exc
+    if result.returncode != 0:
+        raise TestFailure(f"同步后端代码失败，rsync 退出码 {result.returncode}")
+    if args.occurrence_cache_seed is None:
+        return
+    with tempfile.TemporaryDirectory(prefix="bird-gbif-seed-") as temporary_directory:
+        snapshot_path = Path(temporary_directory) / "seed.sqlite3"
+        source = sqlite3.connect(
+            f"file:{args.occurrence_cache_seed}?mode=ro", uri=True, timeout=2.0
+        )
+        snapshot = sqlite3.connect(snapshot_path)
+        try:
+            source.backup(snapshot)
+            snapshot.commit()
+        except sqlite3.Error as exc:
+            raise TestFailure(f"创建 GBIF 区域缓存快照失败：{exc}") from exc
+        finally:
+            snapshot.close()
+            source.close()
+        seed_command = [
+            "rsync",
+            "-z",
+            str(snapshot_path),
+            f"{args.ssh_host}:{args.remote_backend.rstrip('/')}/.gbif-occurrence-seed.sqlite3",
+        ]
+        result = subprocess.run(seed_command, text=True, timeout=120, check=False)
+    if result.returncode != 0:
+        raise TestFailure(f"上传 GBIF 区域缓存失败，rsync 退出码 {result.returncode}")
 
 
 def image_capture_time(source: Path, opened: Image.Image) -> tuple[datetime, str]:
@@ -382,28 +445,94 @@ if [[ ! -f "$backend/.env" ]]; then
   echo "云端缺少 $backend/.env" >&2
   exit 12
 fi
-
 cd "$backend"
 mkdir -p runtime results
 log_file="$backend/results/cloud-image-test-service.log"
 pid_file="$backend/runtime/cloud-image-test-service.pid"
 service_status="existing"
 
+stop_managed_service() {
+  if [[ ! -f "$pid_file" ]]; then
+    return
+  fi
+  managed_pid=$(cat "$pid_file")
+  if [[ "$managed_pid" =~ ^[0-9]+$ ]] && kill -0 "$managed_pid" 2>/dev/null; then
+    if ! "$venv/bin/python" - "$managed_pid" "$backend" "$port" <<'PY'
+import os
+import sys
+from pathlib import Path
+
+pid, backend, port = int(sys.argv[1]), str(Path(sys.argv[2]).resolve()), sys.argv[3]
+arguments = Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0")
+arguments = [argument.decode(errors="replace") for argument in arguments if argument]
+working_directory = str(Path(f"/proc/{pid}/cwd").resolve())
+module = any(
+    arguments[index : index + 2] == ["-m", "bird_vision.cli"]
+    for index in range(len(arguments) - 1)
+)
+configured_port = any(
+    arguments[index : index + 2] == ["--port", port]
+    for index in range(len(arguments) - 1)
+)
+raise SystemExit(0 if module and configured_port and working_directory == backend else 1)
+PY
+    then
+      echo "PID 文件指向的进程不是 Bird Vision 测试服务：$managed_pid" >&2
+      exit 19
+    fi
+    kill "$managed_pid"
+    for _ in {1..80}; do
+      kill -0 "$managed_pid" 2>/dev/null || break
+      sleep 0.25
+    done
+    if kill -0 "$managed_pid" 2>/dev/null; then
+      echo "测试服务进程 $managed_pid 未能在 20 秒内停止" >&2
+      exit 18
+    fi
+  fi
+  rm -f "$pid_file"
+}
+
 health_code=$(
   curl -sS --max-time 3 -o /dev/null -w '%{http_code}' \
     "http://127.0.0.1:$port/healthz" || true
 )
-if [[ "$health_code" == "200" ]]; then
-  ready_code=$(
-    curl -sS --max-time 10 -o /tmp/bird-ready.json -w '%{http_code}' \
-      "http://127.0.0.1:$port/readyz" || true
-  )
-  if [[ "$ready_code" != "200" ]]; then
-    echo "端口 $port 已有 Bird Vision 服务，但它未就绪：" >&2
-    cat /tmp/bird-ready.json >&2 || true
-    exit 13
+if [[ -f "$pid_file" ]]; then
+  echo "BIRD_TEST_PROGRESS=正在重启测试服务以加载刚同步的代码"
+  stop_managed_service
+  health_code=""
+elif [[ "$health_code" == "200" ]]; then
+    echo "端口 $port 已有非测试脚本管理的服务；为避免误停服务，请先人工停止后重试" >&2
+    exit 17
+fi
+
+if [[ "$health_code" != "200" ]]; then
+  stop_deadline=$((SECONDS + 20))
+  while (( SECONDS < stop_deadline )) && \
+      curl -sS --max-time 1 -o /dev/null "http://127.0.0.1:$port/healthz"; do
+    sleep 0.25
+  done
+  if curl -sS --max-time 1 -o /dev/null "http://127.0.0.1:$port/healthz"; then
+    echo "旧测试服务未能在 20 秒内停止，请检查端口 $port 的进程" >&2
+    exit 18
   fi
-else
+  seed_path="$backend/.gbif-occurrence-seed.sqlite3"
+  if [[ -f "$seed_path" ]]; then
+    echo "BIRD_TEST_PROGRESS=正在把本地预热数据合并到云端 GBIF 区域缓存"
+    mapfile -t cache_settings < <(
+      PYTHONPATH="$backend/src" "$venv/bin/python" - <<'PY'
+from bird_vision.config import Settings
+settings = Settings()
+print(settings.species_live_occurrence_cache_path.expanduser().resolve())
+print(settings.species_live_occurrence_cache_max_entries)
+PY
+    )
+    cache_path=${cache_settings[0]}
+    cache_max_entries=${cache_settings[1]}
+    PYTHONPATH="$backend/src" "$venv/bin/python" scripts/warm_occurrence_cache.py \
+      --cache "$cache_path" --max-entries "$cache_max_entries" --merge "$seed_path"
+    rm -f "$seed_path"
+  fi
   service_status="started"
   echo "BIRD_TEST_PROGRESS=正在启动云端模型服务，首次加载可能需要数分钟"
   nohup env \
@@ -447,6 +576,8 @@ else
     tail -n 80 "$log_file" >&2 || true
     exit 15
   fi
+else
+  :
 fi
 
 export BIRD_TEST_SERVICE_STATUS="$service_status"
@@ -602,9 +733,12 @@ def summarize_result(result: dict[str, Any]) -> dict[str, Any]:
                 "top_candidates": ranked,
             }
         )
+    confirmed = [track for track in tracks if track.get("state") == "confirmed"]
     return {
+        "raw_track_count": len(tracks),
         "track_count": len(tracks),
-        "confirmed_tracks": sum(track.get("state") == "confirmed" for track in tracks),
+        "confirmed_bird_count": len(confirmed),
+        "confirmed_tracks": len(confirmed),
         "recognizable_tracks": sum(bool(track.get("recognizable")) for track in tracks),
         "candidate_tracks": sum((track.get("species") or {}).get("state") == "candidate" for track in tracks),
         "unknown_tracks": sum((track.get("species") or {}).get("state") == "unknown" for track in tracks),
@@ -618,6 +752,89 @@ def has_pending_local_candidates(result: dict[str, Any]) -> bool:
         ((track.get("species") or {}).get("decision") or {}).get("fallback_reason")
         == "live_occurrence_lookup_pending"
         for track in result.get("tracks", [])
+    )
+
+
+def persistent_occurrence_cache(models: list[dict[str, Any]]) -> dict[str, Any]:
+    species_model = next(
+        (model for model in models if "live_occurrence" in model.get("details", {})),
+        None,
+    )
+    cache = (
+        species_model.get("details", {})
+        .get("live_occurrence", {})
+        .get("coordinate_cache", {})
+        if species_model is not None
+        else {}
+    )
+    if not cache.get("persistent") or cache.get("backend") != "sqlite":
+        raise TestFailure("云端后端没有启用持久化 SQLite GBIF 区域缓存")
+    return cache
+
+
+def resolved_frame_count(requested: int, track_confirm_hits: int) -> int:
+    return max(requested, 1, track_confirm_hits)
+
+
+def occurrence_cache_requests(
+    prepared: list[dict[str, Any]], args: argparse.Namespace
+) -> list[dict[str, Any]]:
+    requests: dict[tuple[str, int | None], dict[str, Any]] = {}
+    for item in prepared:
+        unknown = (
+            args.capture_time_precision == "unknown"
+            or item["capture_time_source"] == "file_mtime"
+        )
+        observed_at = datetime.fromisoformat(item["captured_at"])
+        key = ("unknown", None) if unknown else ("exact", observed_at.month)
+        requests.setdefault(
+            key,
+            {
+                "latitude": args.latitude,
+                "longitude": args.longitude,
+                "observed_at": item["captured_at"],
+                "time_precision": key[0],
+            },
+        )
+    return list(requests.values())
+
+
+async def prepare_occurrence_caches(
+    client: httpx.AsyncClient,
+    prepared: list[dict[str, Any]],
+    args: argparse.Namespace,
+) -> list[dict[str, Any]]:
+    concurrency = asyncio.Semaphore(2)
+
+    async def prepare(payload: dict[str, Any]) -> dict[str, Any]:
+        async with concurrency:
+            deadline = time.monotonic() + args.local_candidate_timeout
+            while True:
+                response = await client.post(
+                    "/api/v1/species/occurrence/cache/prepare", json=payload
+                )
+                if response.status_code != 200:
+                    raise TestFailure(
+                        f"准备当地候选失败：HTTP {response.status_code} {response.text[:1000]}"
+                    )
+                result = response.json()
+                if result["status"] == "ready":
+                    return {**payload, **result}
+                if result["status"] == "unavailable":
+                    raise TestFailure(
+                        f"当地候选准备失败：status={result['status']} "
+                        f"source={result.get('source')}"
+                    )
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TestFailure(
+                        f"等待当地候选超过 {args.local_candidate_timeout} 秒；"
+                        "云端 GBIF 首次查询未完成"
+                    )
+                await asyncio.sleep(min(1.0, remaining))
+
+    return await asyncio.gather(
+        *(prepare(payload) for payload in occurrence_cache_requests(prepared, args))
     )
 
 
@@ -654,8 +871,6 @@ async def test_one_image(
     capture_time_precision: str,
     frame_count: int,
     frame_delay: float,
-    local_candidate_timeout: int,
-    classification_refresh_seconds: float,
 ) -> dict[str, Any]:
     response = await client.post(
         "/api/v1/vision/sessions",
@@ -718,34 +933,9 @@ async def test_one_image(
                 )
                 frame_results.append(await receive_frame_event(websocket, frame_id, timeout=120))
 
-            lookup_deadline = time.monotonic() + local_candidate_timeout
-            while has_pending_local_candidates(frame_results[-1]) and time.monotonic() < lookup_deadline:
-                remaining = lookup_deadline - time.monotonic()
-                await asyncio.sleep(min(classification_refresh_seconds + 0.25, remaining))
-                number += 1
-                frame_id = f"img-{index:04d}-local-recheck-{number:03d}"
-                await submit_frame(
-                    client,
-                    session_id,
-                    frame_id,
-                    image_path.name,
-                    image_bytes,
-                    item["captured_at"],
-                    (
-                        "unknown"
-                        if capture_time_precision == "unknown"
-                        or item["capture_time_source"] == "file_mtime"
-                        else "exact"
-                    ),
-                    latitude,
-                    longitude,
-                    frame_delay,
-                )
-                frame_results.append(await receive_frame_event(websocket, frame_id, timeout=120))
             if has_pending_local_candidates(frame_results[-1]):
                 raise TestFailure(
-                    f"等待合肥当地候选超过 {local_candidate_timeout} 秒；"
-                    "可检查云端到 api.gbif.org 的网络"
+                    "缓存预取已完成，但图片分类仍返回 live_occurrence_lookup_pending"
                 )
     finally:
         with contextlib.suppress(httpx.HTTPError):
@@ -756,7 +946,7 @@ async def test_one_image(
         **item,
         "status": "ok",
         "frame_count": len(frame_results),
-        "local_candidate_rechecks": max(0, len(frame_results) - frame_count),
+        "local_candidate_rechecks": 0,
         "summary": summarize_result(final),
         "frames": frame_results,
     }
@@ -772,7 +962,7 @@ async def run_api_tests(
     ws_base = f"ws://127.0.0.1:{local_port}"
     api_key = remote.get("api_key")
     auth_headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-    frame_count = args.frames or max(1, int(remote["track_confirm_hits"]))
+    frame_count = resolved_frame_count(args.frames, int(remote["track_confirm_hits"]))
     frame_delay = max(0.25, 1.0 / float(remote["max_frame_rate"]) + 0.05)
     results: list[dict[str, Any]] = []
 
@@ -783,6 +973,18 @@ async def run_api_tests(
         timeout=120,
         trust_env=False,
     ) as client:
+        models_response = await client.get("/api/v1/models")
+        if models_response.status_code != 200:
+            raise TestFailure(
+                f"读取云端模型缓存状态失败：HTTP {models_response.status_code} "
+                f"{models_response.text[:1000]}"
+            )
+        remote["occurrence_cache_before"] = persistent_occurrence_cache(models_response.json())
+        cache_requests = occurrence_cache_requests(prepared, args)
+        log(f"      正在准备 {len(cache_requests)} 个地区/月度候选缓存键……")
+        remote["occurrence_cache_prepared"] = await prepare_occurrence_caches(
+            client, prepared, args
+        )
         total = len(prepared)
         for index, item in enumerate(prepared, 1):
             name = item["source_relative"]
@@ -799,8 +1001,6 @@ async def run_api_tests(
                     args.capture_time_precision,
                     frame_count,
                     frame_delay,
-                    args.local_candidate_timeout,
-                    float(remote["classification_refresh_seconds"]),
                 )
                 results.append(result)
                 summary = result["summary"]
@@ -825,12 +1025,19 @@ async def run_api_tests(
                 scopes = sorted({str(decision.get("candidate_scope")) for decision in decisions})
                 log(
                     f"[{index:02d}/{total:02d}] {name}："
-                    f"鸟体={summary['track_count']}，确认={summary['confirmed_tracks']}，{description}，"
+                    f"确认鸟体={summary['confirmed_bird_count']}，"
+                    f"原始轨迹={summary['track_count']}，"
+                    f"{description}，"
                     f"候选范围={','.join(scopes) if scopes else '未分类'}"
                 )
             except Exception as exc:  # keep the remaining real images testable
                 results.append({**item, "status": "error", "error": str(exc)})
                 log(f"[{index:02d}/{total:02d}] {name}：错误：{exc}")
+        models_response = await client.get("/api/v1/models")
+        if models_response.status_code == 200:
+            remote["occurrence_cache_after"] = persistent_occurrence_cache(
+                models_response.json()
+            )
     return results
 
 
@@ -838,6 +1045,7 @@ def aggregate(results: list[dict[str, Any]], preprocessing_errors: list[dict[str
     successful = [item for item in results if item.get("status") == "ok"]
     failed = [item for item in results if item.get("status") != "ok"]
     detected = [item for item in successful if item["summary"]["track_count"] > 0]
+    confirmed = [item for item in successful if item["summary"]["confirmed_bird_count"] > 0]
     candidates = [item for item in successful if item["summary"]["candidate_tracks"] > 0]
     latencies = [
         frame.get("timing", {}).get("total_ms")
@@ -852,6 +1060,7 @@ def aggregate(results: list[dict[str, Any]], preprocessing_errors: list[dict[str
         "api_errors": len(failed),
         "images_with_bird_detections": len(detected),
         "images_without_bird_detections": len(successful) - len(detected),
+        "images_with_confirmed_birds": len(confirmed),
         "images_with_accepted_species_candidates": len(candidates),
         "average_frame_total_ms": round(sum(latencies) / len(latencies), 3) if latencies else None,
         "p95_frame_total_ms": (
@@ -869,6 +1078,7 @@ def write_csv(path: Path, results: list[dict[str, Any]]) -> None:
         "image",
         "status",
         "track_count",
+        "raw_track_count",
         "confirmed_tracks",
         "candidate_tracks",
         "top_candidate",
@@ -888,7 +1098,10 @@ def write_csv(path: Path, results: list[dict[str, Any]]) -> None:
                 )
                 continue
             summary = item["summary"]
-            first_track = summary["tracks"][0] if summary["tracks"] else {}
+            first_track = next(
+                (track for track in summary["tracks"] if track["track_state"] == "confirmed"),
+                summary["tracks"][0] if summary["tracks"] else {},
+            )
             ranked = first_track.get("top_candidates") or []
             top = ranked[0] if ranked else {}
             writer.writerow(
@@ -896,6 +1109,7 @@ def write_csv(path: Path, results: list[dict[str, Any]]) -> None:
                     "image": item["source_relative"],
                     "status": "ok",
                     "track_count": summary["track_count"],
+                    "raw_track_count": summary["raw_track_count"],
                     "confirmed_tracks": summary["confirmed_tracks"],
                     "candidate_tracks": summary["candidate_tracks"],
                     "top_candidate": top.get("common_name_zh")
@@ -934,6 +1148,14 @@ def render_tracks(summary: dict[str, Any]) -> str:
     return "<ul>" + "".join(sections) + "</ul>"
 
 
+def detection_badge(summary: dict[str, Any]) -> tuple[str, str]:
+    if summary["confirmed_bird_count"]:
+        return "确认鸟体", "found"
+    if summary["track_count"]:
+        return "仅原始检测", "empty"
+    return "未检测到鸟体", "empty"
+
+
 def write_html(path: Path, report: dict[str, Any], results: list[dict[str, Any]]) -> None:
     summary = report["summary"]
     cards: list[str] = []
@@ -942,8 +1164,7 @@ def write_html(path: Path, report: dict[str, Any], results: list[dict[str, Any]]
         source_name = html.escape(item["source_relative"])
         if item.get("status") == "ok":
             details = item["summary"]
-            badge = "检测到鸟体" if details["track_count"] else "未检测到鸟体"
-            badge_class = "found" if details["track_count"] else "empty"
+            badge, badge_class = detection_badge(details)
             timing = details["timing"].get("total_ms")
             body = render_tracks(details)
             footer = f"最终帧总耗时：{timing} ms"
@@ -1000,6 +1221,7 @@ def write_html(path: Path, report: dict[str, Any], results: list[dict[str, Any]]
     <div class="metric"><strong>{summary["api_successes"]}</strong>成功图片</div>
     <div class="metric"><strong>{summary["api_errors"]}</strong>接口错误</div>
     <div class="metric"><strong>{summary["images_with_bird_detections"]}</strong>检测到鸟体</div>
+    <div class="metric"><strong>{summary["images_with_confirmed_birds"]}</strong>确认鸟体</div>
     <div class="metric">
       <strong>{summary["images_with_accepted_species_candidates"]}</strong>产生有效候选
     </div>
@@ -1066,7 +1288,8 @@ async def async_main(args: argparse.Namespace) -> int:
 
     ssh = SSHSession(args.ssh_host)
     try:
-        log(f"[2/5] 连接云端 {args.ssh_host}（如未配置密钥，可能询问一次 SSH 密码）……")
+        log(f"[2/5] 同步后端代码到 {args.ssh_host}……")
+        sync_backend(args)
         log("[3/5] 检查并启动云端识别服务；首次加载模型可能需要几分钟……")
         local_port = find_free_local_port()
         remote = bootstrap_remote(
@@ -1100,7 +1323,8 @@ async def async_main(args: argparse.Namespace) -> int:
         log("测试完成")
         log(
             f"成功 {summary['api_successes']}/{summary['prepared_images']}；"
-            f"检测到鸟体 {summary['images_with_bird_detections']} 张；"
+            f"确认鸟体 {summary['images_with_confirmed_birds']} 张；"
+            f"原始检测轨迹 {summary['images_with_bird_detections']} 张；"
             f"产生物种候选 {summary['images_with_accepted_species_candidates']} 张；"
             f"平均帧耗时 {summary['average_frame_total_ms']} ms。"
         )

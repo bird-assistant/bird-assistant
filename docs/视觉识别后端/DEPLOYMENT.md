@@ -43,6 +43,8 @@ python -c "import torch; print(torch.__version__); print(torch.version.cuda); pr
 │   ├── yolo/
 │   └── huggingface/
 ├── catalogs/
+├── bird-assistant/backend/runtime/
+│   └── gbif-occurrence-cache.sqlite3
 └── results/
 ```
 
@@ -53,7 +55,7 @@ export HF_HOME=/root/shared-nvme/models/huggingface
 export TORCH_HOME=/root/shared-nvme/models/torch
 ```
 
-虚拟环境可以放系统盘并根据依赖重建；模型、鸟种目录、评测集和结果必须放共享存储并另做备份。
+虚拟环境可以放系统盘并根据依赖重建；模型、鸟种目录、评测集、结果和 GBIF 区域缓存必须放共享存储并另做备份。代码同步应排除 `backend/runtime/`，以免覆盖云端已经积累的区域缓存。
 
 ## 5. 通过 SSH 同步代码
 
@@ -158,9 +160,8 @@ BIRD_VISION_BIOCLIP_MODEL_REVISION=<完整40位Hugging Face commit SHA>
 BIRD_VISION_BIOCLIP_EXPECTED_FINGERPRINT=<审核后的64位artifact fingerprint>
 BIRD_VISION_SPECIES_PRECISION=auto
 BIRD_VISION_SPECIES_TEXT_CACHE_DIR=/root/shared-nvme/models/bioclip-text-cache
-# Optional fallback country when no usable local set remains, including missing
-# coordinates, live misses, or insufficient eligible offline/live matches.
-# Global is used only when no usable local or country candidates remain.
+# Optional country scope only for requests without coordinates. Coordinate-based
+# GBIF misses/insufficient matches fall directly back to the global model.
 BIRD_VISION_SPECIES_DEFAULT_REGION_CODE=
 # Optional reviewed local occurrence profile. The bundled Hefei profile is an
 # example only and must not be enabled unless this deployment explicitly
@@ -169,10 +170,13 @@ BIRD_VISION_SPECIES_OCCURRENCE_PATH=
 # Missing live cache entries queue background GBIF lookup and fall back meanwhile.
 BIRD_VISION_SPECIES_LIVE_OCCURRENCE_ENABLED=true
 BIRD_VISION_SPECIES_LIVE_OCCURRENCE_RADIUS_KM=100
-# GBIF facet page size only; all pages and returned facet keys are resolved.
-BIRD_VISION_SPECIES_LIVE_OCCURRENCE_FACET_LIMIT=100
-# TTL for valid/empty results; lookup failures retry after 30 seconds.
-BIRD_VISION_SPECIES_LIVE_OCCURRENCE_CACHE_TTL_SECONDS=86400
+# GBIF scientific-name facet page size; all pages are processed.
+BIRD_VISION_SPECIES_LIVE_OCCURRENCE_FACET_LIMIT=300
+# Persistent regional cache; keep this path on the shared disk.
+BIRD_VISION_SPECIES_LIVE_OCCURRENCE_CACHE_PATH=/root/shared-nvme/bird-assistant/backend/runtime/gbif-occurrence-cache.sqlite3
+BIRD_VISION_SPECIES_LIVE_OCCURRENCE_CACHE_MAX_ENTRIES=2048
+# Valid/empty results persist for 30 days; lookup failures retry after 30 seconds.
+BIRD_VISION_SPECIES_LIVE_OCCURRENCE_CACHE_TTL_SECONDS=2592000
 # Timeout for each background GBIF HTTP attempt, not the complete lookup.
 BIRD_VISION_SPECIES_LIVE_OCCURRENCE_TIMEOUT_SECONDS=8
 BIRD_VISION_SPECIES_TEMPORAL_WINDOW_MONTHS=1
@@ -193,9 +197,29 @@ BIRD_VISION_MAX_BUFFERED_IMAGE_BYTES=536870912
 BIRD_VISION_MAX_SAVED_CROP_BYTES=134217728
 ```
 
-仓库已包含 AviList v2026 全球 11,172 种目录和一个合肥 100 km 的可选离线 GBIF 月度索引示例。生产环境默认加载全球主表作为全集；有坐标时先按地点与月份查询离线索引，离线索引不可用、未覆盖或匹配目录的物种少于 `BIRD_VISION_SPECIES_MIN_LOCAL_CANDIDATES` 时，再查实时 GBIF 缓存。会话创建不预取；首次达到分类条件的缓存未命中排队后台查询，并先使用覆盖该坐标的离线 profile 国家，否则使用请求/部署 `region_code` 对应的国家集合；只有没有可用当地或国家候选时才使用全球集合。后续分类在缓存匹配足够目录物种时使用当地候选。任何范围信息都不再给相似度加分。发布前核对 `GET /api/v1/species/catalog/info` 返回 `total_species=11172`、`enabled_species=10970`；如果部署了地点 profile，再在 `/readyz` 的物种模型详情中核对 `occurrence_index.available=true`、路径和 SHA-256，同时确认 `live_occurrence.enabled=true`。
+仓库已包含 AviList v2026 全球目录和一个合肥可选离线索引示例，但后端不绑定合肥。实时会话创建后立即预取当前月份窗口；批量历史任务应调用 `POST /api/v1/species/occurrence/cache/prepare` 并等待 `ready` 后再上传图片。发布前通过鉴权的 `GET /api/v1/models` 核对 `live_occurrence.coordinate_cache.persistent=true`、路径、条目数和命中计数。
 
-实时 GBIF 使用独立的有界工作池，最多并发 2 个坐标查询，进行中和排队的查询合计最多 8 个；它不占用 GPU 推理槽，也不计入 `BIRD_VISION_INFERENCE_TIMEOUT_SECONDS`。`BIRD_VISION_SPECIES_LIVE_OCCURRENCE_TIMEOUT_SECONDS` 只限制每次 HTTP 尝试，重试、全部月份分页和名称解析可能让完整 lookup 更久；查询错误缓存 30 秒后重试，有效和空结果使用配置 TTL。`BIRD_VISION_SPECIES_LIVE_OCCURRENCE_FACET_LIMIT` 只是 GBIF facet 每页大小，所有页面及其物种键都会处理。启用后，坐标会编码在按半径生成的查询多边形中，月份作为查询条件发送到 `api.gbif.org`，但本服务不持久化坐标；有外传约束的部署应关闭实时查询并提供充分覆盖的离线索引。
+实时 GBIF 使用独立的有界工作池，最多并发 2 个坐标查询，进行中和排队合计最多 8 个；它不占用 GPU 推理槽。查询直接分页读取 `scientificName` 分面，不再逐个请求物种详情。成功和明确空结果写入 SQLite，默认保留 30 天并跨会话、代码同步和服务重启复用；网络失败不写磁盘，只在内存冷却 30 秒。100 km 查询将附近坐标归并到约 `0.1°` 区域网格。
+
+首次填充时，查询圆和月份会发送到 `api.gbif.org`。SQLite 只保存不可逆哈希区域键和聚合物种计数，不保存原始经纬度；哈希仍属于位置派生数据，应按 TTL、访问控制和备份策略管理。有外传约束的部署应关闭实时查询并提供充分覆盖的离线索引。
+
+云端网络不稳定时，可在网络较好的本机预热一个或多个地区，再上传并合并；合并保留云端其他地区以及同键较新的条目：
+
+```bash
+cd backend
+python scripts/warm_occurrence_cache.py \
+  --cache runtime/local-gbif-seed.sqlite3 \
+  --latitude 31.8206 --longitude 117.2272 --month 5 --window-months 1
+# For images whose capture month is unknown, also warm the all-year key.
+python scripts/warm_occurrence_cache.py \
+  --cache runtime/local-gbif-seed.sqlite3 \
+  --latitude 31.8206 --longitude 117.2272 --all-year
+cd ..
+./test-cloud-vision.sh \
+  --occurrence-cache-seed backend/runtime/local-gbif-seed.sqlite3
+```
+
+也可以先上传文件，再在云端服务停止期间执行 `python scripts/warm_occurrence_cache.py --cache runtime/gbif-occurrence-cache.sqlite3 --merge /path/to/seed.sqlite3`。不得在服务运行时直接覆盖 SQLite 主文件或复制 `-wal` 文件。
 
 中国全境离线索引不是仓库内置数据。生产环境可以先依靠任意坐标的实时 GBIF 查询，但高流量和低延迟部署仍应使用经审核的 GBIF SQL TSV/ZIP 运行 `MODELS.md` 中的网格构建命令，并将生成文件作为版本化部署资产；仅配置 `CN` 不会提供地点分布数据。索引的 GBIF 下载 DOI、查询文本、生成时间、文件 SHA-256、名称匹配报告和许可证引用应与发布版本一起归档。
 

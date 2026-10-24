@@ -35,6 +35,8 @@ from bird_vision.schemas import (
     FrameAcceptedResponse,
     HealthResponse,
     ModelInfo,
+    OccurrenceCachePrepareRequest,
+    OccurrenceCachePrepareResponse,
     ReadyResponse,
     SessionResponse,
     SpeciesCatalogInfo,
@@ -233,6 +235,26 @@ async def search_species_catalog(
             for taxon in taxa
         ],
     )
+
+
+@router.post(
+    "/api/v1/species/occurrence/cache/prepare",
+    response_model=OccurrenceCachePrepareResponse,
+    tags=["species catalog"],
+)
+async def prepare_occurrence_cache(
+    payload: OccurrenceCachePrepareRequest,
+    request: Request,
+    principal: Annotated[Principal, Depends(require_principal)],
+) -> OccurrenceCachePrepareResponse:
+    result = request.app.state.sessions.prepare_occurrence_cache(
+        owner_subject=principal.subject,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        observed_at=payload.observed_at,
+        time_precision=payload.time_precision,
+    )
+    return OccurrenceCachePrepareResponse.model_validate(result)
 
 
 @router.post(

@@ -80,6 +80,7 @@ class VisionPipeline:
                     context=job.observation_context,
                 )
                 for track, prediction in zip(classify_tracks, predictions, strict=True):
+                    self._reset_species_evidence_for_context_change(track, prediction)
                     track.species_history.append(prediction)
                     del track.species_history[: -self.settings.species_evidence_window]
                     aggregate = self._aggregate_predictions(track.species_history)
@@ -136,6 +137,38 @@ class VisionPipeline:
             return True
         required = track.last_classified_quality * (1.0 + self.settings.classification_min_quality_gain)
         return track.pending_best_quality >= required
+
+    @staticmethod
+    def _reset_species_evidence_for_context_change(
+        track: Track, prediction: SpeciesPrediction
+    ) -> None:
+        previous = track.species_history[-1] if track.species_history else track.species_prediction
+        if previous is None:
+            return
+        previous_context = (
+            previous.candidate_scope,
+            previous.region_code,
+            previous.location_profile_id,
+            previous.observation_month,
+            previous.temporal_window_months,
+            previous.occurrence_dataset_version,
+        )
+        next_context = (
+            prediction.candidate_scope,
+            prediction.region_code,
+            prediction.location_profile_id,
+            prediction.observation_month,
+            prediction.temporal_window_months,
+            prediction.occurrence_dataset_version,
+        )
+        if previous_context == next_context:
+            return
+        track.species_history.clear()
+        track.species_prediction = None
+        track.species_candidates = ()
+        track.pending_species_id = None
+        track.pending_species_hits = 0
+        track.species_stability = "stable"
 
     def _aggregate_predictions(self, history: list[SpeciesPrediction]) -> SpeciesPrediction:
         """Stabilize species output with a bounded multi-observation consensus."""

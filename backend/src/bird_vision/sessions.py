@@ -5,7 +5,7 @@ import logging
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 from bird_vision.config import Settings
@@ -91,6 +91,7 @@ class SessionManager:
         self._buffered_image_bytes = 0
         self.inference_healthy = True
         self.last_inference_error: str | None = None
+        self._occurrence_prepares: dict[str, dict[tuple[Any, ...], dict[str, Any]]] = {}
 
     async def start(self) -> None:
         self._cleanup_task = asyncio.create_task(self._cleanup_loop(), name="vision-session-cleanup")
@@ -110,6 +111,45 @@ class SessionManager:
                 for session_id in list(self.sessions)
             )
         )
+        self._occurrence_prepares.clear()
+
+    def prepare_occurrence_cache(
+        self,
+        *,
+        owner_subject: str,
+        latitude: float,
+        longitude: float,
+        observed_at: datetime,
+        time_precision: str,
+    ) -> dict[str, Any]:
+        month = None if time_precision == "unknown" else observed_at.month
+        key = (round(latitude, 3), round(longitude, 3), month, time_precision)
+        pending = self._occurrence_prepares.setdefault(owner_subject, {})
+        if key not in pending and len(pending) >= 2:
+            for existing_key, existing in tuple(pending.items()):
+                result = self.pipeline.species.prepare_occurrence_cache(**existing)
+                if result["status"] != "pending":
+                    pending.pop(existing_key, None)
+        if key not in pending and len(pending) >= 2:
+            raise ServiceError(
+                "OCCURRENCE_PREPARE_CAPACITY_EXCEEDED",
+                "caller already has two occurrence cache lookups in progress",
+                429,
+            )
+        payload = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "observed_at": observed_at,
+            "time_precision": time_precision,
+        }
+        result = self.pipeline.species.prepare_occurrence_cache(**payload)
+        if result["status"] == "pending":
+            pending[key] = payload
+        else:
+            pending.pop(key, None)
+        if not pending:
+            self._occurrence_prepares.pop(owner_subject, None)
+        return result
 
     async def create(
         self,
@@ -156,6 +196,26 @@ class SessionManager:
         session.task = asyncio.create_task(self._worker(session), name=f"vision-session-{session_id}")
         self.sessions[session_id] = session
         self.metrics.active_sessions.set(len(self.sessions))
+        if observation_mode == "live" and latitude is not None and longitude is not None:
+            candidates = {(now.year, now.month): now}
+            for candidate in (now - timedelta(days=1), now + timedelta(days=1)):
+                candidates.setdefault((candidate.year, candidate.month), candidate)
+            for observed_at in candidates.values():
+                try:
+                    self.prepare_occurrence_cache(
+                        owner_subject=owner_subject,
+                        latitude=latitude,
+                        longitude=longitude,
+                        observed_at=observed_at,
+                        time_precision="exact",
+                    )
+                except ServiceError as exc:
+                    if exc.code != "OCCURRENCE_PREPARE_CAPACITY_EXCEEDED":
+                        raise
+                    LOGGER.info(
+                        "skipping live occurrence prefetch because caller capacity is full",
+                        extra={"owner_subject": owner_subject},
+                    )
         return session
 
     def get(self, session_id: str, owner_subject: str | None = None) -> VisionSession:

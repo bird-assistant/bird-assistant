@@ -6,7 +6,7 @@
 |---|---|---|---|
 | 鸟体检测 | YOLO11n，COCO `bird` 类 | 找到鸟的位置 | 不能证明具体鸟种 |
 | 轨迹关联 | 每会话独立 ByteTrack | 减少框闪烁、复用鸟种候选 | 无 ReID，不能保证严重遮挡后的个体身份 |
-| 候选范围 | 全球 AviList 目录；离线 GBIF 地点/月度索引优先，任意坐标实时 GBIF 兜底 | 在有可靠外部范围数据时缩小候选 | 出现记录不等于绝对不存在，网络失败时回退国家/全球目录 |
+| 候选范围 | 全球 AviList 视觉排名 + GBIF 地点/月度优先集合 | 优先当地记录，但允许模型选择未记录物种 | 出现记录不等于绝对不存在，不能作为硬排除名单 |
 | 物种候选 | BioCLIP 2 + AviList v2026 | 在本次候选空间内排序并拒绝弱结果 | 分数不是正确概率 |
 | 用户记录 | 业务后端人工选择 | 保存用户确认 | 不自动变成专家复核数据 |
 
@@ -40,7 +40,7 @@ CUDA 默认使用 FP16 autocast；CPU 强制使用 FP32。全量物种文本特�
 
 分类学主表为 2026-10-20 发布的 AviList v2026。英文名来自 AviList；简体中文名和中国区域标记来自 eBird/Clements `zh_SIM` 与 eBird 中国区域物种列表。全球表中有 1,857 个中文名，中国子集中有 1,411 个中文名。中文名缺失时保留为空，由前端回退英文名或学名，系统不会自行编造中文名。
 
-`CN` 等区域标记不再是排序加分。坐标存在时，系统首先使用离线索引或实时 GBIF 查询；只有坐标查询失败或当地匹配候选不足时，才形成国家级候选集合。国家优先取覆盖该坐标的离线 profile 国家，否则取请求/部署默认地区；没有可用国家候选时才回退全球 10,970 个启用物种。当前仓库的区域映射主要覆盖中国，不能把它当成全球分布数据库。响应中的 `candidate_scope` 和 `fallback_reason` 会记录实际范围，避免静默改变识别语义。
+`CN` 等区域标记不再是排序加分。坐标存在时，系统从离线索引或实时 GBIF 得到当地优先集合。只要当地 Top-1 达到 `BIRD_VISION_SPECIES_MIN_SIMILARITY`，就保留当地排名；当地 Top-1/Top-2 过近时返回当地 `unknown`，全球候选不能覆盖。只有当地 Top-1 低于最低相似度，或 GBIF 无结果、失败、匹配不足时才采用全球模型。响应中的 `candidate_scope` 和 `fallback_reason` 记录最终实际采用的范围。
 
 来源、许可、生成时间和 SHA-256 在 `backend/config/catalog/catalog_metadata.json` 中；构建规则在 `backend/scripts/build_species_catalog.py` 中。AviList 分类学数据为 CC BY 4.0。中国子集是 occurrence-derived 候选集合，不冒充中国官方法定名录。
 
@@ -101,13 +101,15 @@ python scripts/build_occurrence_profile.py \
 
 构建产物记录查询圆、每月原始记录数、GBIF 键与 AviList 的匹配数量、生成时间和来源。数据通过 [GBIF Occurrence API](https://techdocs.gbif.org/en/openapi/v1/occurrence) 的搜索分面生成。GBIF 是 presence-only 数据且存在空间、季节和观察者偏差，因此该索引只用于候选范围，不是物种分布真值。
 
-运行时支持任意经纬度：BioCLIP 分类前先查已配置的离线索引；离线索引不可用、没有覆盖或匹配目录的物种少于 `BIRD_VISION_SPECIES_MIN_LOCAL_CANDIDATES` 时，再查实时 GBIF 缓存。该最小值默认是 2，也同样适用于实时结果。会话创建不预取；首次达到分类条件且缓存未命中时，服务排队执行去重的后台查询并立即回退覆盖该坐标的离线 profile 国家，否则回退请求/部署默认地区对应的国家候选；没有可用国家候选才使用全球目录。后续分类在查询完成且匹配足够物种后使用当地候选，因此同一会话的候选范围可能从国家/全球变为当地。所有候选查询都不改变 BioCLIP 相似度分数。
+运行时支持任意经纬度：BioCLIP 分类前先查已配置的离线索引；离线索引不可用、没有覆盖或匹配目录的物种少于 `BIRD_VISION_SPECIES_MIN_LOCAL_CANDIDATES` 时，再查实时 GBIF 缓存。实时会话创建后立即预取当前月份窗口；历史批量任务可调用缓存准备接口并等待 `ready` 后再上传图片。有坐标但当地缓存仍未就绪、失败、无结果或匹配不足时直接使用全球模型；国家范围仅用于没有坐标的请求。所有候选查询都不改变 BioCLIP 相似度分数。
 
-后台任务拥有月份窗口内的完整 facet 分页和所有返回物种键的名称解析。`BIRD_VISION_SPECIES_LIVE_OCCURRENCE_FACET_LIMIT` 默认 100，只是每页大小，不会把名称解析截断为 100 个；坐标缓存键使用保留三位小数的经纬度、月份窗口和半径，最多保存 256 项，名称缓存跨坐标查询共享。有效和空结果使用配置的 TTL，错误缓存 30 秒后允许重试；响应以 `live_occurrence_lookup_pending`、`live_occurrence_no_candidates` 和 `live_occurrence_lookup_failed` 区分后台准备、空结果和失败。
+后台任务分页读取月份窗口内的 `scientificName` 分面，去掉作者信息后按同属 AviList 启用学名做最长前缀匹配。该方式不再为每个 `speciesKey` 请求一次物种详情，并保留 GBIF 原始拆分名，例如 `Terpsiphone incei (Gould, 1852)` 映射为 AviList 的 `Terpsiphone incei`。跨属分类变更必须使用经过审核的 taxonomy crosswalk，运行时不会仅凭种加词猜测。`BIRD_VISION_SPECIES_LIVE_OCCURRENCE_FACET_LIMIT` 默认 300，只是每页大小，不会截断完整结果。
+
+完成和明确空结果写入 `BIRD_VISION_SPECIES_LIVE_OCCURRENCE_CACHE_PATH` 指向的 SQLite；默认最多 2,048 个区域查询、保留 30 天，跨会话和服务重启复用。100 km 查询按约 `0.1°` 网格归并附近坐标，较小半径自动使用更细网格；月份窗口、半径、GBIF 查询版本和 AviList 启用物种清单都属于缓存键。网络错误不持久化，只在内存冷却 30 秒。响应以 `live_occurrence_lookup_pending`、`live_occurrence_no_candidates` 和 `live_occurrence_lookup_failed` 区分后台准备、空结果和失败。可用 `scripts/warm_occurrence_cache.py` 在本机预热或安全合并其他缓存。
 
 查询圆使用逆时针 WKT 外环；跨越日期变更线或包含极点时拆成多个合法多边形，通过重复的 GBIF `geometry` 参数查询并集，避免经度环绕导致无效几何或重复累计边界记录。
 
-实时 GBIF 使用独立工作池，最多并发 2 个坐标查询，进行中和排队的查询合计最多 8 个；它不占用 GPU 推理槽，也不受 `BIRD_VISION_INFERENCE_TIMEOUT_SECONDS` 限制。`BIRD_VISION_SPECIES_LIVE_OCCURRENCE_TIMEOUT_SECONDS` 是每次 HTTP 尝试的超时，不是整个后台查询的总时限。服务关闭时取消排队任务，进行中的 HTTP 尝试按超时结束，并在关闭后阻止新的分页或名称请求。启用实时查询时，坐标会编码在按半径生成的查询多边形中，月份作为查询条件发送到 `api.gbif.org`；本服务不持久化坐标，可通过关闭实时查询停止该外部传输。
+实时 GBIF 使用独立工作池，最多并发 2 个坐标查询，进行中和排队的查询合计最多 8 个；它不占用 GPU 推理槽，也不受 `BIRD_VISION_INFERENCE_TIMEOUT_SECONDS` 限制。`BIRD_VISION_SPECIES_LIVE_OCCURRENCE_TIMEOUT_SECONDS` 是每次 HTTP 尝试的超时，不是整个后台查询的总时限。服务关闭时取消排队任务，进行中的 HTTP 尝试按超时结束，并在关闭后阻止新的分页或名称请求。首次未命中时，坐标生成的查询多边形和月份会发送到 `api.gbif.org`；SQLite 保存哈希区域键和聚合结果，不保存原始经纬度。可通过关闭实时查询停止外部传输。
 
 中国全境或大范围网格不要逐格调用 Search API。应先通过需要 GBIF 账号的 [SQL occurrence download](https://techdocs.gbif.org/en/data-use/api-sql-downloads) 获取本地 TSV/ZIP，至少包含 `speciesKey`、`decimalLatitude`、`decimalLongitude`、`month`、`countryCode` 和 `scientificName`（或 `acceptedScientificName`）：
 
@@ -152,7 +154,7 @@ BioCLIP 归一化图像特征与物种文本特征的原始余弦相似度，用
 
 ### `relative_similarity`
 
-BioCLIP 图像特征与目录中文本特征的相似度，经本次实际候选集合内 softmax 排序。它受候选目录大小和组成影响：地点、月份或目录变化都会改变 `relative_similarity`，所以 API 同时返回 `candidate_count` 和 `candidate_scope`。
+BioCLIP 图像特征始终与全球启用目录计算原始相似度；有当地记录时再比较当地子集决策。最终输出在实际采用的当地或全球集合内计算 softmax，因此 `relative_similarity` 仍受最终集合影响，API 同时返回 `candidate_count`、`candidate_scope` 和 `fallback_reason`。
 
 地区、月份、出现次数都不会改变原始余弦相似度，也没有 `CN +0.015` 或其他隐藏奖励。
 

@@ -145,7 +145,7 @@ Authorization: Bearer ...
 }
 ```
 
-`observation_mode` 默认是 `live`；离线历史图片测试使用 `historical`。经纬度必须成对提供，可以省略；有坐标时服务先查离线地点索引，索引不可用、未覆盖或匹配目录的候选不足时查询实时 GBIF 缓存。会话创建不预取数据；首次达到分类条件且缓存未命中时只排队后台查询，本次结果先使用覆盖该坐标的离线 profile 国家（如有），否则使用会话请求/部署默认地区对应的国家候选；没有可用国家候选才使用全球候选。后续分类在查询完成且匹配足够目录物种后使用当地候选。地区与出现次数只选择候选空间，不修改模型分数。`client_session_id` 会随会话查询结果返回，仅供调用链关联，不作为服务端会话 ID。
+`observation_mode` 默认是 `live`；实时会话提供坐标后会立即预取当前月份窗口。历史图片批量测试使用 `historical`，并应先调用 occurrence 缓存准备接口。GBIF 当地列表拥有严格优先级：当地 Top-1 达到最低相似度即保留当地排名；只有当地 Top-1 低于最低相似度才采用全球模型。
 
 会话响应中的 `coordinates_used_for_inference` 在创建时计算，只表示会话坐标受当前已启用的离线或实时解析器支持，不证明某次分类实际使用了坐标候选。应以每个物种结果的 `species.decision.coordinates_used` 判断该结果是否实际采用当地候选集合，并结合 `fallback_reason` 查看回退原因。帧上传的坐标独立覆盖该帧的会话坐标，不会改写这个会话级标志。
 
@@ -228,7 +228,24 @@ Authorization: Bearer ...
 
 `live` 会话中的 `captured_at` 必须接近服务器时间，以防旧帧污染实时轨迹；`historical` 会话必须提供 `captured_at`，允许过去时间但不允许明显的未来时间。调用方不知道真实拍摄月份时，不得把文件下载/修改时间伪装为精确拍摄时间，应传 `capture_time_precision=unknown`。
 
-启用实时 GBIF 时，后台查询不占用 GPU 推理槽，也不计入推理时限；GBIF 请求超时作用于每次 HTTP 尝试，不是整个后台查询。坐标会编码在按配置半径生成的查询多边形中，月份作为查询条件发送到 `api.gbif.org`，本服务不持久化坐标；部署可关闭实时查询以停止该外部传输。
+启用实时 GBIF 时，后台查询不占用 GPU 推理槽，也不计入推理时限；GBIF 请求超时作用于每次 HTTP 尝试，不是整个后台查询。首次区域缓存未命中时，坐标会编码在按配置半径生成的查询多边形中，月份作为查询条件发送到 `api.gbif.org`。完成和明确空结果写入有 TTL 和容量上限的云端 SQLite，跨会话及服务重启复用；其中保存哈希区域键和聚合物种计数，不保存原始经纬度。部署可关闭实时查询以停止该外部传输。
+
+批量历史任务在上传图片前调用：
+
+```http
+POST /api/v1/species/occurrence/cache/prepare
+Authorization: Bearer <api-key>
+Content-Type: application/json
+
+{
+  "latitude": 31.8206,
+  "longitude": 117.2272,
+  "observed_at": "2026-05-28T19:06:51+08:00",
+  "time_precision": "exact"
+}
+```
+
+响应 `status=pending` 时按短间隔轮询同一请求，`status=ready` 后再上传该月份图片。`time_precision=unknown` 准备全年键。测试脚本会先按图片涉及月份去重预取，最多并发两个键，不再让某一张图片承担首次 GBIF 初始化。
 
 示例：
 
@@ -350,6 +367,8 @@ curl -X POST \
 
 轨迹显示状态：`visibility=detected` 表示本帧有检测框，`temporarily_lost` 表示检测短暂漏失、`bbox` 是按最近运动速度外推的预测框。预测轨迹不会触发物种分类；超过 `BIRD_VISION_TRACK_MAX_MISSED_FRAMES` 后轨迹从事件中移除，前端应清除对应画框。
 
+`tentative` 轨迹是尚未连续确认的检测假设，可能来自局部重复框或短暂误检，不能计为一只鸟。只有 `state=confirmed` 才能进入物种分类和确认鸟体统计。后端保留 tentative 框供实时反馈和诊断，不会仅因嵌套几何关系删除它，因为真实的小鸟或遮挡鸟也可能位于另一个检测框内。
+
 当某条轨迹已经有通过门控的名称时，单次 `unknown` 会保留当前候选并返回 `species.stability=held`；疑似切换到另一物种时，在累计 `BIRD_VISION_SPECIES_SWITCH_CONFIRMATIONS` 次通过门控的分类证据前继续返回旧名称，并标记 `switch_pending`。名称稳定时为 `stable`。这些状态只用于显示稳定性，`candidate` 仍然不是用户确认的观测记录。
 
 物种相关字段：
@@ -361,6 +380,7 @@ curl -X POST \
 - `candidate_count`：本次实际参与排名的物种数；
 - `candidate_scope`：`local_seasonal`、`country` 或 `global`；
 - `coordinates_used`：`true` 表示该结果实际使用了满足最小目录匹配数的离线或实时当地候选集合；
+- `fallback_reason=local_candidates_not_visually_supported`：当地集合没有通过视觉拒识门槛，因此采用全球模型结果；
 - `fallback_reason`：没有使用更精细范围的原因；实时查询相关值包括 `live_occurrence_lookup_pending`（后台准备中）、`live_occurrence_no_candidates`（查询无候选）和 `live_occurrence_lookup_failed`（查询失败），`null` 表示无需回退；
 - `margin`：实际候选空间中 Top-1 与 Top-2 原始相似度之差；
 - `candidate` 只代表通过当前工程阈值，仍需用户确认。

@@ -236,6 +236,175 @@ def test_stabilizer_holds_accepted_name_and_requires_confirmed_switch(test_setti
     assert track.species_stability == "stable"
 
 
+def test_candidate_scope_change_clears_old_species_evidence(test_settings) -> None:
+    pipeline = VisionPipeline(test_settings, MockDetector(), MockSpeciesProvider())
+    global_candidate = SpeciesCandidate(
+        species_id="global",
+        scientific_name="Pericrocotus lansbergei",
+        common_name_zh=None,
+        common_name_en="Little Minivet",
+        score=0.7,
+        similarity=0.699707,
+    )
+    local_candidate = SpeciesCandidate(
+        species_id="local",
+        scientific_name="Ficedula mugimaki",
+        common_name_zh="鸲姬鹟",
+        common_name_en="Mugimaki Flycatcher",
+        score=0.9,
+        similarity=0.689453,
+    )
+    global_prediction = SpeciesPrediction(
+        candidates=(global_candidate,),
+        accepted=True,
+        reason="accepted",
+        top_similarity=0.699707,
+        margin=0.01,
+        candidate_count=10970,
+        region_code="CN",
+        catalog_version="test",
+        candidate_scope="global",
+        fallback_reason="live_occurrence_lookup_pending",
+    )
+    local_prediction = SpeciesPrediction(
+        candidates=(local_candidate,),
+        accepted=True,
+        reason="accepted",
+        top_similarity=0.689453,
+        margin=0.03,
+        candidate_count=229,
+        region_code="CN",
+        catalog_version="test",
+        candidate_scope="local_seasonal",
+        location_profile_id="hefei",
+        observation_month=10,
+        temporal_window_months=1,
+        occurrence_dataset_version="gbif-live",
+        coordinates_used=True,
+    )
+    track = Track(
+        track_id=1,
+        box=Box(0, 0, 100, 100),
+        detection_score=0.9,
+        first_seen_at=datetime.now(UTC),
+        last_seen_at=datetime.now(UTC),
+        species_prediction=global_prediction,
+        species_history=[global_prediction, global_prediction],
+        species_candidates=(global_candidate,),
+        species_stability="switch_pending",
+        pending_species_id="local",
+        pending_species_hits=1,
+    )
+
+    pipeline._reset_species_evidence_for_context_change(track, local_prediction)
+
+    assert track.species_history == []
+    assert track.species_prediction is None
+    assert track.species_candidates == ()
+    assert track.pending_species_id is None
+    assert track.pending_species_hits == 0
+    assert track.species_stability == "stable"
+
+
+def test_pipeline_immediately_replaces_global_result_when_local_list_becomes_ready(
+    test_settings,
+) -> None:
+    global_candidate = SpeciesCandidate(
+        species_id="global",
+        scientific_name="Pericrocotus lansbergei",
+        common_name_zh=None,
+        common_name_en="Little Minivet",
+        score=0.7,
+        similarity=0.699707,
+    )
+    local_candidate = SpeciesCandidate(
+        species_id="local",
+        scientific_name="Ficedula mugimaki",
+        common_name_zh="鸲姬鹟",
+        common_name_en="Mugimaki Flycatcher",
+        score=0.9,
+        similarity=0.689453,
+    )
+    predictions = [
+        SpeciesPrediction(
+            candidates=(global_candidate,),
+            accepted=True,
+            reason="accepted",
+            top_similarity=0.699707,
+            margin=0.01,
+            candidate_count=10970,
+            region_code="CN",
+            catalog_version="test",
+            candidate_scope="global",
+            fallback_reason="live_occurrence_lookup_pending",
+        ),
+        SpeciesPrediction(
+            candidates=(local_candidate,),
+            accepted=True,
+            reason="accepted",
+            top_similarity=0.689453,
+            margin=0.03,
+            candidate_count=229,
+            region_code="CN",
+            catalog_version="test",
+            candidate_scope="local_seasonal",
+            location_profile_id="hefei",
+            observation_month=10,
+            temporal_window_months=1,
+            occurrence_dataset_version="gbif-live",
+            coordinates_used=True,
+        ),
+    ]
+
+    class SequentialSpecies(MockSpeciesProvider):
+        backend = "open-clip"
+
+        def classify(self, images, top_k, region_code=None, context=None):
+            prediction = predictions.pop(0)
+            return [prediction for _ in images]
+
+    settings = test_settings.model_copy(
+        update={
+            "track_confirm_hits": 1,
+            "classification_cooldown_seconds": 0,
+            "classification_refresh_seconds": 0,
+            "species_switch_confirmations": 2,
+        }
+    )
+    detector = MockDetector()
+    detector.load()
+    species = SequentialSpecies()
+    species.load()
+    pipeline = VisionPipeline(settings, detector, species)
+    tracker = pipeline.new_tracker()
+    image = Image.new("RGB", (320, 240), (100, 120, 80))
+
+    results = []
+    for index in range(2):
+        now = datetime.now(UTC)
+        results.append(
+            pipeline.process(
+                session_id="vs_test",
+                job=FrameJob(
+                    frame_id=str(index),
+                    image=image,
+                    captured_at=now,
+                    received_at=now,
+                    received_monotonic=time.monotonic(),
+                ),
+                tracker=tracker,
+                queue_ms=0.0,
+                decode_ms=0.0,
+            )
+        )
+
+    assert results[0].tracks[0].species.candidates[0].common_name_en == "Little Minivet"
+    latest = results[1].tracks[0].species
+    assert latest.candidates[0].common_name_zh == "鸲姬鹟"
+    assert latest.decision.candidate_scope == "local_seasonal"
+    assert latest.decision.coordinates_used
+
+
 def test_pipeline_emits_unknown_when_open_set_gate_rejects(test_settings) -> None:
     class RejectingSpeciesProvider(MockSpeciesProvider):
         def classify(self, images, top_k, region_code=None, context=None):

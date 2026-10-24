@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import csv
 import importlib
 import json
@@ -35,6 +36,7 @@ def scripts(monkeypatch):
         prepare=importlib.import_module("prepare_model_artifacts"),
         occurrence_profile=importlib.import_module("build_occurrence_profile"),
         occurrence_grid=importlib.import_module("build_occurrence_grid"),
+        occurrence_cache=importlib.import_module("warm_occurrence_cache"),
         cloud_images=importlib.import_module("test_cloud_images"),
     )
 
@@ -132,6 +134,225 @@ def test_cloud_image_test_detects_pending_local_candidates(scripts):
     assert scripts.cloud_images.has_pending_local_candidates(pending)
     pending["tracks"][0]["species"]["decision"]["fallback_reason"] = None
     assert not scripts.cloud_images.has_pending_local_candidates(pending)
+
+    cache = {"backend": "sqlite", "persistent": True, "entries": 3}
+    models = [{"details": {"live_occurrence": {"coordinate_cache": cache}}}]
+    assert scripts.cloud_images.persistent_occurrence_cache(models) == cache
+    with pytest.raises(scripts.cloud_images.TestFailure, match="持久化 SQLite"):
+        scripts.cloud_images.persistent_occurrence_cache([])
+
+
+def test_cloud_image_summary_counts_confirmed_birds_separately_from_raw_tracks(scripts):
+    summary = scripts.cloud_images.summarize_result(
+        {
+            "tracks": [
+                {"track_id": 1, "state": "confirmed", "recognizable": True, "species": {}},
+                {"track_id": 2, "state": "tentative", "recognizable": True, "species": {}},
+            ]
+        }
+    )
+    assert summary["track_count"] == 2
+    assert summary["confirmed_bird_count"] == 1
+    assert summary["confirmed_tracks"] == 1
+    assert summary["raw_track_count"] == 2
+    assert summary["recognizable_tracks"] == 2
+    assert scripts.cloud_images.resolved_frame_count(1, 3) == 3
+    assert scripts.cloud_images.resolved_frame_count(5, 3) == 5
+    assert scripts.cloud_images.detection_badge(summary) == ("确认鸟体", "found")
+    assert scripts.cloud_images.detection_badge(
+        {"confirmed_bird_count": 0, "track_count": 1}
+    ) == ("仅原始检测", "empty")
+    assert scripts.cloud_images.detection_badge(
+        {"confirmed_bird_count": 0, "track_count": 0}
+    ) == ("未检测到鸟体", "empty")
+
+
+def test_cloud_image_test_prepares_unique_month_and_unknown_cache_keys(scripts):
+    prepared = [
+        {
+            "captured_at": "2026-05-28T19:06:51+08:00",
+            "capture_time_source": "filename",
+        },
+        {
+            "captured_at": "2026-05-29T10:00:00+08:00",
+            "capture_time_source": "filename",
+        },
+        {
+            "captured_at": "2026-10-24T11:45:00+08:00",
+            "capture_time_source": "exif",
+        },
+        {
+            "captured_at": "2026-10-24T11:45:00+08:00",
+            "capture_time_source": "file_mtime",
+        },
+    ]
+    args = SimpleNamespace(
+        capture_time_precision="auto",
+        latitude=31.8206,
+        longitude=117.2272,
+    )
+    requests = scripts.cloud_images.occurrence_cache_requests(prepared, args)
+    assert len(requests) == 3
+    assert {(item["time_precision"], item["observed_at"][5:7]) for item in requests} == {
+        ("exact", "05"),
+        ("exact", "10"),
+        ("unknown", "10"),
+    }
+
+
+async def test_cloud_image_cache_preflight_limits_concurrency(scripts):
+    active = 0
+    maximum = 0
+
+    class Response:
+        status_code = 200
+        text = ""
+
+        @staticmethod
+        def json():
+            return {"status": "ready", "source": "gbif", "candidate_count": 100}
+
+    class Client:
+        async def post(self, path, json):
+            nonlocal active, maximum
+            active += 1
+            maximum = max(maximum, active)
+            await asyncio.sleep(0.01)
+            active -= 1
+            return Response()
+
+    prepared = [
+        {
+            "captured_at": f"2026-{month:02d}-15T12:00:00+08:00",
+            "capture_time_source": "filename",
+        }
+        for month in range(1, 13)
+    ]
+    prepared.append(
+        {
+            "captured_at": "2026-01-15T12:00:00+08:00",
+            "capture_time_source": "file_mtime",
+        }
+    )
+    args = SimpleNamespace(
+        capture_time_precision="auto",
+        latitude=31.8206,
+        longitude=117.2272,
+        local_candidate_timeout=90,
+    )
+    results = await scripts.cloud_images.prepare_occurrence_caches(Client(), prepared, args)
+    assert len(results) == 13
+    assert maximum == 2
+
+
+def test_occurrence_cache_warmer_requires_location_or_merge(scripts, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["warm_occurrence_cache.py"])
+    with pytest.raises(SystemExit, match="requires --latitude"):
+        scripts.occurrence_cache.main()
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "warm_occurrence_cache.py",
+            "--latitude",
+            "31.8206",
+            "--longitude",
+            "117.2272",
+            "--all-year",
+        ],
+    )
+    args = scripts.occurrence_cache.parse_args()
+    assert args.all_year
+    assert args.month is None
+
+
+def test_occurrence_cache_warmer_fails_when_result_was_not_persisted(
+    scripts, tmp_path, monkeypatch
+):
+    class Resolver:
+        def __init__(self, **kwargs):
+            pass
+
+        def select(self, **kwargs):
+            return SimpleNamespace(occurrence_counts={"Avis alpha": 1})
+
+        def persistent_result_available(self, **kwargs):
+            return False
+
+        def metadata(self):
+            return {"coordinate_cache": {"last_error": "database is locked"}}
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(scripts.occurrence_cache, "DynamicOccurrenceResolver", Resolver)
+    monkeypatch.setattr(scripts.occurrence_cache, "load_catalog", lambda path: [])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "warm_occurrence_cache.py",
+            "--cache",
+            str(tmp_path / "cache.sqlite3"),
+            "--latitude",
+            "31.8206",
+            "--longitude",
+            "117.2272",
+            "--month",
+            "5",
+        ],
+    )
+    with pytest.raises(SystemExit, match="not persisted.*database is locked"):
+        scripts.occurrence_cache.main()
+
+
+def test_cloud_image_test_syncs_backend_without_overwriting_remote_state(scripts, monkeypatch):
+    completed = SimpleNamespace(returncode=0)
+    calls = []
+
+    def execute(command, **kwargs):
+        calls.append((command, kwargs))
+        return completed
+
+    monkeypatch.setattr(scripts.cloud_images.subprocess, "run", execute)
+    args = SimpleNamespace(
+        ssh_host="bird-gpu",
+        remote_backend="/root/shared-nvme/bird-assistant/backend",
+        occurrence_cache_seed=None,
+    )
+    scripts.cloud_images.sync_backend(args)
+    command, kwargs = calls[0]
+    assert command[:3] == ["rsync", "-rz", "--links"]
+    assert command[-1] == "bird-gpu:/root/shared-nvme/bird-assistant/backend/"
+    assert all(name in command for name in (".venv", ".env", "runtime", "results"))
+    assert kwargs == {"text": True, "timeout": 120, "check": False}
+
+
+def test_cloud_image_test_uploads_optional_occurrence_cache_seed(scripts, tmp_path, monkeypatch):
+    seed = tmp_path / "seed.sqlite3"
+    store = scripts.occurrence_cache.OccurrenceCacheStore(seed, max_entries=16)
+    store.put("region", {"Avis alpha": 1}, ttl_seconds=3600)
+    calls = []
+
+    def execute(command, **kwargs):
+        calls.append((command, kwargs))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(scripts.cloud_images.subprocess, "run", execute)
+    args = SimpleNamespace(
+        ssh_host="bird-gpu",
+        remote_backend="/root/shared-nvme/bird-assistant/backend",
+        occurrence_cache_seed=seed,
+    )
+    scripts.cloud_images.sync_backend(args)
+    store.close()
+    assert len(calls) == 2
+    assert calls[1][0][:2] == ["rsync", "-z"]
+    assert calls[1][0][2] != str(seed)
+    assert Path(calls[1][0][2]).name == "seed.sqlite3"
+    assert calls[1][0][3] == (
+        "bird-gpu:/root/shared-nvme/bird-assistant/backend/.gbif-occurrence-seed.sqlite3"
+    )
 
 
 def test_catalog_publish_is_immutable_and_cleans_failed_staging(scripts, tmp_path, monkeypatch):

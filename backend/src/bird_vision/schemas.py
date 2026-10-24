@@ -75,6 +75,19 @@ class CreateSessionResponse(BaseModel):
     coordinates_used_for_inference: bool
 
 
+class OccurrenceCachePrepareRequest(BaseModel):
+    latitude: float = Field(ge=-90.0, le=90.0)
+    longitude: float = Field(ge=-180.0, le=180.0)
+    observed_at: datetime
+    time_precision: Literal["exact", "date", "month", "unknown"] = "exact"
+
+
+class OccurrenceCachePrepareResponse(BaseModel):
+    status: Literal["ready", "pending", "failed", "unavailable"]
+    source: Literal["offline_profile", "gbif"] | None = None
+    candidate_count: int = Field(ge=0)
+
+
 class SessionStats(BaseModel):
     accepted_frames: int
     processed_frames: int

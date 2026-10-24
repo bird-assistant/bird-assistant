@@ -109,6 +109,78 @@ async def test_submit_transfers_upload_reservation_to_queued_image(manager) -> N
         job.image.getpixel((0, 0))
 
 
+async def test_live_session_prefetches_occurrence_cache(manager, monkeypatch) -> None:
+    prepare = Mock(return_value={"status": "pending", "source": "gbif", "candidate_count": 0})
+    monkeypatch.setattr(manager.pipeline.species, "prepare_occurrence_cache", prepare)
+    session = await manager.create(
+        owner_subject="caller",
+        observation_mode="live",
+        latitude=31.8206,
+        longitude=117.2272,
+    )
+    prepare.assert_called_once_with(
+        latitude=31.8206,
+        longitude=117.2272,
+        observed_at=session.created_at,
+        time_precision="exact",
+    )
+
+
+async def test_live_session_prefetches_adjacent_month_at_utc_boundary(
+    manager, monkeypatch
+) -> None:
+    class BoundaryDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 5, 31, 23, 59, tzinfo=UTC)
+
+    prepare = Mock(return_value={"status": "pending", "source": "gbif", "candidate_count": 0})
+    monkeypatch.setattr(sessions_module, "datetime", BoundaryDateTime)
+    monkeypatch.setattr(manager.pipeline.species, "prepare_occurrence_cache", prepare)
+    await manager.create(
+        owner_subject="caller",
+        observation_mode="live",
+        latitude=31.8206,
+        longitude=117.2272,
+    )
+    assert prepare.call_count == 2
+    assert {call.kwargs["observed_at"].month for call in prepare.call_args_list} == {5, 6}
+
+
+async def test_occurrence_prepare_limits_each_principal_to_two_pending_keys(
+    manager, monkeypatch
+) -> None:
+    prepare = Mock(return_value={"status": "pending", "source": "gbif", "candidate_count": 0})
+    monkeypatch.setattr(manager.pipeline.species, "prepare_occurrence_cache", prepare)
+    for month in (5, 6):
+        assert manager.prepare_occurrence_cache(
+            owner_subject="caller",
+            latitude=31.8206,
+            longitude=117.2272,
+            observed_at=datetime(2026, month, 15, tzinfo=UTC),
+            time_precision="exact",
+        )["status"] == "pending"
+    with pytest.raises(ServiceError) as denied:
+        manager.prepare_occurrence_cache(
+            owner_subject="caller",
+            latitude=31.8206,
+            longitude=117.2272,
+            observed_at=datetime(2026, 7, 15, tzinfo=UTC),
+            time_precision="exact",
+        )
+    assert denied.value.code == "OCCURRENCE_PREPARE_CAPACITY_EXCEEDED"
+    assert denied.value.status_code == 429
+
+    session = await manager.create(
+        owner_subject="caller",
+        observation_mode="live",
+        latitude=40.0,
+        longitude=116.0,
+    )
+    assert session.state == "active"
+    assert len(manager._occurrence_prepares["caller"]) == 2
+
+
 @pytest.mark.parametrize("already_accepted", [False, True], ids=["pending", "accepted"])
 async def test_duplicate_frame_reservation_preserves_existing_owner(manager, already_accepted) -> None:
     session = await manager.create(owner_subject="caller")

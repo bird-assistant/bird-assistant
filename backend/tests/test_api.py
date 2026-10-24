@@ -76,7 +76,7 @@ def test_session_frame_and_websocket(test_settings, jpeg_bytes: bytes) -> None:
         session_id = created.json()["session_id"]
         session = client.get(f"/api/v1/vision/sessions/{session_id}")
         assert session.json()["client_session_id"] == "wx-activity-1"
-        assert session.json()["region_code"] == "CN"
+        assert session.json()["region_code"] is None
 
         with client.websocket_connect(f"/api/v1/vision/sessions/{session_id}/events") as websocket:
             assert websocket.receive_json()["type"] == "vision.session.started"
@@ -91,7 +91,110 @@ def test_session_frame_and_websocket(test_settings, jpeg_bytes: bytes) -> None:
             assert result["type"] == "vision.frame.result"
             assert result["frame_id"] == "frame-1"
             assert result["tracks"][0]["state"] == "tentative"
+            assert result["tracks"][0]["visibility"] == "detected"
             assert result["tracks"][0]["species"]["state"] == "waiting_for_quality"
+
+
+def test_historical_session_uses_session_coordinates_and_old_capture_time(
+    test_settings, jpeg_bytes: bytes
+) -> None:
+    with TestClient(create_app(test_settings)) as client:
+        created = client.post(
+            "/api/v1/vision/sessions",
+            json={
+                "observation_mode": "historical",
+                "latitude": 31.8206,
+                "longitude": 117.2272,
+                "region_code": "CN",
+            },
+        )
+        assert created.status_code == 201
+        assert created.json()["observation_mode"] == "historical"
+        assert created.json()["latitude"] == 31.8206
+        session_id = created.json()["session_id"]
+        with client.websocket_connect(f"/api/v1/vision/sessions/{session_id}/events") as websocket:
+            websocket.receive_json()
+            accepted = client.post(
+                f"/api/v1/vision/sessions/{session_id}/frames",
+                data={"frame_id": "historic", "captured_at": "2024-05-10T18:30:00+08:00"},
+                files={"frame": ("frame.jpg", jpeg_bytes, "image/jpeg")},
+            )
+            assert accepted.status_code == 202
+            result = websocket.receive_json()
+        assert result["observation_context"] == {
+            "observed_at": "2024-05-10T18:30:00+08:00",
+            "time_source": "captured_at",
+            "time_precision": "exact",
+            "latitude": 31.8206,
+            "longitude": 117.2272,
+            "coordinate_source": "session",
+            "region_code": "CN",
+        }
+
+
+def test_frame_metadata_overrides_session_coordinates(test_settings, jpeg_bytes: bytes) -> None:
+    with TestClient(create_app(test_settings)) as client:
+        created = client.post(
+            "/api/v1/vision/sessions",
+            json={
+                "observation_mode": "historical",
+                "latitude": 31.8206,
+                "longitude": 117.2272,
+            },
+        )
+        session_id = created.json()["session_id"]
+        with client.websocket_connect(f"/api/v1/vision/sessions/{session_id}/events") as websocket:
+            websocket.receive_json()
+            accepted = client.post(
+                f"/api/v1/vision/sessions/{session_id}/frames",
+                data={
+                    "frame_id": "frame-location",
+                    "captured_at": "2025-11-01T00:00:00Z",
+                    "capture_time_precision": "month",
+                    "latitude": 39.9042,
+                    "longitude": 116.4074,
+                },
+                files={"frame": ("frame.jpg", jpeg_bytes, "image/jpeg")},
+            )
+            assert accepted.status_code == 202
+            result = websocket.receive_json()
+
+        assert result["observation_context"] == {
+            "observed_at": "2025-11-01T00:00:00Z",
+            "time_source": "captured_at",
+            "time_precision": "month",
+            "latitude": 39.9042,
+            "longitude": 116.4074,
+            "coordinate_source": "frame",
+            "region_code": None,
+        }
+
+
+def test_live_session_rejects_old_capture_time_and_incomplete_coordinates(
+    test_settings, jpeg_bytes: bytes
+) -> None:
+    with TestClient(create_app(test_settings)) as client:
+        incomplete = client.post("/api/v1/vision/sessions", json={"latitude": 31.8206})
+        assert incomplete.status_code == 422
+        session_id = client.post("/api/v1/vision/sessions", json={}).json()["session_id"]
+        old = client.post(
+            f"/api/v1/vision/sessions/{session_id}/frames",
+            data={"frame_id": "old", "captured_at": "2024-05-10T18:30:00+08:00"},
+            files={"frame": ("frame.jpg", jpeg_bytes, "image/jpeg")},
+        )
+        assert old.status_code == 422
+        assert old.json()["error"]["code"] == "CAPTURED_AT_CLOCK_SKEW"
+
+        session = client.post(
+            "/api/v1/vision/sessions", json={"observation_mode": "historical"}
+        ).json()
+        missing_time = client.post(
+            f"/api/v1/vision/sessions/{session['session_id']}/frames",
+            data={"frame_id": "missing-time"},
+            files={"frame": ("frame.jpg", jpeg_bytes, "image/jpeg")},
+        )
+        assert missing_time.status_code == 422
+        assert missing_time.json()["error"]["code"] == "CAPTURED_AT_REQUIRED"
 
 
 async def test_duplicate_frame_id_is_rejected_before_decode(

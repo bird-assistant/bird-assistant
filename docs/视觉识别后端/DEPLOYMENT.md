@@ -70,10 +70,13 @@ Host bird-gpu
 确认 `ssh bird-gpu` 可登录后，推荐从代码托管平台在云端 `git clone/pull`。本地还没提交的联调代码可用：
 
 ```bash
-rsync -az --exclude .git --exclude .venv --exclude .env \
+rsync -rz --links \
+  --exclude .venv --exclude .env \
   --exclude runtime --exclude results \
-  ./ bird-gpu:/root/shared-nvme/bird-assistant/
+  backend/ bird-gpu:/root/shared-nvme/bird-assistant/backend/
 ```
+
+这里不使用 `-a`：部分云平台共享盘不允许普通 SSH 用户执行 `chown` 或保留本地权限，归档模式会因此报 `Operation not permitted`。如果需要同步整个仓库，也应使用 `-rz --links` 并额外排除本地图片、虚拟环境、私有配置和运行结果。
 
 不同步本地 `.venv` 或 `.env`：虚拟环境包含平台相关的 Torch/CUDA 二进制，私有配置应在云端单独生成。
 
@@ -155,14 +158,33 @@ BIRD_VISION_BIOCLIP_MODEL_REVISION=<完整40位Hugging Face commit SHA>
 BIRD_VISION_BIOCLIP_EXPECTED_FINGERPRINT=<审核后的64位artifact fingerprint>
 BIRD_VISION_SPECIES_PRECISION=auto
 BIRD_VISION_SPECIES_TEXT_CACHE_DIR=/root/shared-nvme/models/bioclip-text-cache
-BIRD_VISION_SPECIES_DEFAULT_REGION_CODE=CN
-BIRD_VISION_SPECIES_REGION_PRIOR_BONUS=0.015
+# Optional fallback country when no usable local set remains, including missing
+# coordinates, live misses, or insufficient eligible offline/live matches.
+# Global is used only when no usable local or country candidates remain.
+BIRD_VISION_SPECIES_DEFAULT_REGION_CODE=
+# Optional reviewed local occurrence profile. The bundled Hefei profile is an
+# example only and must not be enabled unless this deployment explicitly
+# serves that covered area.
+BIRD_VISION_SPECIES_OCCURRENCE_PATH=
+# Missing live cache entries queue background GBIF lookup and fall back meanwhile.
+BIRD_VISION_SPECIES_LIVE_OCCURRENCE_ENABLED=true
+BIRD_VISION_SPECIES_LIVE_OCCURRENCE_RADIUS_KM=100
+# GBIF facet page size only; all pages and returned facet keys are resolved.
+BIRD_VISION_SPECIES_LIVE_OCCURRENCE_FACET_LIMIT=100
+# TTL for valid/empty results; lookup failures retry after 30 seconds.
+BIRD_VISION_SPECIES_LIVE_OCCURRENCE_CACHE_TTL_SECONDS=86400
+# Timeout for each background GBIF HTTP attempt, not the complete lookup.
+BIRD_VISION_SPECIES_LIVE_OCCURRENCE_TIMEOUT_SECONDS=8
+BIRD_VISION_SPECIES_TEMPORAL_WINDOW_MONTHS=1
+# Minimum catalog-matched species required to use an offline or live local set.
+BIRD_VISION_SPECIES_MIN_LOCAL_CANDIDATES=2
 BIRD_VISION_SPECIES_MIN_SIMILARITY=0.20
 BIRD_VISION_SPECIES_MIN_MARGIN=0.01
 
 BIRD_VISION_ALLOW_ANONYMOUS=false
 BIRD_VISION_API_KEYS=<使用密码管理器生成的长随机值>
 BIRD_VISION_MAX_CONCURRENT_INFERENCE=1
+# Covers the model pipeline; background GBIF lookups do not occupy this deadline.
 BIRD_VISION_INFERENCE_TIMEOUT_SECONDS=30
 BIRD_VISION_MAX_CONCURRENT_DECODES=4
 BIRD_VISION_MAX_SESSIONS_PER_PRINCIPAL=8
@@ -171,7 +193,11 @@ BIRD_VISION_MAX_BUFFERED_IMAGE_BYTES=536870912
 BIRD_VISION_MAX_SAVED_CROP_BYTES=134217728
 ```
 
-仓库已包含 AviList v2026 全球 11,172 种目录。生产环境加载全球表，中国区域标记只作为软先验，不要把 `avilist_v2026_cn.csv` 当作唯一候选空间。发布前核对 `GET /api/v1/species/catalog/info` 返回 `total_species=11172`、`enabled_species=10970`，并把目录 SHA-256 记入发布记录。
+仓库已包含 AviList v2026 全球 11,172 种目录和一个合肥 100 km 的可选离线 GBIF 月度索引示例。生产环境默认加载全球主表作为全集；有坐标时先按地点与月份查询离线索引，离线索引不可用、未覆盖或匹配目录的物种少于 `BIRD_VISION_SPECIES_MIN_LOCAL_CANDIDATES` 时，再查实时 GBIF 缓存。会话创建不预取；首次达到分类条件的缓存未命中排队后台查询，并先使用覆盖该坐标的离线 profile 国家，否则使用请求/部署 `region_code` 对应的国家集合；只有没有可用当地或国家候选时才使用全球集合。后续分类在缓存匹配足够目录物种时使用当地候选。任何范围信息都不再给相似度加分。发布前核对 `GET /api/v1/species/catalog/info` 返回 `total_species=11172`、`enabled_species=10970`；如果部署了地点 profile，再在 `/readyz` 的物种模型详情中核对 `occurrence_index.available=true`、路径和 SHA-256，同时确认 `live_occurrence.enabled=true`。
+
+实时 GBIF 使用独立的有界工作池，最多并发 2 个坐标查询，进行中和排队的查询合计最多 8 个；它不占用 GPU 推理槽，也不计入 `BIRD_VISION_INFERENCE_TIMEOUT_SECONDS`。`BIRD_VISION_SPECIES_LIVE_OCCURRENCE_TIMEOUT_SECONDS` 只限制每次 HTTP 尝试，重试、全部月份分页和名称解析可能让完整 lookup 更久；查询错误缓存 30 秒后重试，有效和空结果使用配置 TTL。`BIRD_VISION_SPECIES_LIVE_OCCURRENCE_FACET_LIMIT` 只是 GBIF facet 每页大小，所有页面及其物种键都会处理。启用后，坐标会编码在按半径生成的查询多边形中，月份作为查询条件发送到 `api.gbif.org`，但本服务不持久化坐标；有外传约束的部署应关闭实时查询并提供充分覆盖的离线索引。
+
+中国全境离线索引不是仓库内置数据。生产环境可以先依靠任意坐标的实时 GBIF 查询，但高流量和低延迟部署仍应使用经审核的 GBIF SQL TSV/ZIP 运行 `MODELS.md` 中的网格构建命令，并将生成文件作为版本化部署资产；仅配置 `CN` 不会提供地点分布数据。索引的 GBIF 下载 DOI、查询文本、生成时间、文件 SHA-256、名称匹配报告和许可证引用应与发布版本一起归档。
 
 CUDA 下 `SPECIES_PRECISION=auto` 会使用 FP16 autocast。首次启动需要为 10,970 个启用物种生成 BioCLIP 文本特征；缓存键包含实际权重指纹、解析后的 revision、特征维度、目录哈希、提示模板版本和精度，之后启动直接读取。缓存目录必须放共享存储，目录或模型升级后会自动生成新缓存，不能手工把旧缓存改名复用。
 

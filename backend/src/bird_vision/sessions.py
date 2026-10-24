@@ -6,7 +6,7 @@ import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from bird_vision.config import Settings
 from bird_vision.domain import FrameJob
@@ -45,9 +45,11 @@ class VisionSession:
     owner_subject: str
     created_at: datetime
     last_activity_at: datetime
+    observation_mode: Literal["live", "historical"]
     latitude: float | None
     longitude: float | None
     region_code: str | None
+    coordinates_used_for_inference: bool
     tracker: TrackManager
     queue: asyncio.Queue[FrameJob | None] = field(default_factory=lambda: asyncio.Queue(maxsize=1))
     subscribers: set[asyncio.Queue[dict[str, Any]]] = field(default_factory=set)
@@ -67,8 +69,12 @@ class VisionSession:
             state=self.state,
             created_at=self.created_at,
             last_activity_at=self.last_activity_at,
+            observation_mode=self.observation_mode,
+            latitude=self.latitude,
+            longitude=self.longitude,
             region_code=self.region_code,
             stats=self.stats.schema(),
+            coordinates_used_for_inference=self.coordinates_used_for_inference,
         )
 
 
@@ -110,6 +116,7 @@ class SessionManager:
         *,
         owner_subject: str,
         client_session_id: str | None = None,
+        observation_mode: Literal["live", "historical"] = "live",
         latitude: float | None = None,
         longitude: float | None = None,
         region_code: str | None = None,
@@ -137,9 +144,13 @@ class SessionManager:
             owner_subject=owner_subject,
             created_at=now,
             last_activity_at=now,
+            observation_mode=observation_mode,
             latitude=latitude,
             longitude=longitude,
             region_code=region_code or self.settings.species_default_region_code,
+            coordinates_used_for_inference=self.pipeline.species.coordinates_supported(
+                latitude, longitude
+            ),
             tracker=self.pipeline.new_tracker(),
         )
         session.task = asyncio.create_task(self._worker(session), name=f"vision-session-{session_id}")

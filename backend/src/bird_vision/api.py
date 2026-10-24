@@ -6,7 +6,7 @@ import time
 import uuid
 from datetime import UTC, datetime
 from threading import Lock
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import (
     APIRouter,
@@ -250,6 +250,7 @@ async def create_session(
     session = await manager.create(
         owner_subject=principal.subject,
         client_session_id=payload.client_session_id,
+        observation_mode=payload.observation_mode,
         latitude=payload.latitude,
         longitude=payload.longitude,
         region_code=payload.region_code,
@@ -262,8 +263,12 @@ async def create_session(
         expires_after_idle_seconds=request.app.state.settings.session_idle_ttl_seconds,
         recommended_frame_interval_ms=interval_ms,
         websocket_path=f"/api/v1/vision/sessions/{session.session_id}/events",
+        observation_mode=session.observation_mode,
+        latitude=session.latitude,
+        longitude=session.longitude,
         region_code=session.region_code,
         catalog_version=catalog_version,
+        coordinates_used_for_inference=session.coordinates_used_for_inference,
     )
 
 
@@ -311,10 +316,15 @@ async def submit_frame(
     ],
     frame: Annotated[UploadFile, File(description="JPEG, PNG or WebP image")],
     captured_at: Annotated[datetime | None, Form()] = None,
+    capture_time_precision: Annotated[
+        Literal["exact", "date", "month", "unknown"], Form()
+    ] = "exact",
     latitude: Annotated[float | None, Form(ge=-90.0, le=90.0)] = None,
     longitude: Annotated[float | None, Form(ge=-180.0, le=180.0)] = None,
 ) -> FrameAcceptedResponse:
     settings = request.app.state.settings
+    manager = request.app.state.sessions
+    session = manager.get(session_id, principal.subject)
     if captured_at is not None and captured_at.utcoffset() is None:
         raise ServiceError(
             "CAPTURED_AT_TIMEZONE_REQUIRED",
@@ -322,16 +332,35 @@ async def submit_frame(
             422,
         )
     now = datetime.now(UTC)
+    if session.observation_mode == "historical" and captured_at is None:
+        raise ServiceError(
+            "CAPTURED_AT_REQUIRED",
+            "historical sessions require captured_at",
+            422,
+        )
+    if (latitude is None) != (longitude is None):
+        raise ServiceError(
+            "COORDINATES_INCOMPLETE",
+            "latitude and longitude must be provided together",
+            422,
+        )
     if captured_at is not None:
-        skew = abs((captured_at.astimezone(UTC) - now).total_seconds())
-        if skew > settings.max_capture_clock_skew_seconds:
+        skew = (captured_at.astimezone(UTC) - now).total_seconds()
+        invalid_clock = (
+            abs(skew) > settings.max_capture_clock_skew_seconds
+            if session.observation_mode == "live"
+            else skew > settings.max_capture_clock_skew_seconds
+        )
+        if invalid_clock:
             raise ServiceError(
                 "CAPTURED_AT_CLOCK_SKEW",
-                "captured_at differs too far from server time",
+                "captured_at is invalid for the session observation mode",
                 422,
-                {"max_skew_seconds": settings.max_capture_clock_skew_seconds},
+                {
+                    "observation_mode": session.observation_mode,
+                    "max_skew_seconds": settings.max_capture_clock_skew_seconds,
+                },
             )
-    manager = request.app.state.sessions
     session = manager.reserve_frame(session_id, principal.subject, frame_id, admitted=True)
     committed = False
     image = None
@@ -378,6 +407,12 @@ async def submit_frame(
                     continue
             raise cancellation
         request.app.state.metrics.decode_latency.observe(decode_ms / 1000.0)
+        frame_coordinates = latitude is not None
+        resolved_latitude = latitude if frame_coordinates else session.latitude
+        resolved_longitude = longitude if frame_coordinates else session.longitude
+        coordinate_source = (
+            "frame" if frame_coordinates else "session" if session.latitude is not None else "none"
+        )
         job = FrameJob(
             frame_id=frame_id,
             image=image,
@@ -385,9 +420,11 @@ async def submit_frame(
             received_at=now,
             received_monotonic=time.monotonic(),
             decode_ms=decode_ms,
-            latitude=latitude,
-            longitude=longitude,
+            latitude=resolved_latitude,
+            longitude=resolved_longitude,
             region_code=session.region_code,
+            coordinate_source=coordinate_source,
+            capture_time_precision=capture_time_precision,
         )
         replaced = await manager.submit_reserved(
             session_id, principal.subject, job, request.state.upload_reservation
@@ -428,7 +465,11 @@ async def session_events(websocket: WebSocket, session_id: str) -> None:
                     "recommended_frame_interval_ms": math.ceil(
                         1000.0 / websocket.app.state.settings.max_frame_rate
                     ),
+                    "observation_mode": session.observation_mode,
+                    "latitude": session.latitude,
+                    "longitude": session.longitude,
                     "region_code": session.region_code,
+                    "coordinates_used_for_inference": session.coordinates_used_for_inference,
                     "catalog_version": websocket.app.state.species.catalog_info().get("version"),
                 },
             }

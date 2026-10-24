@@ -48,7 +48,7 @@ X-Request-ID: req_...
 {
   "status": "ok",
   "service": "bird-vision-service",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "timestamp": "2026-10-23T08:00:00Z"
 }
 ```
@@ -138,13 +138,16 @@ Authorization: Bearer ...
 ```json
 {
   "client_session_id": "wx-activity-20261023-001",
-  "latitude": 31.2304,
-  "longitude": 121.4737,
+  "observation_mode": "live",
+  "latitude": 31.8206,
+  "longitude": 117.2272,
   "region_code": "CN"
 }
 ```
 
-经纬度和地区代码均可省略；地区默认由 `BIRD_VISION_SPECIES_DEFAULT_REGION_CODE` 决定。当前推理只使用显式/默认 `region_code`，不会根据经纬度自行反查国家或栖息范围；响应中的 `coordinates_used_for_inference=false` 明确这一点。地区只影响候选排序先验，不会把全球其他物种从候选空间删除。`client_session_id` 会随会话查询结果返回，仅供调用链关联，不作为服务端会话 ID。
+`observation_mode` 默认是 `live`；离线历史图片测试使用 `historical`。经纬度必须成对提供，可以省略；有坐标时服务先查离线地点索引，索引不可用、未覆盖或匹配目录的候选不足时查询实时 GBIF 缓存。会话创建不预取数据；首次达到分类条件且缓存未命中时只排队后台查询，本次结果先使用覆盖该坐标的离线 profile 国家（如有），否则使用会话请求/部署默认地区对应的国家候选；没有可用国家候选才使用全球候选。后续分类在查询完成且匹配足够目录物种后使用当地候选。地区与出现次数只选择候选空间，不修改模型分数。`client_session_id` 会随会话查询结果返回，仅供调用链关联，不作为服务端会话 ID。
+
+会话响应中的 `coordinates_used_for_inference` 在创建时计算，只表示会话坐标受当前已启用的离线或实时解析器支持，不证明某次分类实际使用了坐标候选。应以每个物种结果的 `species.decision.coordinates_used` 判断该结果是否实际采用当地候选集合，并结合 `fallback_reason` 查看回退原因。帧上传的坐标独立覆盖该帧的会话坐标，不会改写这个会话级标志。
 
 成功返回 `201`：
 
@@ -155,9 +158,12 @@ Authorization: Bearer ...
   "expires_after_idle_seconds": 300,
   "recommended_frame_interval_ms": 200,
   "websocket_path": "/api/v1/vision/sessions/vs_553d1f.../events",
+  "observation_mode": "live",
+  "latitude": 31.8206,
+  "longitude": 117.2272,
   "region_code": "CN",
   "catalog_version": "v2026",
-  "coordinates_used_for_inference": false
+  "coordinates_used_for_inference": true
 }
 ```
 
@@ -189,7 +195,11 @@ GET wss://api.example.com/api/v1/vision/sessions/{session_id}/events
   "session_id": "vs_...",
   "details": {
     "recommended_frame_interval_ms": 200,
+    "observation_mode": "live",
+    "latitude": 31.8206,
+    "longitude": 117.2272,
     "region_code": "CN",
+    "coordinates_used_for_inference": true,
     "catalog_version": "v2026"
   }
 }
@@ -212,8 +222,13 @@ Authorization: Bearer ...
 | `frame` | 是 | JPEG/PNG/WebP | 默认最多 6 MiB、解码后最多 8294400 像素（4K） |
 | `frame_id` | 是 | string | 会话生命周期内唯一，1～128 字符，仅字母、数字、`.`、`_`、`:`、`-` |
 | `captured_at` | 否 | RFC 3339 | 必须带时区，例如 `2026-10-23T16:00:01.325+08:00` |
-| `latitude` | 否 | number | `[-90, 90]`，用于请求上下文，不写入名录 |
-| `longitude` | 否 | number | `[-180, 180]` |
+| `capture_time_precision` | 否 | enum | `exact`（默认）、`date`、`month`、`unknown`；`unknown` 使用地点全年候选 |
+| `latitude` | 否 | number | `[-90, 90]`；必须与经度一起传，覆盖会话坐标 |
+| `longitude` | 否 | number | `[-180, 180]`；必须与纬度一起传 |
+
+`live` 会话中的 `captured_at` 必须接近服务器时间，以防旧帧污染实时轨迹；`historical` 会话必须提供 `captured_at`，允许过去时间但不允许明显的未来时间。调用方不知道真实拍摄月份时，不得把文件下载/修改时间伪装为精确拍摄时间，应传 `capture_time_precision=unknown`。
+
+启用实时 GBIF 时，后台查询不占用 GPU 推理槽，也不计入推理时限；GBIF 请求超时作用于每次 HTTP 尝试，不是整个后台查询。坐标会编码在按配置半径生成的查询多边形中，月份作为查询条件发送到 `api.gbif.org`，本服务不持久化坐标；部署可关闭实时查询以停止该外部传输。
 
 示例：
 
@@ -222,6 +237,7 @@ curl -X POST \
   -H 'Authorization: Bearer change-me' \
   -F 'frame_id=frame-000001' \
   -F 'captured_at=2026-10-23T16:00:01.325+08:00' \
+  -F 'capture_time_precision=exact' \
   -F 'frame=@frame.jpg;type=image/jpeg' \
   http://127.0.0.1:8000/api/v1/vision/sessions/vs_xxx/frames
 ```
@@ -251,12 +267,22 @@ curl -X POST \
   "session_id": "vs_xxx",
   "frame_id": "frame-000001",
   "captured_at": "2026-10-23T16:00:01.325+08:00",
+  "observation_context": {
+    "observed_at": "2026-10-23T16:00:01.325+08:00",
+    "time_source": "captured_at",
+    "time_precision": "exact",
+    "latitude": 31.8206,
+    "longitude": 117.2272,
+    "coordinate_source": "session",
+    "region_code": "CN"
+  },
   "image_width": 1280,
   "image_height": 720,
   "tracks": [
     {
       "track_id": 7,
       "state": "confirmed",
+      "visibility": "detected",
       "bbox": {
         "x1": 0.3125,
         "y1": 0.1806,
@@ -269,6 +295,7 @@ curl -X POST \
       "hits": 5,
       "species": {
         "state": "candidate",
+        "stability": "stable",
         "model": "bioclip-2-zero-shot",
         "candidates": [
           {
@@ -279,7 +306,8 @@ curl -X POST \
             "score": 0.71,
             "score_type": "relative_similarity",
             "similarity": 0.287531,
-            "region_match": true
+            "region_match": true,
+            "local_occurrence_count": 18
           }
         ],
         "decision": {
@@ -289,9 +317,18 @@ curl -X POST \
           "margin": 0.018422,
           "min_similarity": 0.2,
           "min_margin": 0.01,
-          "candidate_count": 10970,
+          "candidate_count": 243,
           "region_code": "CN",
-          "catalog_version": "v2026"
+          "catalog_version": "v2026",
+          "candidate_scope": "local_seasonal",
+          "location_profile_id": "hefei-cn-100km",
+          "location_profile_name": "合肥及周边 100 km",
+          "location_distance_km": 0.0,
+          "observation_month": 10,
+          "temporal_window_months": 1,
+          "occurrence_dataset_version": "2026-10-24",
+          "coordinates_used": true,
+          "fallback_reason": null
         },
         "note": "candidate passed configured open-set gates; user confirmation is still required"
       }
@@ -311,13 +348,21 @@ curl -X POST \
 
 `bbox` 是相对于原始上传图片的 `[0, 1]` 坐标。前端绘制时乘以实际视频显示区域，并处理 `object-fit` 产生的偏移，不能直接乘整个屏幕宽高。
 
+轨迹显示状态：`visibility=detected` 表示本帧有检测框，`temporarily_lost` 表示检测短暂漏失、`bbox` 是按最近运动速度外推的预测框。预测轨迹不会触发物种分类；超过 `BIRD_VISION_TRACK_MAX_MISSED_FRAMES` 后轨迹从事件中移除，前端应清除对应画框。
+
+当某条轨迹已经有通过门控的名称时，单次 `unknown` 会保留当前候选并返回 `species.stability=held`；疑似切换到另一物种时，在累计 `BIRD_VISION_SPECIES_SWITCH_CONFIRMATIONS` 次通过门控的分类证据前继续返回旧名称，并标记 `switch_pending`。名称稳定时为 `stable`。这些状态只用于显示稳定性，`candidate` 仍然不是用户确认的观测记录。
+
 物种相关字段：
 
-- `score`：全量启用目录内 softmax 相对排序分数，目录变化时会变化；
+- `score`：本次候选空间内 softmax 相对排序分数，地点、月份或目录变化时会变化；
 - `similarity`：图像与该物种文本提示的原始余弦相似度；
-- `region_match`：物种是否带当前会话区域标记；
-- `candidate_count`：本次实际参与排名的物种数，应为全量目录中的启用数；
-- `margin`：加入地区先验后 Top-1 与 Top-2 的分数差；
+- `region_match`：物种是否带当前会话国家标记，仅是审计信息，不参与打分；
+- `local_occurrence_count`：地点/月度索引中的聚合记录数，仅是审计信息，不参与打分；
+- `candidate_count`：本次实际参与排名的物种数；
+- `candidate_scope`：`local_seasonal`、`country` 或 `global`；
+- `coordinates_used`：`true` 表示该结果实际使用了满足最小目录匹配数的离线或实时当地候选集合；
+- `fallback_reason`：没有使用更精细范围的原因；实时查询相关值包括 `live_occurrence_lookup_pending`（后台准备中）、`live_occurrence_no_candidates`（查询无候选）和 `live_occurrence_lookup_failed`（查询失败），`null` 表示无需回退；
+- `margin`：实际候选空间中 Top-1 与 Top-2 原始相似度之差；
 - `candidate` 只代表通过当前工程阈值，仍需用户确认。
 
 低相似度或候选过于接近时返回：
@@ -334,9 +379,12 @@ curl -X POST \
     "margin": 0.004,
     "min_similarity": 0.2,
     "min_margin": 0.01,
-    "candidate_count": 10970,
+    "candidate_count": 1420,
     "region_code": "CN",
-    "catalog_version": "v2026"
+    "catalog_version": "v2026",
+    "candidate_scope": "country",
+    "coordinates_used": false,
+    "fallback_reason": "coordinates_missing"
   },
   "note": "no species passed the open-set gates; alternatives are provided for review only"
 }
@@ -382,7 +430,11 @@ DELETE /api/v1/vision/sessions/{session_id}
   "state": "active",
   "created_at": "2026-10-23T08:00:00Z",
   "last_activity_at": "2026-10-23T08:00:05Z",
+  "observation_mode": "live",
+  "latitude": 31.8206,
+  "longitude": 117.2272,
   "region_code": "CN",
+  "coordinates_used_for_inference": true,
   "stats": {
     "accepted_frames": 12,
     "processed_frames": 10,
@@ -422,6 +474,9 @@ DELETE /api/v1/vision/sessions/{session_id}
 | 415 | `UNSUPPORTED_IMAGE_TYPE` | MIME 不支持 |
 | 422 | `IMAGE_DECODE_FAILED` | 图片损坏或伪造 |
 | 422 | `CAPTURED_AT_TIMEZONE_REQUIRED` | 时间没有时区 |
+| 422 | `CAPTURED_AT_REQUIRED` | 历史会话没有拍摄时间 |
+| 422 | `CAPTURED_AT_CLOCK_SKEW` | 实时帧过旧/过新，或历史帧时间明显在未来 |
+| 422 | `COORDINATES_INCOMPLETE` | 纬度和经度没有成对提供 |
 | 422 | `INVALID_REGION_CODE` | 地区代码不是两位字母 |
 | 422 | `VALIDATION_ERROR` | 字段格式错误 |
 | 429 | `FRAME_RATE_EXCEEDED` | 超过会话帧率上限 |

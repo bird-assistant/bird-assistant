@@ -14,7 +14,13 @@ from typing import Any, Protocol
 from PIL import Image
 
 from bird_vision.config import Settings
-from bird_vision.domain import SpeciesCandidate, SpeciesPrediction
+from bird_vision.domain import ObservationContext, SpeciesCandidate, SpeciesPrediction
+from bird_vision.occurrence import (
+    DynamicOccurrenceResolver,
+    OccurrenceIndex,
+    OccurrenceLookupError,
+    OccurrenceLookupPending,
+)
 
 LOGGER = logging.getLogger(__name__)
 PROMPT_VERSION = "bioclip-bird-prompt-v1"
@@ -39,6 +45,22 @@ class Taxon:
     enabled: bool = True
 
 
+@dataclass(frozen=True, slots=True)
+class CandidateSelection:
+    indices: tuple[int, ...]
+    scope: str
+    region_code: str | None
+    occurrence_counts: dict[str, int]
+    location_profile_id: str | None = None
+    location_profile_name: str | None = None
+    location_distance_km: float | None = None
+    observation_month: int | None = None
+    temporal_window_months: int | None = None
+    occurrence_dataset_version: str | None = None
+    coordinates_used: bool = False
+    fallback_reason: str | None = None
+
+
 class SpeciesProvider(Protocol):
     name: str
     backend: str
@@ -53,7 +75,10 @@ class SpeciesProvider(Protocol):
         images: list[Image.Image],
         top_k: int,
         region_code: str | None = None,
+        context: ObservationContext | None = None,
     ) -> list[SpeciesPrediction]: ...
+
+    def coordinates_supported(self, latitude: float | None, longitude: float | None) -> bool: ...
 
     def metadata(self) -> dict[str, Any]: ...
 
@@ -103,6 +128,9 @@ class CatalogBackedProvider:
 
     def catalog_info(self) -> dict[str, Any]:
         return dict(self._catalog_metadata)
+
+    def coordinates_supported(self, latitude: float | None, longitude: float | None) -> bool:
+        return False
 
     def search_catalog(
         self,
@@ -165,7 +193,11 @@ class DisabledSpeciesProvider(CatalogBackedProvider):
         images: list[Image.Image],
         top_k: int,
         region_code: str | None = None,
+        context: ObservationContext | None = None,
     ) -> list[SpeciesPrediction]:
+        resolved_region = (
+            context.region_code if context is not None and context.region_code else region_code
+        )
         return [
             SpeciesPrediction(
                 candidates=tuple(),
@@ -174,7 +206,7 @@ class DisabledSpeciesProvider(CatalogBackedProvider):
                 top_similarity=None,
                 margin=None,
                 candidate_count=0,
-                region_code=region_code,
+                region_code=resolved_region,
                 catalog_version=None,
             )
             for _ in images
@@ -208,7 +240,11 @@ class MockSpeciesProvider(CatalogBackedProvider):
         images: list[Image.Image],
         top_k: int,
         region_code: str | None = None,
+        context: ObservationContext | None = None,
     ) -> list[SpeciesPrediction]:
+        resolved_region = (
+            context.region_code if context is not None and context.region_code else region_code
+        )
         candidate = SpeciesCandidate(
             species_id="mock_bird",
             scientific_name="Avis exemplum",
@@ -217,7 +253,7 @@ class MockSpeciesProvider(CatalogBackedProvider):
             score=0.80,
             score_type="mock",
             similarity=None,
-            region_match=region_code == "CN",
+            region_match=resolved_region == "CN",
         )
         return [
             SpeciesPrediction(
@@ -227,7 +263,7 @@ class MockSpeciesProvider(CatalogBackedProvider):
                 top_similarity=None,
                 margin=None,
                 candidate_count=1,
-                region_code=region_code,
+                region_code=resolved_region,
                 catalog_version="mock",
             )
             for _ in images
@@ -257,7 +293,9 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
         self._preprocess: Any = None
         self._tokenizer: Any = None
         self._text_features: Any = None
-        self._region_masks: dict[str, Any] = {}
+        self._occurrence_index: OccurrenceIndex | None = None
+        self._dynamic_occurrence: DynamicOccurrenceResolver | None = None
+        self._active_taxon_indices: dict[str, int] = {}
         self._resolved_precision = "fp32"
         self._text_cache_path: Path | None = None
         self._text_cache_hit = False
@@ -279,6 +317,18 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
             self._active_taxa = [taxon for taxon in self.taxa if taxon.enabled]
             if not self._active_taxa:
                 raise ValueError("species catalog contains no enabled species")
+            self._active_taxon_indices = {
+                taxon.scientific_name.casefold(): index
+                for index, taxon in enumerate(self._active_taxa)
+            }
+            self._load_occurrence_index()
+            if self.settings.species_live_occurrence_enabled:
+                self._dynamic_occurrence = DynamicOccurrenceResolver(
+                    radius_km=self.settings.species_live_occurrence_radius_km,
+                    facet_limit=self.settings.species_live_occurrence_facet_limit,
+                    cache_ttl_seconds=self.settings.species_live_occurrence_cache_ttl_seconds,
+                    request_timeout_seconds=self.settings.species_live_occurrence_timeout_seconds,
+                )
             model_source = self._resolve_model_source()
             expected = self.settings.bioclip_expected_fingerprint
             if expected and self._model_fingerprint.casefold() != expected.casefold():
@@ -494,29 +544,191 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
             )
         )
 
-    def _region_mask(self, region_code: str | None) -> Any | None:
-        if not region_code or self.settings.species_region_prior_bonus == 0:
-            return None
-        region = region_code.upper()
-        if region not in self._region_masks:
-            self._region_masks[region] = self._torch.tensor(
-                [region in taxon.region_codes for taxon in self._active_taxa],
-                dtype=self._text_features.dtype,
-                device=self.device,
+    def _load_occurrence_index(self) -> None:
+        self._occurrence_index = None
+        path = self.settings.species_occurrence_path
+        if path is None:
+            return
+        try:
+            self._occurrence_index = OccurrenceIndex.load(path)
+        except FileNotFoundError:
+            if self.settings.environment == "production":
+                raise
+            LOGGER.warning("occurrence profile is unavailable; location filtering will fall back")
+
+    def coordinates_supported(self, latitude: float | None, longitude: float | None) -> bool:
+        if latitude is None or longitude is None:
+            return False
+        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+            return False
+        if self._dynamic_occurrence is not None:
+            return True
+        if self._occurrence_index is None:
+            return False
+        # Month does not affect whether a coordinate lies within a configured profile.
+        from datetime import UTC, datetime
+
+        return (
+            self._occurrence_index.select(
+                latitude=latitude,
+                longitude=longitude,
+                observed_at=datetime.now(UTC),
+                window_months=0,
             )
-        return self._region_masks[region]
+            is not None
+        )
+
+    def _candidate_selection(
+        self,
+        region_code: str | None,
+        context: ObservationContext | None,
+    ) -> CandidateSelection:
+        resolved_region = (
+            context.region_code if context is not None and context.region_code else region_code
+        )
+        resolved_region = resolved_region.upper() if resolved_region else None
+        fallback_reason: str | None = None
+        selection = None
+        if context is not None and context.latitude is not None and context.longitude is not None:
+            temporal_window = (
+                None
+                if context.time_precision == "unknown"
+                else self.settings.species_temporal_window_months
+            )
+            matched: list[int] = []
+            if self._occurrence_index is None:
+                fallback_reason = "occurrence_index_unavailable"
+            else:
+                selection = self._occurrence_index.select(
+                    latitude=context.latitude,
+                    longitude=context.longitude,
+                    observed_at=context.observed_at,
+                    window_months=temporal_window,
+                )
+                if selection is None:
+                    fallback_reason = "outside_occurrence_profile_coverage"
+                else:
+                    # A country attached to a coordinate profile is more reliable
+                    # than a stale or manually supplied request region.
+                    resolved_region = selection.site.country_code or resolved_region
+                    selection_region = resolved_region
+                    matched = sorted(
+                        {
+                            self._active_taxon_indices[scientific_name.casefold()]
+                            for scientific_name in selection.occurrence_counts
+                            if scientific_name.casefold() in self._active_taxon_indices
+                        }
+                    )
+                    if len(matched) >= self.settings.species_min_local_candidates:
+                        return CandidateSelection(
+                            indices=tuple(matched),
+                            scope="local_seasonal",
+                            region_code=selection_region,
+                            occurrence_counts=selection.occurrence_counts,
+                            location_profile_id=selection.site.site_id,
+                            location_profile_name=selection.site.name,
+                            location_distance_km=round(selection.distance_km, 3),
+                            observation_month=selection.observation_month,
+                            temporal_window_months=temporal_window,
+                            occurrence_dataset_version=str(
+                                self._occurrence_index.dataset.get("version")
+                            ),
+                            coordinates_used=True,
+                        )
+                    fallback_reason = "insufficient_local_candidates"
+            should_query_live = (
+                len(matched) < self.settings.species_min_local_candidates
+                and self._dynamic_occurrence is not None
+            )
+            if should_query_live:
+                selection = None
+                try:
+                    selection = self._dynamic_occurrence.select_cached(
+                        latitude=context.latitude,
+                        longitude=context.longitude,
+                        observed_at=context.observed_at,
+                        window_months=temporal_window,
+                    )
+                    if selection is None:
+                        fallback_reason = "live_occurrence_no_candidates"
+                except OccurrenceLookupPending:
+                    fallback_reason = "live_occurrence_lookup_pending"
+                except OccurrenceLookupError:
+                    LOGGER.debug("live occurrence lookup failed; falling back to catalog", exc_info=True)
+                    fallback_reason = "live_occurrence_lookup_failed"
+                if selection is not None:
+                    matched = sorted(
+                        {
+                            self._active_taxon_indices[scientific_name.casefold()]
+                            for scientific_name in selection.occurrence_counts
+                            if scientific_name.casefold() in self._active_taxon_indices
+                        }
+                    )
+                    if len(matched) >= self.settings.species_min_local_candidates:
+                        return CandidateSelection(
+                            indices=tuple(matched),
+                            scope="local_seasonal",
+                            region_code=resolved_region,
+                            occurrence_counts=selection.occurrence_counts,
+                            location_profile_id=selection.site.site_id,
+                            location_profile_name=selection.site.name,
+                            location_distance_km=0.0,
+                            observation_month=selection.observation_month,
+                            temporal_window_months=temporal_window,
+                            occurrence_dataset_version=selection.dataset_version,
+                            coordinates_used=True,
+                        )
+                    fallback_reason = "insufficient_local_candidates"
+        elif context is not None:
+            fallback_reason = "coordinates_missing"
+
+        if resolved_region:
+            country_indices = tuple(
+                index
+                for index, taxon in enumerate(self._active_taxa)
+                if resolved_region in taxon.region_codes
+            )
+            if country_indices:
+                return CandidateSelection(
+                    indices=country_indices,
+                    scope="country",
+                    region_code=resolved_region,
+                    occurrence_counts={},
+                    observation_month=(
+                        context.observed_at.month
+                        if context is not None and context.time_precision != "unknown"
+                        else None
+                    ),
+                    fallback_reason=fallback_reason,
+                )
+            fallback_reason = fallback_reason or "region_has_no_catalog_candidates"
+        return CandidateSelection(
+            indices=tuple(range(len(self._active_taxa))),
+            scope="global",
+            region_code=resolved_region,
+            occurrence_counts={},
+            observation_month=(
+                context.observed_at.month
+                if context is not None and context.time_precision != "unknown"
+                else None
+            ),
+            fallback_reason=fallback_reason or ("region_code_missing" if context is not None else None),
+        )
 
     def classify(
         self,
         images: list[Image.Image],
         top_k: int,
         region_code: str | None = None,
+        context: ObservationContext | None = None,
     ) -> list[SpeciesPrediction]:
         if not images:
             return []
         results: list[SpeciesPrediction] = []
         batch_size = self.settings.species_batch_size
-        region_mask = self._region_mask(region_code)
+        selection = self._candidate_selection(region_code, context)
+        selection_tensor = self._torch.tensor(selection.indices, dtype=self._torch.long, device=self.device)
+        selected_text_features = self._text_features.index_select(0, selection_tensor)
         catalog_version = self.catalog_info().get("version")
         with self._torch.inference_mode(), self._autocast_context():
             for start in range(0, len(images), batch_size):
@@ -525,19 +737,17 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                 image_features = self._model.encode_image(batch)
                 image_features = image_features / image_features.norm(dim=-1, keepdim=True)
                 image_features = image_features.to(self._text_features.dtype)
-                similarities = image_features @ self._text_features.T
+                similarities = image_features @ selected_text_features.T
                 ranking_scores = similarities
-                if region_mask is not None:
-                    ranking_scores = ranking_scores + (region_mask * self.settings.species_region_prior_bonus)
                 # These are catalog-relative ranking scores, not correctness probabilities.
                 relative_scores = (100.0 * ranking_scores.float()).softmax(dim=-1)
                 output_k = min(top_k, relative_scores.shape[-1])
                 decision_k = min(max(output_k, 2), relative_scores.shape[-1])
                 _, decision_indices = ranking_scores.topk(decision_k, dim=-1)
                 for row_number, index_row in enumerate(decision_indices.tolist()):
-                    output_indices = index_row[:output_k]
-                    top_index = output_indices[0]
-                    top_similarity = float(similarities[row_number, top_index].item())
+                    output_local_indices = index_row[:output_k]
+                    top_local_index = output_local_indices[0]
+                    top_similarity = float(similarities[row_number, top_local_index].item())
                     margin = None
                     if len(index_row) > 1:
                         margin = float(
@@ -549,12 +759,13 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                     accepted, reason = self._decision(top_similarity, margin)
                     candidates = tuple(
                         self._candidate(
-                            index=index,
-                            similarity=float(similarities[row_number, index].item()),
-                            relative_score=float(relative_scores[row_number, index].item()),
-                            region_code=region_code,
+                            index=selection.indices[local_index],
+                            similarity=float(similarities[row_number, local_index].item()),
+                            relative_score=float(relative_scores[row_number, local_index].item()),
+                            region_code=selection.region_code,
+                            occurrence_counts=selection.occurrence_counts,
                         )
-                        for index in output_indices
+                        for local_index in output_local_indices
                     )
                     results.append(
                         SpeciesPrediction(
@@ -563,9 +774,18 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                             reason=reason,
                             top_similarity=round(top_similarity, 6),
                             margin=round(margin, 6) if margin is not None else None,
-                            candidate_count=len(self._active_taxa),
-                            region_code=region_code,
+                            candidate_count=len(selection.indices),
+                            region_code=selection.region_code,
                             catalog_version=catalog_version,
+                            candidate_scope=selection.scope,
+                            location_profile_id=selection.location_profile_id,
+                            location_profile_name=selection.location_profile_name,
+                            location_distance_km=selection.location_distance_km,
+                            observation_month=selection.observation_month,
+                            temporal_window_months=selection.temporal_window_months,
+                            occurrence_dataset_version=selection.occurrence_dataset_version,
+                            coordinates_used=selection.coordinates_used,
+                            fallback_reason=selection.fallback_reason,
                         )
                     )
         return results
@@ -584,6 +804,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
         similarity: float,
         relative_score: float,
         region_code: str | None,
+        occurrence_counts: dict[str, int],
     ) -> SpeciesCandidate:
         taxon = self._active_taxa[index]
         return SpeciesCandidate(
@@ -595,6 +816,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
             score_type="relative_similarity",
             similarity=round(similarity, 6),
             region_match=bool(region_code and region_code.upper() in taxon.region_codes),
+            local_occurrence_count=occurrence_counts.get(taxon.scientific_name),
         )
 
     def metadata(self) -> dict[str, Any]:
@@ -614,8 +836,20 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
             "decision": {
                 "min_similarity": self.settings.species_min_similarity,
                 "min_margin": self.settings.species_min_margin,
-                "region_prior_bonus": self.settings.species_region_prior_bonus,
+                "candidate_policy": "local seasonal filter, then country filter, then global fallback",
+                "temporal_window_months": self.settings.species_temporal_window_months,
+                "min_local_candidates": self.settings.species_min_local_candidates,
             },
+            "occurrence_index": (
+                self._occurrence_index.metadata()
+                if self._occurrence_index is not None
+                else {"available": False}
+            ),
+            "live_occurrence": (
+                self._dynamic_occurrence.metadata()
+                if self._dynamic_occurrence is not None
+                else {"enabled": False}
+            ),
             "score_semantics": (
                 "softmax similarity within the enabled catalog; ranking only, not correctness probability"
             ),
@@ -627,7 +861,11 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
         self._tokenizer = None
         self._text_features = None
         self._active_taxa = []
-        self._region_masks.clear()
+        self._active_taxon_indices = {}
+        self._occurrence_index = None
+        if self._dynamic_occurrence is not None:
+            self._dynamic_occurrence.close()
+        self._dynamic_occurrence = None
         self._feature_dim = None
         self._text_cache_path = None
         self._text_cache_hit = False

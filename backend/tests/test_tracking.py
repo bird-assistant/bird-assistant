@@ -73,6 +73,19 @@ def test_motion_velocity_is_per_frame_after_an_occlusion() -> None:
     assert recovered.velocity_x == 10
 
 
+def test_motion_tracker_returns_predicted_track_during_short_miss() -> None:
+    tracker = IoUTracker(iou_threshold=0.1, max_missed_frames=2)
+    now = datetime.now(UTC)
+    tracker.update((RawDetection(Box(0, 0, 20, 20), 0.9),), now)
+    tracker.update((RawDetection(Box(10, 0, 30, 20), 0.9),), now + timedelta(milliseconds=100))
+
+    predicted = tracker.update(tuple(), now + timedelta(milliseconds=200))
+
+    assert len(predicted) == 1
+    assert predicted[0].missed_frames == 1
+    assert predicted[0].predicted_box == Box(20, 0, 40, 20)
+
+
 def test_tracker_releases_a_saved_crop_when_a_track_expires() -> None:
     tracker = IoUTracker(iou_threshold=0.3, max_missed_frames=0)
     now = datetime.now(UTC)
@@ -85,6 +98,14 @@ def test_tracker_releases_a_saved_crop_when_a_track_expires() -> None:
     with pytest.raises(ValueError):
         crop.load()
     assert tracker._tracks == {}
+
+
+def test_expired_track_is_not_returned_for_one_extra_frame() -> None:
+    tracker = IoUTracker(iou_threshold=0.3, max_missed_frames=0)
+    now = datetime.now(UTC)
+    tracker.update((RawDetection(Box(0, 0, 20, 20), 0.9),), now)
+
+    assert tracker.update(tuple(), now + timedelta(milliseconds=100)) == []
 
 
 def test_auto_tracker_uses_motion_without_yolo_extras() -> None:
@@ -193,7 +214,8 @@ def test_bytetrack_sessions_cannot_reset_process_id_counter(monkeypatch) -> None
         high_confidence=0.25,
         low_confidence=0.1,
     )
-    assert first.update(detection, now)[0].track_id == 2
+    updated = first.update(detection, now)
+    assert [track.track_id for track in updated if track.missed_frames == 0] == [2]
 
 
 def test_bytetrack_adapter_maps_ids_and_preserves_track_state(monkeypatch) -> None:
@@ -278,6 +300,38 @@ def test_bytetrack_adapter_releases_crop_when_backend_removes_track(monkeypatch)
     with pytest.raises(ValueError):
         crop.load()
     assert adapter._tracks == {}
+
+
+def test_bytetrack_adapter_returns_predicted_track_during_short_miss(monkeypatch) -> None:
+    numpy = pytest.importorskip("numpy")
+
+    class FakeByteTracker:
+        def __init__(self, args, frame_rate=30):
+            self.outputs = [
+                numpy.asarray([[0, 0, 20, 20, 42, 0.9, 14, 0]], dtype=float),
+                numpy.asarray([[10, 0, 30, 20, 42, 0.9, 14, 0]], dtype=float),
+                numpy.empty((0, 8)),
+            ]
+
+        def update(self, results):
+            return self.outputs.pop(0)
+
+    monkeypatch.setattr(tracking_module, "_load_bytetrack_backend", lambda: FakeByteTracker)
+    adapter = ByteTrackAdapter(
+        iou_threshold=0.3,
+        max_missed_frames=2,
+        high_confidence=0.25,
+        low_confidence=0.1,
+    )
+    now = datetime.now(UTC)
+    adapter.update((RawDetection(Box(0, 0, 20, 20), 0.9),), now)
+    adapter.update((RawDetection(Box(10, 0, 30, 20), 0.9),), now + timedelta(milliseconds=100))
+
+    predicted = adapter.update(tuple(), now + timedelta(milliseconds=200))
+
+    assert len(predicted) == 1
+    assert predicted[0].missed_frames == 1
+    assert predicted[0].predicted_box == Box(20, 0, 40, 20)
 
 
 def test_auto_yolo_selects_bytetrack_factory(monkeypatch) -> None:

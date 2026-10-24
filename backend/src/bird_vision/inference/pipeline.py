@@ -14,6 +14,7 @@ from bird_vision.inference.species import SpeciesProvider
 from bird_vision.schemas import (
     FrameResultEvent,
     NormalizedBox,
+    ObservationContextResponse,
     SpeciesCandidateResponse,
     SpeciesDecisionResponse,
     SpeciesResultResponse,
@@ -52,6 +53,8 @@ class VisionPipeline:
         crops: list[Image.Image] = []
         now_mono = time.monotonic()
         for track in tracks:
+            if track.missed_frames:
+                continue
             quality = self._quality(job.image, track.box, track.detection_score)
             track.best_quality = max(track.best_quality, quality)
             eligible = (
@@ -74,13 +77,14 @@ class VisionPipeline:
                     crops,
                     self.settings.species_top_k,
                     region_code=job.region_code,
+                    context=job.observation_context,
                 )
                 for track, prediction in zip(classify_tracks, predictions, strict=True):
                     track.species_history.append(prediction)
                     del track.species_history[: -self.settings.species_evidence_window]
                     aggregate = self._aggregate_predictions(track.species_history)
-                    track.species_prediction = aggregate
-                    track.species_candidates = aggregate.candidates
+                    track.species_prediction = self._stabilize_prediction(track, aggregate)
+                    track.species_candidates = track.species_prediction.candidates
                     track.species_model = self.species.name
                     track.last_classified_quality = track.pending_best_quality
                     track.last_classified_monotonic = now_mono
@@ -100,6 +104,9 @@ class VisionPipeline:
             session_id=session_id,
             frame_id=job.frame_id,
             captured_at=job.captured_at,
+            observation_context=ObservationContextResponse.model_validate(
+                job.observation_context, from_attributes=True
+            ),
             image_width=width,
             image_height=height,
             tracks=responses,
@@ -167,7 +174,6 @@ class VisionPipeline:
                         if item is not None
                         else 0.0
                     )
-                    + weight * self.settings.species_region_prior_bonus * bool(item and item.region_match)
                     for weight, item in values
                 )
                 / total_weight
@@ -249,7 +255,50 @@ class VisionPipeline:
             candidate_count=latest.candidate_count,
             region_code=latest.region_code,
             catalog_version=latest.catalog_version,
+            candidate_scope=latest.candidate_scope,
+            location_profile_id=latest.location_profile_id,
+            location_profile_name=latest.location_profile_name,
+            location_distance_km=latest.location_distance_km,
+            observation_month=latest.observation_month,
+            temporal_window_months=latest.temporal_window_months,
+            occurrence_dataset_version=latest.occurrence_dataset_version,
+            coordinates_used=latest.coordinates_used,
+            fallback_reason=latest.fallback_reason,
         )
+
+    def _stabilize_prediction(self, track: Track, prediction: SpeciesPrediction) -> SpeciesPrediction:
+        current = track.species_prediction
+        if current is None or not current.accepted:
+            track.species_stability = "stable"
+            if prediction.accepted and prediction.candidates:
+                track.pending_species_id = None
+                track.pending_species_hits = 0
+            return prediction
+
+        current_species_id = current.candidates[0].species_id if current.candidates else None
+        next_species_id = prediction.candidates[0].species_id if prediction.candidates else None
+        if not prediction.accepted or next_species_id == current_species_id:
+            track.pending_species_id = None
+            track.pending_species_hits = 0
+            if prediction.accepted:
+                track.species_stability = "stable"
+                return prediction
+            track.species_stability = "held"
+            return current
+
+        if next_species_id == track.pending_species_id:
+            track.pending_species_hits += 1
+        else:
+            track.pending_species_id = next_species_id
+            track.pending_species_hits = 1
+
+        if track.pending_species_hits >= self.settings.species_switch_confirmations:
+            track.pending_species_id = None
+            track.pending_species_hits = 0
+            track.species_stability = "stable"
+            return prediction
+        track.species_stability = "switch_pending"
+        return current
 
     def _crop(self, image: Image.Image, box: Box) -> Image.Image:
         width, height = image.size
@@ -280,7 +329,8 @@ class VisionPipeline:
         return float(detection_score * size_score * (0.5 + 0.5 * sharpness_score))
 
     def _track_response(self, track: Track, width: int, height: int) -> TrackResponse:
-        normalized = track.box.normalized(width, height)
+        box = track.predicted_box or track.box
+        normalized = box.normalized(width, height)
         recognizable = track.box.short_side >= self.settings.min_recognizable_side_px
         if self.species.backend == "disabled":
             species = SpeciesResultResponse(
@@ -291,6 +341,7 @@ class VisionPipeline:
             prediction = track.species_prediction
             species = SpeciesResultResponse(
                 state="candidate" if prediction.accepted else "unknown",
+                stability=track.species_stability if prediction.accepted else None,
                 model=track.species_model,
                 candidates=[
                     SpeciesCandidateResponse.model_validate(item, from_attributes=True)
@@ -310,6 +361,15 @@ class VisionPipeline:
                     candidate_count=prediction.candidate_count,
                     region_code=prediction.region_code,
                     catalog_version=prediction.catalog_version,
+                    candidate_scope=prediction.candidate_scope,
+                    location_profile_id=prediction.location_profile_id,
+                    location_profile_name=prediction.location_profile_name,
+                    location_distance_km=prediction.location_distance_km,
+                    observation_month=prediction.observation_month,
+                    temporal_window_months=prediction.temporal_window_months,
+                    occurrence_dataset_version=prediction.occurrence_dataset_version,
+                    coordinates_used=prediction.coordinates_used,
+                    fallback_reason=prediction.fallback_reason,
                 ),
                 note=(
                     "candidate passed configured open-set gates; user confirmation is still required"
@@ -326,6 +386,7 @@ class VisionPipeline:
         return TrackResponse(
             track_id=track.track_id,
             state="confirmed" if track.hits >= self.settings.track_confirm_hits else "tentative",
+            visibility="temporarily_lost" if track.missed_frames else "detected",
             bbox=NormalizedBox(x1=normalized[0], y1=normalized[1], x2=normalized[2], y2=normalized[3]),
             detection_score=round(track.detection_score, 6),
             short_side_px=round(track.box.short_side, 2),

@@ -6,7 +6,16 @@ from datetime import UTC, datetime
 from PIL import Image
 
 import bird_vision.inference.pipeline as pipeline_module
-from bird_vision.domain import FrameJob, SpeciesCandidate, SpeciesPrediction
+from bird_vision.domain import (
+    Box,
+    DetectorOutput,
+    FrameJob,
+    ObservationContext,
+    RawDetection,
+    SpeciesCandidate,
+    SpeciesPrediction,
+    Track,
+)
 from bird_vision.inference.detectors import MockDetector
 from bird_vision.inference.pipeline import VisionPipeline
 from bird_vision.inference.species import MockSpeciesProvider
@@ -40,12 +49,196 @@ def test_pipeline_confirms_track_and_emits_species_candidate(test_settings) -> N
     assert result is not None
     assert result.tracks[0].state == "confirmed"
     assert result.tracks[0].species.state == "candidate"
+    assert result.tracks[0].species.stability == "stable"
     assert result.tracks[0].species.candidates[0].species_id == "mock_bird"
+
+
+def test_pipeline_passes_observation_context_to_species_model(test_settings) -> None:
+    class RecordingSpeciesProvider(MockSpeciesProvider):
+        def __init__(self) -> None:
+            super().__init__()
+            self.context: ObservationContext | None = None
+
+        def classify(self, images, top_k, region_code=None, context=None):
+            self.context = context
+            return super().classify(images, top_k, region_code, context)
+
+    settings = test_settings.model_copy(update={"track_confirm_hits": 1})
+    detector = MockDetector()
+    detector.load()
+    species = RecordingSpeciesProvider()
+    species.load()
+    pipeline = VisionPipeline(settings, detector, species)
+    captured_at = datetime.fromisoformat("2025-11-01T00:00:00+08:00")
+    job = FrameJob(
+        frame_id="metadata",
+        image=Image.new("RGB", (320, 240), (100, 120, 80)),
+        captured_at=captured_at,
+        received_at=datetime.now(UTC),
+        received_monotonic=time.monotonic(),
+        latitude=39.9042,
+        longitude=116.4074,
+        region_code="CN",
+        coordinate_source="frame",
+        capture_time_precision="month",
+    )
+
+    pipeline.process(
+        session_id="vs_test",
+        job=job,
+        tracker=pipeline.new_tracker(),
+        queue_ms=0.0,
+        decode_ms=0.0,
+    )
+
+    assert species.context == ObservationContext(
+        observed_at=captured_at,
+        time_source="captured_at",
+        time_precision="month",
+        latitude=39.9042,
+        longitude=116.4074,
+        coordinate_source="frame",
+        region_code="CN",
+    )
+
+
+def test_pipeline_returns_predicted_track_without_reclassifying(test_settings) -> None:
+    class IntermittentDetector(MockDetector):
+        def __init__(self) -> None:
+            super().__init__()
+            self.calls = 0
+
+        def predict(self, image):
+            self.calls += 1
+            detections = (
+                (RawDetection(Box(80, 40, 180, 160), 0.9),)
+                if self.calls == 1
+                else tuple()
+            )
+            return DetectorOutput(detections)
+
+    class CountingSpeciesProvider(MockSpeciesProvider):
+        def __init__(self) -> None:
+            super().__init__()
+            self.calls = 0
+
+        def classify(self, images, top_k, region_code=None, context=None):
+            self.calls += 1
+            return super().classify(images, top_k, region_code, context)
+
+    settings = test_settings.model_copy(update={"track_confirm_hits": 1})
+    detector = IntermittentDetector()
+    detector.load()
+    species = CountingSpeciesProvider()
+    species.load()
+    pipeline = VisionPipeline(settings, detector, species)
+    tracker = pipeline.new_tracker()
+    image = Image.new("RGB", (320, 240), (100, 120, 80))
+
+    def process(frame_id: str):
+        now = datetime.now(UTC)
+        return pipeline.process(
+            session_id="vs_test",
+            job=FrameJob(
+                frame_id=frame_id,
+                image=image,
+                captured_at=now,
+                received_at=now,
+                received_monotonic=time.monotonic(),
+            ),
+            tracker=tracker,
+            queue_ms=0.0,
+            decode_ms=0.0,
+        )
+
+    detected = process("detected")
+    missing = process("missing")
+
+    assert detected.tracks[0].visibility == "detected"
+    assert missing.tracks[0].visibility == "temporarily_lost"
+    assert missing.tracks[0].bbox == detected.tracks[0].bbox
+    assert missing.tracks[0].species.state == "candidate"
+    assert missing.tracks[0].species.candidates[0].species_id == "mock_bird"
+    assert species.calls == 1
+
+
+def test_stabilizer_holds_accepted_name_and_requires_confirmed_switch(test_settings) -> None:
+    settings = test_settings.model_copy(update={"species_switch_confirmations": 2})
+    species = MockSpeciesProvider()
+    species.backend = "open-clip"
+    pipeline = VisionPipeline(settings, MockDetector(), species)
+    candidate_a = SpeciesCandidate(
+        species_id="a",
+        scientific_name="Avis alpha",
+        common_name_zh="甲鸟",
+        common_name_en="Alpha",
+        score=0.8,
+        similarity=0.8,
+    )
+    candidate_b = SpeciesCandidate(
+        species_id="b",
+        scientific_name="Avis beta",
+        common_name_zh="乙鸟",
+        common_name_en="Beta",
+        score=0.8,
+        similarity=0.8,
+    )
+    accepted_a = SpeciesPrediction(
+        candidates=(candidate_a,),
+        accepted=True,
+        reason="accepted",
+        top_similarity=0.8,
+        margin=0.02,
+        candidate_count=2,
+        region_code="CN",
+        catalog_version="test",
+    )
+    accepted_b = SpeciesPrediction(
+        candidates=(candidate_b,),
+        accepted=True,
+        reason="accepted",
+        top_similarity=0.8,
+        margin=0.02,
+        candidate_count=2,
+        region_code="CN",
+        catalog_version="test",
+    )
+    rejected = SpeciesPrediction(
+        candidates=(candidate_a,),
+        accepted=False,
+        reason="ambiguous_candidates",
+        top_similarity=0.8,
+        margin=0.001,
+        candidate_count=2,
+        region_code="CN",
+        catalog_version="test",
+    )
+    track = Track(
+        track_id=1,
+        box=Box(0, 0, 100, 100),
+        detection_score=0.9,
+        first_seen_at=datetime.now(UTC),
+        last_seen_at=datetime.now(UTC),
+        species_prediction=accepted_a,
+    )
+
+    held = pipeline._stabilize_prediction(track, rejected)
+    held_stability = track.species_stability
+    first_switch_evidence = pipeline._stabilize_prediction(track, accepted_b)
+    pending_stability = track.species_stability
+    switched = pipeline._stabilize_prediction(track, accepted_b)
+
+    assert held is accepted_a
+    assert held_stability == "held"
+    assert first_switch_evidence is accepted_a
+    assert pending_stability == "switch_pending"
+    assert switched is accepted_b
+    assert track.species_stability == "stable"
 
 
 def test_pipeline_emits_unknown_when_open_set_gate_rejects(test_settings) -> None:
     class RejectingSpeciesProvider(MockSpeciesProvider):
-        def classify(self, images, top_k, region_code=None):
+        def classify(self, images, top_k, region_code=None, context=None):
             candidate = SpeciesCandidate(
                 species_id="bird_a",
                 scientific_name="Avis alpha",
@@ -109,7 +302,7 @@ def test_pipeline_reclassifies_after_refresh_and_uses_recent_species_evidence(
             super().__init__()
             self.calls = 0
 
-        def classify(self, images, top_k, region_code=None):
+        def classify(self, images, top_k, region_code=None, context=None):
             self.calls += 1
             species_id, similarity = ("wrong_first", 0.9) if self.calls == 1 else ("correct_later", 0.8)
             candidate = SpeciesCandidate(
@@ -139,6 +332,7 @@ def test_pipeline_reclassifies_after_refresh_and_uses_recent_species_evidence(
             "classification_cooldown_seconds": 0.0,
             "classification_refresh_seconds": 10.0,
             "species_evidence_window": 3,
+            "species_switch_confirmations": 1,
         }
     )
     detector = MockDetector()
@@ -174,8 +368,8 @@ def test_pipeline_reclassifies_after_refresh_and_uses_recent_species_evidence(
     assert tracker._tracks[1].pending_best_crop is None
 
 
-def test_aggregate_open_clip_uses_region_bonus_but_keeps_raw_similarity(test_settings) -> None:
-    settings = test_settings.model_copy(update={"species_top_k": 2, "species_region_prior_bonus": 0.015})
+def test_aggregate_open_clip_uses_raw_similarity_without_region_bonus(test_settings) -> None:
+    settings = test_settings.model_copy(update={"species_top_k": 2})
     species = MockSpeciesProvider()
     species.backend = "open-clip"
     pipeline = VisionPipeline(settings, MockDetector(), species)
@@ -221,10 +415,10 @@ def test_aggregate_open_clip_uses_region_bonus_but_keeps_raw_similarity(test_set
 
     aggregate = pipeline._aggregate_predictions(history)
 
-    assert aggregate.candidates[0].species_id == "b"
-    assert aggregate.top_similarity == 0.49
+    assert aggregate.candidates[0].species_id == "a"
+    assert aggregate.top_similarity == 0.5
     assert aggregate.accepted is False
-    assert aggregate.reason == "ambiguous_candidates"
+    assert aggregate.reason == "latest_prediction_disagrees"
 
 
 def test_aggregate_top1_uses_latest_margin_and_respects_latest_rejection(test_settings) -> None:

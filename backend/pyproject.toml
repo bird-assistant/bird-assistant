@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bird-vision-service"
-version = "0.2.0"
+version = "0.3.0"
 description = "Realtime visual recognition backend for Bird Assistant"
 requires-python = ">=3.11,<3.15"
 dependencies = [

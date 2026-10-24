@@ -4,6 +4,7 @@ import csv
 import importlib
 import json
 import sys
+import zipfile
 from argparse import Namespace
 from pathlib import Path
 from types import SimpleNamespace
@@ -32,6 +33,9 @@ def scripts(monkeypatch):
         pipeline=importlib.import_module("evaluate_pipeline"),
         lock=importlib.import_module("lock_dependencies"),
         prepare=importlib.import_module("prepare_model_artifacts"),
+        occurrence_profile=importlib.import_module("build_occurrence_profile"),
+        occurrence_grid=importlib.import_module("build_occurrence_grid"),
+        cloud_images=importlib.import_module("test_cloud_images"),
     )
 
 
@@ -78,6 +82,56 @@ def test_catalog_release_and_offline_provenance(scripts, tmp_path, monkeypatch):
     assert metadata["common_names_and_region_enrichment"]["taxonomy_endpoint"] == str(
         tmp_path / "taxonomy.json"
     )
+
+
+def test_cloud_image_test_defaults_to_hefei_and_validates_session_location(scripts, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["test_cloud_images.py"])
+    args = scripts.cloud_images.parse_args()
+    assert args.latitude == 31.8206
+    assert args.longitude == 117.2272
+    assert args.region_code == "CN"
+
+    session = {
+        "latitude": 31.8206,
+        "longitude": 117.2272,
+        "region_code": "CN",
+        "coordinates_used_for_inference": True,
+    }
+    scripts.cloud_images.validate_session_location(
+        session,
+        latitude=args.latitude,
+        longitude=args.longitude,
+        region_code=args.region_code,
+    )
+    with pytest.raises(scripts.cloud_images.TestFailure, match="未采用测试位置"):
+        scripts.cloud_images.validate_session_location(
+            {**session, "latitude": None},
+            latitude=args.latitude,
+            longitude=args.longitude,
+            region_code=args.region_code,
+        )
+    with pytest.raises(scripts.cloud_images.TestFailure, match="没有启用坐标候选解析"):
+        scripts.cloud_images.validate_session_location(
+            {**session, "coordinates_used_for_inference": False},
+            latitude=args.latitude,
+            longitude=args.longitude,
+            region_code=args.region_code,
+        )
+
+
+def test_cloud_image_test_detects_pending_local_candidates(scripts):
+    pending = {
+        "tracks": [
+            {
+                "species": {
+                    "decision": {"fallback_reason": "live_occurrence_lookup_pending"},
+                }
+            }
+        ]
+    }
+    assert scripts.cloud_images.has_pending_local_candidates(pending)
+    pending["tracks"][0]["species"]["decision"]["fallback_reason"] = None
+    assert not scripts.cloud_images.has_pending_local_candidates(pending)
 
 
 def test_catalog_publish_is_immutable_and_cleans_failed_staging(scripts, tmp_path, monkeypatch):
@@ -178,6 +232,241 @@ def test_catalog_does_not_label_alternate_english_as_chinese(scripts):
     taxon = {"name": "Test Bird", "nameClements": "Test Bird", "nameBirdLife": "Test Bird"}
     assert not scripts.catalog.is_chinese_name("Different English Name", taxon)
     assert scripts.catalog.is_chinese_name("\u767d\u9e6d", taxon)
+
+
+def test_occurrence_facet_paginates_terminal_species_keys(scripts, monkeypatch):
+    calls = []
+
+    def request(url):
+        from urllib.parse import parse_qs, urlparse
+
+        query = parse_qs(urlparse(url).query)
+        offset = int(query["facetOffset"][0])
+        calls.append(query)
+        if offset == 0:
+            counts = [{"name": str(key), "count": 1} for key in range(1000)]
+        else:
+            counts = [{"name": "9001", "count": 4}]
+        return {"count": 1234, "facets": [{"field": "SPECIES_KEY", "counts": counts}]}
+
+    monkeypatch.setattr(scripts.occurrence_profile, "request_json", request)
+    total, counts = scripts.occurrence_profile.occurrence_facet("POLYGON(())", 5, country_code="CN")
+
+    assert total == 1234
+    assert len(counts) == 1001
+    assert counts[9001] == 4
+    assert [int(query["facetOffset"][0]) for query in calls] == [0, 1000]
+    assert all(query["facet"] == ["speciesKey"] for query in calls)
+    assert all(query["country"] == ["CN"] for query in calls)
+
+
+def test_occurrence_facet_rejects_repeated_page(scripts, monkeypatch):
+    counts = [{"name": str(key), "count": 1} for key in range(1000)]
+    monkeypatch.setattr(
+        scripts.occurrence_profile,
+        "request_json",
+        lambda url: {"count": 10, "facets": [{"counts": counts}]},
+    )
+    with pytest.raises(RuntimeError, match="repeated page"):
+        scripts.occurrence_profile.occurrence_facet("POLYGON(())", 5)
+
+
+def test_occurrence_grid_builds_bounded_sites_and_reconciles_catalog(scripts, tmp_path, monkeypatch):
+    catalog = tmp_path / "catalog.csv"
+    catalog.write_text(
+        "species_id,scientific_name,enabled\n"
+        "bird-a,Avis alpha,true\n"
+        "bird-b,Avis beta,true\n",
+        encoding="utf-8",
+    )
+    args = Namespace(
+        country_code="cn",
+        name="China test grid",
+        min_latitude=30.0,
+        max_latitude=32.0,
+        min_longitude=116.0,
+        max_longitude=118.0,
+        cell_size_degrees=1.0,
+        catalog=catalog,
+        output=tmp_path / "grid.json",
+        occurrence_file=None,
+        workers=1,
+    )
+
+    def facet(geometry, month, *, country_code=None):
+        assert country_code == "CN"
+        return 10, {101: month, 202: 1 if month == 5 else 0}
+
+    monkeypatch.setattr(scripts.occurrence_grid, "occurrence_facet", facet)
+    monkeypatch.setattr(
+        scripts.occurrence_grid,
+        "gbif_scientific_names",
+        lambda key: (key, ("Avis alpha",) if key == 101 else ("Avis beta",)),
+    )
+
+    payload = scripts.occurrence_grid.build(args)
+
+    assert payload["dataset"]["country_code"] == "CN"
+    assert len(payload["sites"]) == 4
+    site = payload["sites"][0]
+    assert site["bounds"] == {
+        "min_latitude": 30.0,
+        "max_latitude": 31.0,
+        "min_longitude": 116.0,
+        "max_longitude": 117.0,
+    }
+    assert site["months"]["5"] == {"Avis alpha": 5, "Avis beta": 1}
+    assert site["geometry_wkt"].startswith("POLYGON((116.000000 30.000000,")
+
+
+def test_occurrence_grid_aggregates_local_tsv_and_zip_without_gbif_requests(scripts, tmp_path, monkeypatch):
+    catalog = tmp_path / "catalog.csv"
+    catalog.write_text(
+        "species_id,scientific_name,enabled\n"
+        "bird-a,Avis alpha,true\n"
+        "bird-b,Avis beta,true\n",
+        encoding="utf-8",
+    )
+    rows = (
+        "speciesKey\tdecimalLatitude\tdecimalLongitude\tmonth\tcountryCode\t"
+        "scientificName\toccurrenceCount\n"
+        "101\t30.25\t116.25\t5\tCN\tAvis alpha\t2\n"
+        "101\t30.25\t116.25\t5\tCN\tAvis alpha\t1\n"
+        "202\t31.25\t117.25\t6\tCN\tAvis beta\t\n"
+        "101\t30.25\t116.25\t5\tUS\tAvis alpha\t20\n"
+        "101\t40.25\t116.25\t5\tCN\tAvis alpha\t20\n"
+    )
+    occurrence_file = tmp_path / "occurrences.tsv"
+    occurrence_file.write_text(rows, encoding="utf-8")
+    args = Namespace(
+        country_code="CN",
+        name="China test grid",
+        min_latitude=30.0,
+        max_latitude=32.0,
+        min_longitude=116.0,
+        max_longitude=118.0,
+        cell_size_degrees=1.0,
+        catalog=catalog,
+        output=tmp_path / "grid.json",
+        occurrence_file=occurrence_file,
+        source_doi="10.15468/dl.example",
+        source_query_file=tmp_path / "query.sql",
+        source_downloaded_at="2026-10-24T00:00:00Z",
+        workers=1,
+    )
+    args.source_query_file.write_text("SELECT ...", encoding="utf-8")
+    monkeypatch.setattr(
+        scripts.occurrence_grid,
+        "gbif_scientific_names",
+        lambda key: pytest.fail("local scientific names should avoid GBIF species requests"),
+    )
+
+    payload = scripts.occurrence_grid.build(args)
+    sites = {site["site_id"]: site for site in payload["sites"]}
+    assert payload["dataset"]["source"] == "GBIF SQL occurrence download"
+    assert len(payload["dataset"]["occurrence_file_sha256"]) == 64
+    assert payload["dataset"]["source_doi"] == "10.15468/dl.example"
+    assert payload["dataset"]["source_query_file"] == str(args.source_query_file.resolve())
+    assert len(payload["dataset"]["source_query_sha256"]) == 64
+    assert payload["dataset"]["source_downloaded_at"] == "2026-10-24T00:00:00Z"
+    assert sites["cn-grid-000-000"]["months"] == {"5": {"Avis alpha": 2}}
+    assert sites["cn-grid-001-001"]["months"] == {"6": {"Avis beta": 1}}
+
+    zipped = tmp_path / "occurrences.zip"
+    with zipfile.ZipFile(zipped, "w") as archive:
+        archive.writestr("download.tsv", rows)
+    args.occurrence_file = zipped
+    zipped_payload = scripts.occurrence_grid.build(args)
+    assert len(zipped_payload["sites"]) == 2
+
+
+def test_occurrence_grid_prefers_accepted_scientific_name(scripts, tmp_path):
+    catalog = tmp_path / "catalog.csv"
+    catalog.write_text(
+        "species_id,scientific_name,enabled\n"
+        "bird-a,Avis accepted,true\n"
+        "bird-b,Avis synonym,true\n",
+        encoding="utf-8",
+    )
+    occurrence_file = tmp_path / "occurrences.tsv"
+    occurrence_file.write_text(
+        "speciesKey\tdecimalLatitude\tdecimalLongitude\tmonth\tcountryCode\t"
+        "scientificName\tacceptedScientificName\n"
+        "101\t30.25\t116.25\t5\tCN\tAvis synonym\tAvis accepted\n",
+        encoding="utf-8",
+    )
+    args = Namespace(
+        country_code="CN",
+        name="China test grid",
+        min_latitude=30.0,
+        max_latitude=31.0,
+        min_longitude=116.0,
+        max_longitude=117.0,
+        cell_size_degrees=1.0,
+        catalog=catalog,
+        output=tmp_path / "grid.json",
+        occurrence_file=occurrence_file,
+        workers=1,
+    )
+
+    payload = scripts.occurrence_grid.build(args)
+
+    assert payload["sites"][0]["months"] == {"5": {"Avis accepted": 1}}
+
+
+def test_occurrence_grid_requires_country_and_scientific_name_columns(scripts, tmp_path):
+    path = tmp_path / "invalid.tsv"
+    path.write_text(
+        "speciesKey\tdecimalLatitude\tdecimalLongitude\tmonth\n"
+        "101\t30.25\t116.25\t5\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="countryCode"):
+        list(scripts.occurrence_grid.occurrence_rows(path))
+
+
+def test_occurrence_grid_main_writes_output_atomically(scripts, tmp_path, monkeypatch):
+    catalog = tmp_path / "catalog.csv"
+    catalog.write_text("species_id,scientific_name,enabled\nbird-a,Avis alpha,true\n", encoding="utf-8")
+    occurrence_file = tmp_path / "occurrences.tsv"
+    occurrence_file.write_text(
+        "speciesKey\tdecimalLatitude\tdecimalLongitude\tmonth\tcountryCode\tscientificName\n"
+        "101\t30.25\t116.25\t5\tCN\tAvis alpha\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "nested" / "grid.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "build_occurrence_grid.py",
+            "--country-code",
+            "CN",
+            "--name",
+            "China",
+            "--min-latitude",
+            "30",
+            "--max-latitude",
+            "31",
+            "--min-longitude",
+            "116",
+            "--max-longitude",
+            "117",
+            "--catalog",
+            str(catalog),
+            "--occurrence-file",
+            str(occurrence_file),
+            "--output",
+            str(output),
+            "--workers",
+            "1",
+        ],
+    )
+    assert scripts.occurrence_grid.main() == 0
+    assert json.loads(output.read_text(encoding="utf-8"))["sites"][0]["months"] == {
+        "5": {"Avis alpha": 1}
+    }
+    assert not list(output.parent.glob("*.tmp"))
 
 
 def test_catalog_rejects_conflicting_source_version(scripts, monkeypatch):
@@ -496,7 +785,7 @@ def test_full_pipeline_measures_actual_crops_and_preserves_tracking(scripts, pip
             return super().predict(image)
 
     class Species(MockSpeciesProvider):
-        def classify(self, images, top_k, region_code=None):
+        def classify(self, images, top_k, region_code=None, context=None):
             predictions = []
             for image in images:
                 known = image.getpixel((0, 0))[0] == 255

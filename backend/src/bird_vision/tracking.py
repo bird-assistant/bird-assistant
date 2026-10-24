@@ -99,8 +99,19 @@ class MotionTracker:
         for track_id, track in self._tracks.items():
             if track_id not in matched_tracks:
                 track.missed_frames += 1
+                track.predicted_box = _shift(
+                    track.box,
+                    track.velocity_x * track.missed_frames,
+                    track.velocity_y * track.missed_frames,
+                )
+                visible.append(track)
+            else:
+                track.predicted_box = None
         self._expire_tracks()
-        return sorted(visible, key=lambda track: track.track_id)
+        return sorted(
+            (track for track in visible if track.track_id in self._tracks),
+            key=lambda track: track.track_id,
+        )
 
     def _associate(
         self,
@@ -156,6 +167,7 @@ class MotionTracker:
                 track.velocity_x = 0.65 * track.velocity_x + 0.35 * dx
                 track.velocity_y = 0.65 * track.velocity_y + 0.35 * dy
             track.box = detection.box
+            track.predicted_box = None
             track.detection_score = detection.score
             track.last_seen_at = observed_at
             track.hits += 1
@@ -362,7 +374,19 @@ class ByteTrackAdapter:
                 )
                 self._tracks[track_id] = track
             else:
+                previous_center = _center(track.box)
+                current_center = _center(box)
+                frame_gap = track.missed_frames + 1
+                dx = (current_center[0] - previous_center[0]) / frame_gap
+                dy = (current_center[1] - previous_center[1]) / frame_gap
+                if track.hits == 1:
+                    track.velocity_x = dx
+                    track.velocity_y = dy
+                else:
+                    track.velocity_x = 0.65 * track.velocity_x + 0.35 * dx
+                    track.velocity_y = 0.65 * track.velocity_y + 0.35 * dy
                 track.box = box
+                track.predicted_box = None
                 track.detection_score = score
                 track.last_seen_at = observed_at
                 track.detection_class_id = class_id
@@ -375,8 +399,19 @@ class ByteTrackAdapter:
         for track_id, track in self._tracks.items():
             if track_id not in active_ids:
                 track.missed_frames += 1
+                track.predicted_box = _shift(
+                    track.box,
+                    track.velocity_x * track.missed_frames,
+                    track.velocity_y * track.missed_frames,
+                )
+                visible.append(track)
+            else:
+                track.predicted_box = None
         self._expire_tracks()
-        return sorted(visible, key=lambda track: track.track_id)
+        return sorted(
+            (track for track in visible if track.track_id in self._tracks),
+            key=lambda track: track.track_id,
+        )
 
     def _match_detection(
         self,

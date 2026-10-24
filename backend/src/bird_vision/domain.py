@@ -80,6 +80,7 @@ class SpeciesCandidate:
     score_type: Literal["relative_similarity", "mock"] = "relative_similarity"
     similarity: float | None = None
     region_match: bool = False
+    local_occurrence_count: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +93,26 @@ class SpeciesPrediction:
     candidate_count: int
     region_code: str | None
     catalog_version: str | None
+    candidate_scope: Literal["local_seasonal", "country", "global"] = "global"
+    location_profile_id: str | None = None
+    location_profile_name: str | None = None
+    location_distance_km: float | None = None
+    observation_month: int | None = None
+    temporal_window_months: int | None = None
+    occurrence_dataset_version: str | None = None
+    coordinates_used: bool = False
+    fallback_reason: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ObservationContext:
+    observed_at: datetime
+    time_source: Literal["captured_at", "received_at"]
+    time_precision: Literal["exact", "date", "month", "unknown"]
+    latitude: float | None
+    longitude: float | None
+    coordinate_source: Literal["frame", "session", "none"]
+    region_code: str | None
 
 
 @dataclass(slots=True)
@@ -101,6 +122,7 @@ class Track:
     detection_score: float
     first_seen_at: datetime
     last_seen_at: datetime
+    predicted_box: Box | None = None
     hits: int = 1
     missed_frames: int = 0
     velocity_x: float = 0.0
@@ -114,6 +136,9 @@ class Track:
     species_model: str | None = None
     species_prediction: SpeciesPrediction | None = None
     species_history: list[SpeciesPrediction] = field(default_factory=list)
+    species_stability: Literal["stable", "held", "switch_pending"] = "stable"
+    pending_species_id: str | None = None
+    pending_species_hits: int = 0
     pending_best_crop: Image.Image | None = None
     pending_best_quality: float = 0.0
     crop_budget: CropMemoryBudget | None = field(default=None, repr=False)
@@ -158,6 +183,20 @@ class FrameJob:
     latitude: float | None = None
     longitude: float | None = None
     region_code: str | None = None
+    coordinate_source: Literal["frame", "session", "none"] = "none"
+    capture_time_precision: Literal["exact", "date", "month", "unknown"] = "exact"
+
+    @property
+    def observation_context(self) -> ObservationContext:
+        return ObservationContext(
+            observed_at=self.captured_at or self.received_at,
+            time_source="captured_at" if self.captured_at is not None else "received_at",
+            time_precision=self.capture_time_precision if self.captured_at is not None else "exact",
+            latitude=self.latitude,
+            longitude=self.longitude,
+            coordinate_source=self.coordinate_source,
+            region_code=self.region_code,
+        )
 
     @property
     def decoded_bytes(self) -> int:

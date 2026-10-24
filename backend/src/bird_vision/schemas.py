@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class ErrorBody(BaseModel):
@@ -39,6 +39,7 @@ class ReadyResponse(BaseModel):
 
 class CreateSessionRequest(BaseModel):
     client_session_id: str | None = Field(default=None, max_length=128)
+    observation_mode: Literal["live", "historical"] = "live"
     latitude: float | None = Field(default=None, ge=-90.0, le=90.0)
     longitude: float | None = Field(default=None, ge=-180.0, le=180.0)
     region_code: str | None = Field(default=None, min_length=2, max_length=2)
@@ -53,6 +54,12 @@ class CreateSessionRequest(BaseModel):
             raise ValueError("region_code must be an ISO 3166-1 alpha-2 code")
         return normalized
 
+    @model_validator(mode="after")
+    def validate_coordinate_pair(self) -> CreateSessionRequest:
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("latitude and longitude must be provided together")
+        return self
+
 
 class CreateSessionResponse(BaseModel):
     session_id: str
@@ -60,9 +67,12 @@ class CreateSessionResponse(BaseModel):
     expires_after_idle_seconds: int
     recommended_frame_interval_ms: int
     websocket_path: str
+    observation_mode: Literal["live", "historical"]
+    latitude: float | None
+    longitude: float | None
     region_code: str | None
     catalog_version: str | None
-    coordinates_used_for_inference: Literal[False] = False
+    coordinates_used_for_inference: bool
 
 
 class SessionStats(BaseModel):
@@ -79,9 +89,12 @@ class SessionResponse(BaseModel):
     state: Literal["active", "closing", "closed"]
     created_at: datetime
     last_activity_at: datetime
+    observation_mode: Literal["live", "historical"]
+    latitude: float | None
+    longitude: float | None
     region_code: str | None
     stats: SessionStats
-    coordinates_used_for_inference: Literal[False] = False
+    coordinates_used_for_inference: bool
 
 
 class FrameAcceptedResponse(BaseModel):
@@ -107,6 +120,7 @@ class SpeciesCandidateResponse(BaseModel):
     score_type: Literal["relative_similarity", "mock"]
     similarity: float | None = None
     region_match: bool = False
+    local_occurrence_count: int | None = None
 
 
 class SpeciesDecisionResponse(BaseModel):
@@ -119,10 +133,20 @@ class SpeciesDecisionResponse(BaseModel):
     candidate_count: int
     region_code: str | None = None
     catalog_version: str | None = None
+    candidate_scope: Literal["local_seasonal", "country", "global"]
+    location_profile_id: str | None = None
+    location_profile_name: str | None = None
+    location_distance_km: float | None = None
+    observation_month: int | None = Field(default=None, ge=1, le=12)
+    temporal_window_months: int | None = None
+    occurrence_dataset_version: str | None = None
+    coordinates_used: bool
+    fallback_reason: str | None = None
 
 
 class SpeciesResultResponse(BaseModel):
     state: Literal["unavailable", "waiting_for_quality", "unknown", "candidate"]
+    stability: Literal["stable", "held", "switch_pending"] | None = None
     model: str | None = None
     candidates: list[SpeciesCandidateResponse] = Field(default_factory=list)
     decision: SpeciesDecisionResponse | None = None
@@ -166,6 +190,7 @@ class SpeciesCatalogInfo(BaseModel):
 class TrackResponse(BaseModel):
     track_id: int
     state: Literal["tentative", "confirmed"]
+    visibility: Literal["detected", "temporarily_lost"]
     bbox: NormalizedBox
     detection_score: float
     short_side_px: float
@@ -184,6 +209,16 @@ class TimingResponse(BaseModel):
     total_ms: float
 
 
+class ObservationContextResponse(BaseModel):
+    observed_at: datetime
+    time_source: Literal["captured_at", "received_at"]
+    time_precision: Literal["exact", "date", "month", "unknown"]
+    latitude: float | None = None
+    longitude: float | None = None
+    coordinate_source: Literal["frame", "session", "none"]
+    region_code: str | None = None
+
+
 class FrameResultEvent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -193,6 +228,7 @@ class FrameResultEvent(BaseModel):
     session_id: str
     frame_id: str
     captured_at: datetime | None
+    observation_context: ObservationContextResponse
     image_width: int
     image_height: int
     tracks: list[TrackResponse]

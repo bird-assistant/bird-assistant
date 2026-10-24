@@ -26,6 +26,13 @@ def test_region_code_is_normalized() -> None:
     assert settings.species_default_region_code == "CN"
 
 
+def test_location_defaults_are_global_and_unscoped() -> None:
+    settings = Settings(environment="test")
+    assert settings.species_default_region_code is None
+    assert settings.species_occurrence_path is None
+    assert settings.species_live_occurrence_enabled
+
+
 def test_principal_session_quota_cannot_exceed_global_capacity() -> None:
     with pytest.raises(ValidationError, match="max_sessions_per_principal"):
         Settings(environment="test", max_sessions=2, max_sessions_per_principal=3)

@@ -111,10 +111,16 @@ class ModelProbe:
         self.calls.append({"elapsed_ms": (time.perf_counter() - started) * 1000})
         return result
 
-    def classify(self, images: list[Any], top_k: int, region_code: str | None = None) -> Any:
+    def classify(
+        self,
+        images: list[Any],
+        top_k: int,
+        region_code: str | None = None,
+        context: Any = None,
+    ) -> Any:
         self.measurements.synchronize()
         started = time.perf_counter()
-        result = self.model.classify(images, top_k, region_code)
+        result = self.model.classify(images, top_k, region_code, context)
         self.measurements.synchronize()
         self.calls.append(
             {

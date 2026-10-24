@@ -377,7 +377,7 @@ def test_bioclip_cache_write_failure_cleans_temporary_files(bioclip_provider, mo
 def test_bioclip_load_failure_clears_model_state(bioclip_provider, monkeypatch, stage) -> None:
     provider, _, open_clip, _ = bioclip_provider
     provider.load()
-    provider._region_masks["CN"] = provider._torch.ones(2)
+    provider._active_taxon_indices["temporary"] = 99
     model = open_clip.create_model_and_transforms.return_value[0]
     if stage == "move":
         model.to.side_effect = RuntimeError("load failed")
@@ -395,7 +395,8 @@ def test_bioclip_load_failure_clears_model_state(bioclip_provider, monkeypatch, 
     assert provider._preprocess is None
     assert provider._tokenizer is None
     assert provider._text_features is None
-    assert provider._region_masks == {}
+    assert provider._active_taxon_indices == {}
+    assert provider._occurrence_index is None
     assert provider._model_fingerprint is None
     assert not provider._text_cache_hit
 

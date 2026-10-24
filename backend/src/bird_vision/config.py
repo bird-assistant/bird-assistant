@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     )
 
     service_name: str = "bird-vision-service"
-    service_version: str = "0.2.0"
+    service_version: str = "0.3.0"
     environment: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
 
@@ -47,8 +47,17 @@ class Settings(BaseSettings):
     species_text_batch_size: int = Field(default=256, ge=16, le=2048)
     species_precision: Literal["auto", "fp32", "fp16"] = "auto"
     species_text_cache_dir: Path = Path("runtime/species-text-cache")
-    species_default_region_code: str | None = "CN"
-    species_region_prior_bonus: float = Field(default=0.015, ge=0.0, le=0.25)
+    # Location-aware filtering is opt-in; without request coordinates the
+    # classifier must remain global rather than silently assuming China.
+    species_default_region_code: str | None = None
+    species_occurrence_path: Path | None = None
+    species_live_occurrence_enabled: bool = True
+    species_live_occurrence_radius_km: float = Field(default=100.0, ge=1.0, le=500.0)
+    species_live_occurrence_facet_limit: int = Field(default=100, ge=2, le=1000)
+    species_live_occurrence_cache_ttl_seconds: int = Field(default=86_400, ge=60, le=2_592_000)
+    species_live_occurrence_timeout_seconds: float = Field(default=8.0, gt=1.0, le=30.0)
+    species_temporal_window_months: int = Field(default=1, ge=0, le=3)
+    species_min_local_candidates: int = Field(default=2, ge=2, le=10_000)
     species_min_similarity: float = Field(default=0.20, ge=-1.0, le=1.0)
     species_min_margin: float = Field(default=0.01, ge=0.0, le=2.0)
 
@@ -87,6 +96,7 @@ class Settings(BaseSettings):
     classification_min_quality_gain: float = Field(default=0.10, ge=0.0, le=10.0)
     classification_refresh_seconds: float = Field(default=15.0, gt=0.0, le=3600.0)
     species_evidence_window: int = Field(default=5, ge=1, le=32)
+    species_switch_confirmations: int = Field(default=2, ge=1, le=10)
 
     cors_origins: str = ""
 
@@ -136,6 +146,12 @@ class Settings(BaseSettings):
             raise ValueError("production must configure BIRD_VISION_BIOCLIP_EXPECTED_FINGERPRINT")
         if self.species_backend == "bioclip" and self.species_catalog_path is None:
             raise ValueError("BioCLIP requires BIRD_VISION_SPECIES_CATALOG_PATH")
+        if (
+            self.environment == "production"
+            and self.species_occurrence_path is not None
+            and not self.species_occurrence_path.expanduser().is_file()
+        ):
+            raise ValueError("production occurrence profile must be an existing local file")
         for field_name in ("model_sha256", "bioclip_expected_fingerprint"):
             value = getattr(self, field_name)
             invalid_digest = value is not None and (

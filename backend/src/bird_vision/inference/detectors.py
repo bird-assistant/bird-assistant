@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import time
 from pathlib import Path
 from typing import Any, Protocol
@@ -114,8 +115,19 @@ class YoloDetector:
                     f"configured detector class IDs are not expected bird classes: {sorted(unexpected)}"
                 )
             if self.settings.warmup_on_start:
-                warmup = Image.new("RGB", (self.settings.model_image_size, self.settings.model_image_size))
-                self.predict(warmup)
+                warmup_side = (
+                    math.ceil(
+                        self.settings.model_image_size
+                        * self.settings.detection_high_resolution_min_image_ratio
+                    )
+                    if self.settings.detection_high_resolution_enabled
+                    else self.settings.model_image_size
+                )
+                warmup = Image.new("RGB", (warmup_side, warmup_side))
+                try:
+                    self.predict(warmup)
+                finally:
+                    warmup.close()
             self.ready = True
         except Exception:
             self.close()
@@ -135,9 +147,10 @@ class YoloDetector:
         if self._model is None:
             raise RuntimeError("detector is not loaded")
         started = time.perf_counter()
+        inference_size = self._inference_size(image)
         result = self._model.predict(
             source=image,
-            imgsz=self.settings.model_image_size,
+            imgsz=inference_size,
             conf=min(self.settings.detection_confidence, self.settings.track_low_confidence),
             iou=self.settings.detection_iou,
             classes=self.settings.class_id_list,
@@ -170,6 +183,15 @@ class YoloDetector:
             postprocess_ms=float(speed.get("postprocess", 0.0)),
         )
 
+    def _inference_size(self, image: Image.Image) -> int:
+        threshold = (
+            self.settings.model_image_size
+            * self.settings.detection_high_resolution_min_image_ratio
+        )
+        if self.settings.detection_high_resolution_enabled and max(image.size) >= threshold:
+            return self.settings.detection_high_resolution_image_size
+        return self.settings.model_image_size
+
     def metadata(self) -> dict[str, Any]:
         details: dict[str, Any] = {
             "weights": self._resolved_model_path or str(self.settings.model_path),
@@ -182,6 +204,11 @@ class YoloDetector:
             "class_ids": self.settings.class_id_list,
             "expected_class_names": sorted(self.settings.expected_class_name_set),
             "max_detections": self.settings.detection_max_detections,
+            "high_resolution": {
+                "enabled": self.settings.detection_high_resolution_enabled,
+                "image_size": self.settings.detection_high_resolution_image_size,
+                "min_image_ratio": self.settings.detection_high_resolution_min_image_ratio,
+            },
             "weights_sha256": self._model_sha256,
         }
         if self._torch is not None:

@@ -167,6 +167,32 @@ def test_cloud_image_summary_counts_confirmed_birds_separately_from_raw_tracks(s
     ) == ("未检测到鸟体", "empty")
 
 
+def test_cloud_image_test_validates_effective_high_resolution_path(scripts):
+    models = [
+        {
+            "name": "yolo-bird-detector",
+            "details": {
+                "image_size": 640,
+                "high_resolution": {
+                    "enabled": True,
+                    "image_size": 1280,
+                    "min_image_ratio": 1.5,
+                },
+            },
+        }
+    ]
+    prepared = [{"width": 1549, "height": 1195}]
+    assert scripts.cloud_images.validated_high_resolution_detector(models, prepared) == {
+        "enabled": True,
+        "image_size": 1280,
+        "min_image_ratio": 1.5,
+    }
+    with pytest.raises(scripts.cloud_images.TestFailure, match="没有实际触发"):
+        scripts.cloud_images.validated_high_resolution_detector(
+            models, [{"width": 800, "height": 600}]
+        )
+
+
 def test_cloud_image_test_prepares_unique_month_and_unknown_cache_keys(scripts):
     prepared = [
         {
@@ -320,12 +346,76 @@ def test_cloud_image_test_syncs_backend_without_overwriting_remote_state(scripts
         remote_backend="/root/shared-nvme/bird-assistant/backend",
         occurrence_cache_seed=None,
     )
-    scripts.cloud_images.sync_backend(args)
+    ssh = SimpleNamespace(rsync_remote_shell="ssh -S /tmp/bird-control -o ControlMaster=no")
+    scripts.cloud_images.sync_backend(args, ssh)
     command, kwargs = calls[0]
     assert command[:3] == ["rsync", "-rz", "--links"]
+    assert command[3:5] == ["-e", ssh.rsync_remote_shell]
     assert command[-1] == "bird-gpu:/root/shared-nvme/bird-assistant/backend/"
     assert all(name in command for name in (".venv", ".env", "runtime", "results"))
     assert kwargs == {"text": True, "timeout": 120, "check": False}
+
+
+def test_cloud_image_test_establishes_control_connection_before_sync(scripts, monkeypatch):
+    commands = []
+
+    class Pipe:
+        def __init__(self):
+            self.writes = []
+
+        def write(self, value):
+            self.writes.append(value)
+
+        def flush(self):
+            pass
+
+        def close(self):
+            pass
+
+    class Process:
+        stdin = Pipe()
+        stdout = []
+
+        @staticmethod
+        def poll():
+            return 0
+
+    process = Process()
+
+    def popen(command, **kwargs):
+        commands.append((command, kwargs))
+        return process
+
+    monkeypatch.setattr(scripts.cloud_images.shutil, "which", lambda name: "/usr/bin/ssh")
+    monkeypatch.setattr(scripts.cloud_images.subprocess, "Popen", popen)
+    session = scripts.cloud_images.SSHSession("bird-gpu")
+    markers = []
+    monkeypatch.setattr(
+        session,
+        "_wait_for_line",
+        lambda marker, **kwargs: markers.append(marker),
+    )
+    session.connect(18000, 8000)
+    command = commands[0][0]
+    assert command[:4] == ["ssh", "-M", "-S", session.control_path]
+    assert "127.0.0.1:18000:127.0.0.1:8000" in command
+    assert markers and markers[0] not in process.stdin.writes[0]
+    assert "stty -echo" in process.stdin.writes[0]
+    assert markers[0].removeprefix("BIRD_SSH_READY_") in process.stdin.writes[0]
+    assert session.control_path in session.rsync_remote_shell
+    session.close()
+
+
+def test_ssh_output_queue_finds_markers_without_selector_buffering(scripts) -> None:
+    session = scripts.cloud_images.SSHSession("bird-gpu")
+    session.process = SimpleNamespace(poll=lambda: None)
+    session._output.put("login banner\n")
+    session._output.put("prompt without relying on select BIRD_READY\n")
+    session._wait_for_line("BIRD_READY", timeout=0.1, failure="not ready")
+    assert scripts.cloud_images._marker_payload(
+        "PROMPT> BIRD_BOOTSTRAP_DONE_token=12", "BIRD_BOOTSTRAP_DONE_token="
+    ) == "12"
+    assert "BIRD_TEST_CONFIG=" not in scripts.cloud_images.REMOTE_BOOTSTRAP
 
 
 def test_cloud_image_test_uploads_optional_occurrence_cache_seed(scripts, tmp_path, monkeypatch):
@@ -344,13 +434,15 @@ def test_cloud_image_test_uploads_optional_occurrence_cache_seed(scripts, tmp_pa
         remote_backend="/root/shared-nvme/bird-assistant/backend",
         occurrence_cache_seed=seed,
     )
-    scripts.cloud_images.sync_backend(args)
+    ssh = SimpleNamespace(rsync_remote_shell="ssh -S /tmp/bird-control -o ControlMaster=no")
+    scripts.cloud_images.sync_backend(args, ssh)
     store.close()
     assert len(calls) == 2
     assert calls[1][0][:2] == ["rsync", "-z"]
-    assert calls[1][0][2] != str(seed)
-    assert Path(calls[1][0][2]).name == "seed.sqlite3"
-    assert calls[1][0][3] == (
+    assert calls[1][0][2:4] == ["-e", ssh.rsync_remote_shell]
+    assert calls[1][0][4] != str(seed)
+    assert Path(calls[1][0][4]).name == "seed.sqlite3"
+    assert calls[1][0][5] == (
         "bird-gpu:/root/shared-nvme/bird-assistant/backend/.gbif-occurrence-seed.sqlite3"
     )
 

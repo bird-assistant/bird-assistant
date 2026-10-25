@@ -42,10 +42,78 @@ def yolo_detector(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             detector_backend="yolo",
             model_path=weights,
             device="cuda",
+            detection_high_resolution_enabled=True,
             warmup_on_start=False,
         )
     )
     return detector, weights, factory, download, torch
+
+
+class _FakeArray:
+    def __init__(self, values) -> None:
+        self.values = values
+
+    def detach(self):
+        return self
+
+    def cpu(self):
+        return self
+
+    def int(self):
+        if self.values and isinstance(self.values[0], list):
+            return _FakeArray([[int(value) for value in row] for row in self.values])
+        return _FakeArray([int(value) for value in self.values])
+
+    def tolist(self):
+        return self.values
+
+
+class _FakeBoxes:
+    def __init__(self, boxes=(), scores=(), classes=()) -> None:
+        self.xyxy = _FakeArray([list(box) for box in boxes])
+        self.conf = _FakeArray(list(scores))
+        self.cls = _FakeArray(list(classes))
+
+    def __len__(self) -> int:
+        return len(self.conf.values)
+
+
+@pytest.mark.parametrize(
+    ("image_size", "expected_inference_size"),
+    [((800, 600), 640), ((1549, 1195), 1280), ((1549, 800), 1280)],
+)
+def test_yolo_selects_high_resolution_for_large_scene_images(
+    yolo_detector, image_size, expected_inference_size
+) -> None:
+    detector, _, _, _, _ = yolo_detector
+    result = SimpleNamespace(boxes=_FakeBoxes(), names={14: "bird"}, speed={})
+    calls = []
+
+    class Model:
+        def predict(self, **kwargs):
+            calls.append(kwargs)
+            return [result]
+
+    detector._model = Model()
+    image = Image.new("RGB", image_size)
+    detector.predict(image)
+    assert len(calls) == 1
+    assert calls[0]["source"] is image
+    assert calls[0]["imgsz"] == expected_inference_size
+
+
+def test_yolo_high_resolution_warmup_uses_configured_size(yolo_detector, monkeypatch) -> None:
+    detector, _, _, _, _ = yolo_detector
+    detector.settings.warmup_on_start = True
+    sizes = []
+
+    def record(image):
+        sizes.append(image.size)
+        return SimpleNamespace(detections=())
+
+    monkeypatch.setattr(detector, "predict", record)
+    detector.load()
+    assert sizes == [(960, 960)]
 
 
 @pytest.mark.parametrize("automatic", [False, True])

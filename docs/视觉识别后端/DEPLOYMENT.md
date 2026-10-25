@@ -159,6 +159,9 @@ BIRD_VISION_BIOCLIP_MODEL=hf-hub:imageomics/bioclip-2
 BIRD_VISION_BIOCLIP_MODEL_REVISION=<完整40位Hugging Face commit SHA>
 BIRD_VISION_BIOCLIP_EXPECTED_FINGERPRINT=<审核后的64位artifact fingerprint>
 BIRD_VISION_SPECIES_PRECISION=auto
+BIRD_VISION_DETECTION_HIGH_RESOLUTION_ENABLED=false
+BIRD_VISION_DETECTION_HIGH_RESOLUTION_IMAGE_SIZE=1280
+BIRD_VISION_DETECTION_HIGH_RESOLUTION_MIN_IMAGE_RATIO=1.50
 BIRD_VISION_SPECIES_TEXT_CACHE_DIR=/root/shared-nvme/models/bioclip-text-cache
 # Optional country scope only for requests without coordinates. Coordinate-based
 # GBIF misses/insufficient matches fall directly back to the global model.

@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     detection_class_ids: str = "14"
     detection_expected_class_names: str = "bird"
     detection_max_detections: int = Field(default=50, ge=1, le=1000)
+    detection_high_resolution_enabled: bool = False
+    detection_high_resolution_image_size: int = Field(default=1280, ge=640, le=2560)
+    detection_high_resolution_min_image_ratio: float = Field(default=1.50, ge=1.0, le=4.0)
     warmup_on_start: bool = True
 
     species_backend: Literal["disabled", "mock", "bioclip"] = "disabled"
@@ -124,6 +127,17 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_security(self) -> Settings:
+        if (
+            self.detection_high_resolution_enabled
+            and (
+                self.model_image_size % 32 != 0
+                or self.detection_high_resolution_image_size % 32 != 0
+                or self.detection_high_resolution_image_size <= self.model_image_size
+            )
+        ):
+            raise ValueError(
+                "high-resolution detector sizes must be stride-32 aligned and high size larger"
+            )
         if self.environment == "production" and self.allow_anonymous:
             raise ValueError("production must set BIRD_VISION_ALLOW_ANONYMOUS=false")
         if self.environment == "production" and not self.api_key_set:

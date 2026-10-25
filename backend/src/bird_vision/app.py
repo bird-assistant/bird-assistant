@@ -64,8 +64,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             detector = build_detector(resolved)
             species = build_species_provider(resolved)
             LOGGER.info("loading inference backends")
-            detector.load()
             species.load()
+            # Load and warm the detector after BioCLIP so high-resolution warmup
+            # validates peak memory with both GPU models resident.
+            detector.load()
             pipeline = VisionPipeline(resolved, detector, species)
             # Fail startup if tracking dependencies are missing, rather than
             # advertising readiness and failing on the first session.

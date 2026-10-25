@@ -34,6 +34,35 @@ def test_location_defaults_are_global_and_unscoped() -> None:
     assert settings.species_live_occurrence_cache_path.name == "gbif-occurrence-cache.sqlite3"
     assert settings.species_live_occurrence_cache_ttl_seconds == 2_592_000
     assert settings.species_live_occurrence_facet_limit == 300
+    assert not settings.detection_high_resolution_enabled
+    assert settings.detection_high_resolution_image_size == 1280
+    assert settings.detection_high_resolution_min_image_ratio == 1.5
+
+
+def test_high_resolution_detector_size_validation_only_applies_when_enabled() -> None:
+    disabled = Settings(
+        _env_file=None,
+        environment="test",
+        model_image_size=1536,
+        detection_high_resolution_enabled=False,
+    )
+    assert disabled.model_image_size == 1536
+    with pytest.raises(ValueError, match="stride-32 aligned"):
+        Settings(
+            _env_file=None,
+            environment="test",
+            model_image_size=640,
+            detection_high_resolution_enabled=True,
+            detection_high_resolution_image_size=640,
+        )
+    with pytest.raises(ValueError, match="stride-32 aligned"):
+        Settings(
+            _env_file=None,
+            environment="test",
+            model_image_size=641,
+            detection_high_resolution_enabled=True,
+            detection_high_resolution_image_size=650,
+        )
 
 
 def test_principal_session_quota_cannot_exceed_global_capacity() -> None:

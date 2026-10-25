@@ -44,6 +44,7 @@
 Pillow 解码与 EXIF 方向修正
   ↓
 YOLO 仅检测 bird 类
+  ↓ 可选 1280 高分辨率整图推理，提升大场景中的小鸟尺寸
   ↓
 当前会话的 ByteTrack 分配 track_id
   ↓

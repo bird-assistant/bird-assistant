@@ -19,8 +19,9 @@ import html
 import json
 import math
 import os
+import queue
 import re
-import selectors
+import secrets
 import shlex
 import shutil
 import signal
@@ -29,6 +30,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -150,12 +152,14 @@ def validate_args(args: argparse.Namespace) -> None:
         raise TestFailure("--occurrence-cache-seed 必须是现有 SQLite 文件")
 
 
-def sync_backend(args: argparse.Namespace) -> None:
+def sync_backend(args: argparse.Namespace, ssh: SSHSession) -> None:
     source = PROJECT_ROOT / "backend"
     command = [
         "rsync",
         "-rz",
         "--links",
+        "-e",
+        ssh.rsync_remote_shell,
         "--exclude",
         ".venv",
         "--exclude",
@@ -194,6 +198,8 @@ def sync_backend(args: argparse.Namespace) -> None:
         seed_command = [
             "rsync",
             "-z",
+            "-e",
+            ssh.rsync_remote_shell,
             str(snapshot_path),
             f"{args.ssh_host}:{args.remote_backend.rstrip('/')}/.gbif-occurrence-seed.sqlite3",
         ]
@@ -305,36 +311,37 @@ class SSHSession:
     def __init__(self, host: str) -> None:
         self.host = host
         self.process: subprocess.Popen[str] | None = None
+        self._control_directory: tempfile.TemporaryDirectory[str] | None = None
+        self._output: queue.Queue[str | None] = queue.Queue()
+        self._reader: threading.Thread | None = None
 
-    def open(
-        self,
-        script: str,
-        arguments: list[str],
-        local_port: int,
-        remote_port: int,
-        startup_timeout: int,
-    ) -> dict[str, Any]:
+    @property
+    def control_path(self) -> str:
+        if self._control_directory is None:
+            raise TestFailure("SSH 控制连接尚未建立")
+        return str(Path(self._control_directory.name) / "control")
+
+    @property
+    def rsync_remote_shell(self) -> str:
+        return shlex.join(
+            ["ssh", "-S", self.control_path, "-o", "ControlMaster=no", "-o", "ConnectTimeout=20"]
+        )
+
+    def connect(self, local_port: int, remote_port: int) -> None:
         if shutil.which("ssh") is None:
             raise TestFailure("本地没有找到 ssh 命令")
-
-        marker = "BIRD_TEST_CONFIG="
-        progress_marker = "BIRD_TEST_PROGRESS="
-        argument_text = " ".join(shlex.quote(item) for item in arguments)
-        delimiter = "__BIRD_VISION_BOOTSTRAP_8F1E6C__"
-        bootstrap_input = (
-            f"stty -echo\nbash -s -- {argument_text} <<'{delimiter}'\n{script.rstrip()}\n{delimiter}\n"
-        )
+        if self.process is not None:
+            raise TestFailure("SSH 控制连接已经建立")
+        self._control_directory = tempfile.TemporaryDirectory(prefix="bird-ssh-")
         forward_spec = f"127.0.0.1:{local_port}:127.0.0.1:{remote_port}"
         command = [
             "ssh",
-            # The Paratera container gateway closes -N/no-PTY sessions even
-            # though an interactive login succeeds. Keep one dedicated TTY
-            # session alive and use that same connection for the tunnel.
+            "-M",
+            "-S",
+            self.control_path,
             "-tt",
             "-o",
-            "ControlMaster=no",
-            "-o",
-            "ControlPath=none",
+            "ControlPersist=no",
             "-o",
             "ConnectTimeout=20",
             "-o",
@@ -358,40 +365,75 @@ class SSHSession:
         if self.process.stdin is None or self.process.stdout is None:
             self.close()
             raise TestFailure("无法创建 SSH 输入输出通道")
+        self._reader = threading.Thread(target=self._read_output, daemon=True)
+        self._reader.start()
+        marker_token = secrets.token_hex(8)
+        marker = f"BIRD_SSH_READY_{marker_token}"
+        # The full marker must not appear in the PTY input: the terminal may
+        # echo this first command before `stty -echo` takes effect.
+        self.process.stdin.write(
+            f"stty -echo; printf 'BIRD_SSH_READY_%s\\n' {shlex.quote(marker_token)}\n"
+        )
+        self.process.stdin.flush()
+        self._wait_for_line(marker, timeout=120, failure="SSH 控制连接建立失败")
 
-        # Do not use `ssh host command`: this provider's gateway accepts an
-        # interactive shell more reliably. Queue a heredoc after login so the
-        # transport matches a successful manual `ssh bird-gpu` login.
+    def open(
+        self,
+        script: str,
+        arguments: list[str],
+        startup_timeout: int,
+    ) -> dict[str, Any]:
+        if self.process is None or self.process.stdin is None or self.process.stdout is None:
+            raise TestFailure("SSH 控制连接尚未建立")
+
+        marker = "BIRD_TEST_CONFIG="
+        progress_marker = "BIRD_TEST_PROGRESS="
+        completed_token = secrets.token_hex(8)
+        completed_marker = f"BIRD_BOOTSTRAP_DONE_{completed_token}="
+        argument_text = " ".join(shlex.quote(item) for item in arguments)
+        delimiter = "__BIRD_VISION_BOOTSTRAP_8F1E6C__"
+        bootstrap_input = (
+            f"bash -s -- {argument_text} <<'{delimiter}'\n{script.rstrip()}\n{delimiter}\n"
+            f"status=$?\nprintf 'BIRD_BOOTSTRAP_DONE_%s=%s\\n' "
+            f"{shlex.quote(completed_token)} \"$status\"\n"
+        )
         self.process.stdin.write(bootstrap_input)
-        self.process.stdin.close()
+        self.process.stdin.flush()
 
         output_lines: list[str] = []
-        deadline = time.monotonic() + startup_timeout + 30
-        selector = selectors.DefaultSelector()
-        selector.register(self.process.stdout, selectors.EVENT_READ)
-        try:
-            while time.monotonic() < deadline:
-                events = selector.select(timeout=1.0)
-                if events:
-                    line = self.process.stdout.readline()
-                    if line:
-                        cleaned = line.strip()
-                        if cleaned.startswith(progress_marker):
-                            log(f"      {cleaned[len(progress_marker) :]}")
-                            continue
-                        if cleaned.startswith(marker):
-                            encoded = cleaned[len(marker) :]
-                            try:
-                                return json.loads(base64.b64decode(encoded).decode("utf-8"))
-                            except (ValueError, json.JSONDecodeError) as exc:
-                                raise TestFailure("无法解析云端测试配置") from exc
-                        if cleaned:
-                            output_lines.append(cleaned)
-                            del output_lines[:-80]
+        deadline = time.monotonic() + startup_timeout + 180
+        while time.monotonic() < deadline:
+            try:
+                line = self._output.get(timeout=min(1.0, max(0.01, deadline - time.monotonic())))
+            except queue.Empty:
                 if self.process.poll() is not None:
                     break
-        finally:
-            selector.close()
+                continue
+            if line is None:
+                break
+            cleaned = line.strip()
+            progress = _marker_payload(cleaned, progress_marker)
+            if progress is not None:
+                log(f"      {progress}")
+                continue
+            encoded = _marker_payload(cleaned, marker)
+            if encoded is not None:
+                try:
+                    return json.loads(base64.b64decode(encoded).decode("utf-8"))
+                except (ValueError, json.JSONDecodeError) as exc:
+                    raise TestFailure("无法解析云端测试配置") from exc
+            completed = _marker_payload(cleaned, completed_marker)
+            if completed is not None:
+                status = completed.split(maxsplit=1)[0]
+                detail = "\n".join(output_lines[-40:])
+                self.close()
+                raise TestFailure(
+                    f"云端初始化脚本提前结束（退出码 {status}）。"
+                    + (f"\n{detail}" if detail else "")
+                )
+            if cleaned:
+                output_lines.append(cleaned)
+                del output_lines[:-80]
 
         exit_code = self.process.poll()
         detail = "\n".join(output_lines[-40:])
@@ -416,6 +458,8 @@ class SSHSession:
         if self.process is None:
             return
         if self.process.poll() is None:
+            if self.process.stdin is not None:
+                self.process.stdin.close()
             self.process.terminate()
             try:
                 self.process.wait(timeout=5)
@@ -423,6 +467,50 @@ class SSHSession:
                 self.process.kill()
                 self.process.wait(timeout=5)
         self.process = None
+        if self._reader is not None:
+            self._reader.join(timeout=1)
+            self._reader = None
+        if self._control_directory is not None:
+            self._control_directory.cleanup()
+            self._control_directory = None
+
+    def _wait_for_line(self, marker: str, *, timeout: float, failure: str) -> None:
+        if self.process is None:
+            raise TestFailure(failure)
+        deadline = time.monotonic() + timeout
+        output_lines: list[str] = []
+        while time.monotonic() < deadline:
+            try:
+                line = self._output.get(timeout=min(1.0, max(0.01, deadline - time.monotonic())))
+            except queue.Empty:
+                if self.process.poll() is not None:
+                    break
+                continue
+            if line is None:
+                break
+            if marker in line:
+                return
+            if line.strip():
+                output_lines.append(line.strip())
+                del output_lines[:-20]
+        detail = "\n".join(output_lines[-20:])
+        self.close()
+        raise TestFailure(f"{failure}。" + (f"\n{detail}" if detail else ""))
+
+    def _read_output(self) -> None:
+        if self.process is None or self.process.stdout is None:
+            self._output.put(None)
+            return
+        try:
+            for line in self.process.stdout:
+                self._output.put(line)
+        finally:
+            self._output.put(None)
+
+
+def _marker_payload(line: str, marker: str) -> str | None:
+    _, separator, payload = line.partition(marker)
+    return payload.strip() if separator else None
 
 
 REMOTE_BOOTSTRAP = r"""
@@ -529,13 +617,15 @@ PY
     )
     cache_path=${cache_settings[0]}
     cache_max_entries=${cache_settings[1]}
-    PYTHONPATH="$backend/src" "$venv/bin/python" scripts/warm_occurrence_cache.py \
+    PYTHONPATH="$backend/src" timeout 120s \
+      "$venv/bin/python" scripts/warm_occurrence_cache.py \
       --cache "$cache_path" --max-entries "$cache_max_entries" --merge "$seed_path"
     rm -f "$seed_path"
   fi
   service_status="started"
   echo "BIRD_TEST_PROGRESS=正在启动云端模型服务，首次加载可能需要数分钟"
   nohup env \
+    BIRD_VISION_DETECTION_HIGH_RESOLUTION_ENABLED=true \
     PYTHONPATH="$backend/src" \
     HF_HUB_OFFLINE=1 \
     TRANSFORMERS_OFFLINE=1 \
@@ -613,7 +703,7 @@ payload = {
     "readiness": readiness,
 }
 encoded = base64.b64encode(json.dumps(payload, ensure_ascii=False).encode("utf-8")).decode("ascii")
-print("BIRD_TEST_CONFIG=" + encoded)
+print("BIRD_TEST_" + "CONFIG=" + encoded)
 PY
 
 # Keep the allocated TTY and its local port forwarding alive until the local
@@ -630,13 +720,10 @@ def bootstrap_remote(
     venv: str,
     port: int,
     startup_timeout: int,
-    local_port: int,
 ) -> dict[str, Any]:
     return ssh.open(
         REMOTE_BOOTSTRAP,
         [backend, venv, str(port), str(startup_timeout)],
-        local_port,
-        port,
         startup_timeout,
     )
 
@@ -770,6 +857,32 @@ def persistent_occurrence_cache(models: list[dict[str, Any]]) -> dict[str, Any]:
     if not cache.get("persistent") or cache.get("backend") != "sqlite":
         raise TestFailure("云端后端没有启用持久化 SQLite GBIF 区域缓存")
     return cache
+
+
+def validated_high_resolution_detector(
+    models: list[dict[str, Any]], prepared: list[dict[str, Any]]
+) -> dict[str, Any]:
+    detector = next(
+        (model for model in models if model.get("name") == "yolo-bird-detector"), None
+    )
+    details = detector.get("details", {}) if detector is not None else {}
+    base_size = details.get("image_size")
+    high_resolution = details.get("high_resolution", {})
+    if (
+        not isinstance(base_size, int)
+        or not high_resolution.get("enabled")
+        or not isinstance(high_resolution.get("image_size"), int)
+        or base_size % 32 != 0
+        or high_resolution["image_size"] % 32 != 0
+        or high_resolution["image_size"] <= base_size
+    ):
+        raise TestFailure("云端测试服务没有有效启用高分辨率小目标检测")
+    ratio = high_resolution.get("min_image_ratio")
+    if not isinstance(ratio, int | float) or not any(
+        max(item["width"], item["height"]) >= base_size * ratio for item in prepared
+    ):
+        raise TestFailure("本批图片没有实际触发云端高分辨率小目标检测")
+    return high_resolution
 
 
 def resolved_frame_count(requested: int, track_confirm_hits: int) -> int:
@@ -979,7 +1092,12 @@ async def run_api_tests(
                 f"读取云端模型缓存状态失败：HTTP {models_response.status_code} "
                 f"{models_response.text[:1000]}"
             )
-        remote["occurrence_cache_before"] = persistent_occurrence_cache(models_response.json())
+        models = models_response.json()
+        remote["high_resolution_detector"] = validated_high_resolution_detector(
+            models, prepared
+        )
+        remote["models"] = models
+        remote["occurrence_cache_before"] = persistent_occurrence_cache(models)
         cache_requests = occurrence_cache_requests(prepared, args)
         log(f"      正在准备 {len(cache_requests)} 个地区/月度候选缓存键……")
         remote["occurrence_cache_prepared"] = await prepare_occurrence_caches(
@@ -1288,17 +1406,18 @@ async def async_main(args: argparse.Namespace) -> int:
 
     ssh = SSHSession(args.ssh_host)
     try:
-        log(f"[2/5] 同步后端代码到 {args.ssh_host}……")
-        sync_backend(args)
-        log("[3/5] 检查并启动云端识别服务；首次加载模型可能需要几分钟……")
         local_port = find_free_local_port()
+        log(f"[2/5] 建立并验证到 {args.ssh_host} 的 SSH 控制连接……")
+        ssh.connect(local_port, args.remote_port)
+        log(f"      正在通过已验证连接同步后端代码到 {args.ssh_host}……")
+        sync_backend(args, ssh)
+        log("[3/5] 检查并启动云端识别服务；首次加载模型可能需要几分钟……")
         remote = bootstrap_remote(
             ssh,
             args.remote_backend,
             args.remote_venv,
             args.remote_port,
             args.startup_timeout,
-            local_port,
         )
         model_descriptions = ", ".join(
             f"{model['backend']}@{model['device']}" for model in remote.get("readiness", {}).get("models", [])

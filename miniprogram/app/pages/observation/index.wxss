@@ -1,0 +1,51 @@
+.detail-page {
+  padding: 28rpx 24rpx calc(32rpx + env(safe-area-inset-bottom));
+}
+.detail-card {
+  margin-top: 22rpx;
+}
+.detail-title {
+  font-size: 48rpx;
+  margin: 16rpx 0;
+}
+.pill {
+  display: inline-block;
+}
+.media {
+  width: 100%;
+  height: 280rpx;
+  border-radius: 24rpx;
+  margin: 24rpx 0;
+}
+.media-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eaf1e2;
+  color: #607369;
+  font-size: 25rpx;
+}
+.field {
+  display: flex;
+  gap: 18rpx;
+  line-height: 1.7;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #dfe7d8;
+  font-size: 25rpx;
+}
+.field > text {
+  width: 130rpx;
+  flex-shrink: 0;
+  color: #607369;
+}
+.field > view {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.record-id {
+  margin-top: 18rpx;
+  overflow-wrap: anywhere;
+}
+.boundary {
+  margin: 24rpx 0;
+}

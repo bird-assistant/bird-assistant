@@ -1,0 +1,27 @@
+name: miniprogram-ci
+on:
+  pull_request:
+    paths: ["miniprogram/**", ".github/workflows/miniprogram-ci.yml"]
+  push:
+    branches: [main]
+    paths: ["miniprogram/**", ".github/workflows/miniprogram-ci.yml"]
+permissions:
+  contents: read
+jobs:
+  map-module:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: miniprogram
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: miniprogram/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run setup
+      - run: npm run check
+      - run: npm run format:check
+      - run: npm test

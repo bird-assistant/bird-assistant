@@ -19,3 +19,10 @@ backend/models/
 backend/runtime/
 backend/results/
 
+# WeChat / local client configuration (never commit real keys or AppID config).
+miniprogram/project.config.json
+miniprogram/project.private.config.json
+miniprogram/app/config/local.js
+miniprogram/node_modules/
+miniprogram/coverage/
+

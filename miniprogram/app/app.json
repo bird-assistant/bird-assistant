@@ -1,0 +1,15 @@
+{
+  "pages": ["pages/map/index", "pages/location-picker/index", "pages/observation/index"],
+  "window": {
+    "navigationBarTitleText": "羽迹 · 附近鸟讯",
+    "navigationBarBackgroundColor": "#fafbf6",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#fafbf6"
+  },
+  "permission": {
+    "scope.userLocation": { "desc": "用于你主动选择的地图定位和观察位置确认；拒绝后仍可手动浏览" }
+  },
+  "requiredPrivateInfos": ["getLocation"],
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

@@ -1,0 +1,86 @@
+{
+  "analysis_id": "pho_95ba82d6a3354138b5b087b9fe545118",
+  "state": "candidate",
+  "candidates": [
+    {
+      "rank": 1,
+      "species_id": "mock_bird",
+      "scientific_name": "Avis exemplum",
+      "common_name_zh": "示例鸟种",
+      "common_name_en": "Example bird",
+      "score": 0.8,
+      "score_type": "mock",
+      "similarity": null,
+      "region_match": false,
+      "local_occurrence_count": null
+    }
+  ],
+  "subjects": [
+    {
+      "rank": 1,
+      "bbox": {
+        "x1": 0.25,
+        "y1": 0.2,
+        "x2": 0.75,
+        "y2": 0.8
+      },
+      "detection_score": 0.9,
+      "short_side_px": 288.0,
+      "state": "candidate",
+      "reason": "candidate_above_similarity",
+      "candidates": [
+        {
+          "rank": 1,
+          "species_id": "mock_bird",
+          "scientific_name": "Avis exemplum",
+          "common_name_zh": "示例鸟种",
+          "common_name_en": "Example bird",
+          "score": 0.8,
+          "score_type": "mock",
+          "similarity": null,
+          "region_match": false,
+          "local_occurrence_count": null
+        }
+      ]
+    }
+  ],
+  "model": {
+    "name": "mock-species-classifier",
+    "backend": "mock",
+    "device": "cpu",
+    "ready": true,
+    "details": {
+      "purpose": "development-only deterministic output",
+      "catalog": {
+        "available": false,
+        "total_species": 0,
+        "enabled_species": 0,
+        "region_counts": {}
+      }
+    }
+  },
+  "image": {
+    "filename": "bird.jpg",
+    "content_type": "image/jpeg",
+    "width": 640,
+    "height": 480,
+    "size_bytes": 5428
+  },
+  "policy": {
+    "max_subjects": 3,
+    "min_short_side_px": 64,
+    "detection_confidence": 0.25,
+    "candidate_count": 5,
+    "decision": "candidate",
+    "reason": "candidate_above_similarity",
+    "score_type": "mock"
+  },
+  "timing": {
+    "decode_ms": 0.885,
+    "detection_ms": 0.1,
+    "species_ms": 0.22,
+    "total_ms": 1.205
+  },
+  "notes": [],
+  "created_at": "2026-10-27T11:59:39.896656Z"
+}

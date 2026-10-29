@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bird-vision-service"
 version = "0.3.0"
-description = "Realtime visual recognition backend for Bird Assistant"
+description = "Bird Assistant backend: realtime vision, one-shot photo recognition and observation records"
 requires-python = ">=3.11,<3.15"
 dependencies = [
   "fastapi>=0.115,<1",
@@ -37,12 +37,13 @@ test = [
 
 [project.scripts]
 bird-vision = "bird_vision.cli:main"
+bird-business = "bird_business.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
-addopts = "-q --cov=bird_vision --cov-report=term-missing --cov-fail-under=80"
+addopts = "-q --cov=bird_vision --cov=bird_business --cov=bird_common --cov-report=term-missing --cov-fail-under=80"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 

@@ -13,6 +13,7 @@
 | `npm test` | 25 项通过，0 失败，0 跳过；平台 API 使用替身，不代表真机通过 |
 | `npm run format:check` | 通过；本模块 JavaScript、JSON、WXSS 格式检查 |
 | `git diff --check` | 通过；无补丁空白错误 |
+| GitHub Actions（`c18ba81`） | [map-module 检查通过](https://github.com/bird-assistant/bird-assistant/actions/runs/40823711957)；包含干净安装、配置生成、编译器检查、格式检查及 25 项测试 |
 
 关键用例包括：上海时区的日期边界；公开/私人/鸟种组合筛选；未知时间；公开记录聚合及私人分离；匿名展示字段；WGS84 展示数据拒绝；分页去重；旧请求失败与成功的乱序返回；拖动防抖期间的旧响应；返回状态；详情 ID 编码；选点取消/确认；地址解析失败；定位拒绝；手工选点与迟到定位的竞争；网络错误不回显 Key。
 
@@ -54,4 +55,4 @@
 
 在 M01～M12 中的实际适用项目完成、证据附入 PR 且评审/CI 通过前，#14 保持 Open，PR 保持 Draft，不标记 Done。
 
-远程交付状态：本轮 GitHub 连接创建分支返回 403（`Resource not accessible by integration`），本机 HTTPS Git 也没有可用登录凭证，因此尚未推送或创建 PR。代码保存在本地任务分支；[PR 文案](docs/PR_DESCRIPTION.md)已准备，登录后提交 Draft PR。GitHub Actions 和 Projects 看板状态尚未验证或更新。
+远程交付状态：已通过 GitHub CLI 登录 `lvsh24`。该账号没有主仓库的直接推送权限，因此代码推送到个人 Fork 的 `lvsh24:feat/14-map-interface`，并创建了指向原仓库的[草稿 PR #17](https://github.com/bird-assistant/bird-assistant/pull/17)。PR 目标为 `main`，未向主仓库 main 直接推送，也未合并；主仓库 main 在提交时仍为 `a84e479`。首次 GitHub Actions 已通过，设备验收保持待完成。#14 保持 Open；查询未返回关联的 Projects 看板项，因此没有修改看板状态。

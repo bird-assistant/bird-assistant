@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "羽迹 · 附近鸟讯",
+  "disableScroll": true,
+  "usingComponents": {
+    "observation-sheet": "../../components/observation-sheet/index",
+    "privacy-dialog": "../../components/privacy-dialog/index"
+  }
+}

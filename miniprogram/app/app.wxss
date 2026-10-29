@@ -1,0 +1,33 @@
+@import './styles/common.wxss';
+page {
+  height: 100%;
+  background: #fafbf6;
+  color: #243b35;
+  font-family: -apple-system, 'PingFang SC', sans-serif;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+view,
+scroll-view,
+input,
+button {
+  box-sizing: border-box;
+}
+button {
+  margin: 0;
+  font-size: 26rpx;
+  border-radius: 20rpx;
+  line-height: 1.5;
+  padding: 20rpx 24rpx;
+  background: #edf3e7;
+  color: #285c49;
+}
+button::after {
+  border: 0;
+}
+button[disabled] {
+  opacity: 0.5;
+}
+.state button {
+  margin-top: 16rpx;
+}

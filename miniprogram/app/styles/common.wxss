@@ -1,0 +1,61 @@
+.primary {
+  background: #285c49;
+  color: #fff;
+}
+.muted {
+  color: #607369;
+  font-size: 24rpx;
+  line-height: 1.7;
+}
+.notice {
+  background: #fff8e8;
+  color: #80613e;
+  font-size: 24rpx;
+  padding: 16rpx 22rpx;
+  border-radius: 18rpx;
+  line-height: 1.6;
+}
+.error {
+  color: #914b3b;
+  background: #fff0eb;
+}
+.card {
+  background: #fffef9;
+  border: 1rpx solid #dfe7d8;
+  border-radius: 28rpx;
+  padding: 28rpx;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-width: 0;
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.title {
+  font-size: 34rpx;
+  font-weight: 600;
+}
+.eyebrow {
+  font-size: 21rpx;
+  letter-spacing: 4rpx;
+  color: #607369;
+}
+.pill {
+  font-size: 22rpx;
+  background: #eaf1e2;
+  color: #285c49;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+}
+.state {
+  padding: 28rpx;
+  text-align: center;
+  background: #fffef9;
+  border-radius: 24rpx;
+  border: 1rpx solid #dfe7d8;
+}

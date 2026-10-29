@@ -1,0 +1,57 @@
+@import '../../styles/common.wxss';
+.privacy-mask {
+  box-sizing: border-box;
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  background: #243b3580;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28rpx;
+}
+.privacy-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 660rpx;
+}
+.privacy-card .muted {
+  margin-top: 20rpx;
+}
+.contract {
+  font-size: 24rpx;
+  color: #285c49;
+  line-height: 1.5;
+  margin-top: 18rpx;
+  background: none;
+  text-align: left;
+  padding: 14rpx 0;
+  text-decoration: underline;
+}
+.actions {
+  display: flex;
+  gap: 14rpx;
+  margin-top: 24rpx;
+}
+.action {
+  margin: 0;
+  box-sizing: border-box;
+  border-radius: 20rpx;
+  line-height: 1.5;
+  color: #285c49;
+  background: #edf3e7;
+  flex: 1;
+  font-size: 24rpx;
+  padding: 18rpx 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.action.primary {
+  background: #285c49;
+  color: white;
+}
+.action::after,
+.contract::after {
+  border: 0;
+}

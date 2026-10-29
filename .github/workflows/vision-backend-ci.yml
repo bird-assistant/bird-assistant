@@ -52,6 +52,27 @@ jobs:
           BIRD_VISION_DETECTOR_BACKEND: mock
           BIRD_VISION_SPECIES_BACKEND: mock
           BIRD_VISION_DEVICE: cpu
+      - name: Audio service startup and readiness (mock engine)
+        run: |
+          if ! command -v ffmpeg >/dev/null; then
+            echo "ffmpeg is not installed on this runner; skipping the process-level smoke"
+            exit 0
+          fi
+          BIRD_AUDIO_ENGINE_BACKEND=mock bird-audio --host 127.0.0.1 --port 8100 &
+          ready=0
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8100/readyz > readyz.json 2>/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != "1" ]; then
+            echo "audio service did not become ready"
+            exit 1
+          fi
+          python -c "import json,sys; d=json.load(open('readyz.json')); assert d['status']=='ready', d; assert d['models'][0]['ready']; print('audio ready:', d['models'][0]['name'])"
+          kill %1 2>/dev/null || true
       - run: ruff format --check src tests scripts
       - uses: actions/upload-artifact@v4
         if: always()

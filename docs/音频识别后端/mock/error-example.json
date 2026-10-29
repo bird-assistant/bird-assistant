@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "EMPTY_AUDIO",
+    "message": "uploaded audio is empty",
+    "request_id": "req_4f516db3fbae45f5a3bb1ba1a186ad45",
+    "details": null
+  }
+}

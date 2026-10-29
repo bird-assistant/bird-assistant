@@ -1,0 +1,332 @@
+{
+  "analysis_id": "aud_0b6784ecf376459491d6e6ca85373f57",
+  "state": "candidate",
+  "candidates": [
+    {
+      "rank": 1,
+      "species_id": "avibase-E15BC0CB",
+      "scientific_name": "Parus major",
+      "common_name_zh": "欧亚大山雀",
+      "common_name_en": "Great Tit",
+      "score": 0.974545,
+      "score_type": "birdnet_confidence",
+      "confirming_windows": 2,
+      "mapped": true,
+      "match": "scientific_name",
+      "model_label": "Parus major_Great Tit",
+      "window_scores": [
+        0.974545,
+        0.852267,
+        0.005245,
+        0.000854,
+        0.000643,
+        0.000267
+      ]
+    }
+  ],
+  "model": {
+    "name": "BirdNET_GLOBAL_6K_V2.4",
+    "backend": "ai-edge-litert",
+    "device": "cpu",
+    "ready": true,
+    "score_type": "birdnet_confidence",
+    "details": {
+      "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+      "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+      "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+      "window_samples": 144000,
+      "sample_rate": 48000,
+      "inference_threads": 4,
+      "sensitivity": 1.0,
+      "runtime": "ai-edge-litert",
+      "version": "2.4"
+    }
+  },
+  "audio": {
+    "filename": "A2_mp3_44k_mono.mp3",
+    "content_type": "audio/mpeg",
+    "format": "mp3",
+    "size_bytes": 120729,
+    "duration_seconds": 10.0,
+    "sample_rate": 48000,
+    "channels": 1,
+    "original_sample_rate": 44100,
+    "original_channels": 1,
+    "window_count": 6,
+    "zero_padded_seconds": 0.5
+  },
+  "policy": {
+    "min_score": 0.5,
+    "min_confirming_windows": 2,
+    "required_windows": 2,
+    "min_margin": 0.0,
+    "candidate_count": 5,
+    "window_seconds": 3.0,
+    "hop_seconds": 1.5,
+    "min_duration_seconds": 1.0,
+    "max_duration_seconds": 60.0,
+    "max_audio_bytes": 10485760,
+    "score_type": "birdnet_confidence",
+    "decision": "candidate",
+    "reason": "candidate_above_threshold"
+  },
+  "timing": {
+    "decode_ms": 51.664,
+    "inference_ms": 122.488,
+    "aggregate_ms": 10.005,
+    "total_ms": 184.157
+  },
+  "notes": [],
+  "diagnostics": {
+    "top_labels": [
+      {
+        "model_label": "Parus major_Great Tit",
+        "scientific_name": "Parus major",
+        "score": 0.974545,
+        "is_bird": true,
+        "confirming_windows": 2
+      },
+      {
+        "model_label": "Habia cristata_Crested Ant-Tanager",
+        "scientific_name": "Habia cristata",
+        "score": 0.070426,
+        "is_bird": true,
+        "confirming_windows": 0
+      },
+      {
+        "model_label": "Rhipidura albicollis_White-throated Fantail",
+        "scientific_name": "Rhipidura albicollis",
+        "score": 0.050023,
+        "is_bird": true,
+        "confirming_windows": 0
+      },
+      {
+        "model_label": "Brachypteryx montana_White-browed Shortwing",
+        "scientific_name": "Brachypteryx montana",
+        "score": 0.039384,
+        "is_bird": true,
+        "confirming_windows": 0
+      },
+      {
+        "model_label": "Cinnycerthia olivascens_Sharpe's Wren",
+        "scientific_name": "Cinnycerthia olivascens",
+        "score": 0.019119,
+        "is_bird": true,
+        "confirming_windows": 0
+      }
+    ],
+    "non_bird_top": {
+      "model_label": "Engine_Engine",
+      "score": 0.000376,
+      "above_threshold": false
+    },
+    "windows": [
+      {
+        "index": 0,
+        "start_seconds": 0.0,
+        "end_seconds": 3.0,
+        "padded": false,
+        "inference_ms": 21.099,
+        "top_labels": [
+          {
+            "model_label": "Parus major_Great Tit",
+            "score": 0.974545,
+            "is_bird": true
+          },
+          {
+            "model_label": "Rhipidura albicollis_White-throated Fantail",
+            "score": 0.015351,
+            "is_bird": true
+          },
+          {
+            "model_label": "Periparus ater_Coal Tit",
+            "score": 0.006906,
+            "is_bird": true
+          },
+          {
+            "model_label": "Parus monticolus_Green-backed Tit",
+            "score": 0.005648,
+            "is_bird": true
+          },
+          {
+            "model_label": "Brachypteryx leucophris_Lesser Shortwing",
+            "score": 0.003259,
+            "is_bird": true
+          }
+        ]
+      },
+      {
+        "index": 1,
+        "start_seconds": 1.5,
+        "end_seconds": 4.5,
+        "padded": false,
+        "inference_ms": 19.167,
+        "top_labels": [
+          {
+            "model_label": "Parus major_Great Tit",
+            "score": 0.852267,
+            "is_bird": true
+          },
+          {
+            "model_label": "Rhipidura albicollis_White-throated Fantail",
+            "score": 0.050023,
+            "is_bird": true
+          },
+          {
+            "model_label": "Phylloscopus magnirostris_Large-billed Leaf Warbler",
+            "score": 0.009193,
+            "is_bird": true
+          },
+          {
+            "model_label": "Microcerculus philomela_Nightingale Wren",
+            "score": 0.006953,
+            "is_bird": true
+          },
+          {
+            "model_label": "Brachypteryx leucophris_Lesser Shortwing",
+            "score": 0.006734,
+            "is_bird": true
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "start_seconds": 3.0,
+        "end_seconds": 6.0,
+        "padded": false,
+        "inference_ms": 18.434,
+        "top_labels": [
+          {
+            "model_label": "Habia cristata_Crested Ant-Tanager",
+            "score": 0.013535,
+            "is_bird": true
+          },
+          {
+            "model_label": "Phyllergates cucullatus_Mountain Tailorbird",
+            "score": 0.013422,
+            "is_bird": true
+          },
+          {
+            "model_label": "Oriolus oriolus_Eurasian Golden Oriole",
+            "score": 0.007995,
+            "is_bird": true
+          },
+          {
+            "model_label": "Larvivora brunnea_Indian Blue Robin",
+            "score": 0.006768,
+            "is_bird": true
+          },
+          {
+            "model_label": "Alcippe pyrrhoptera_Javan Fulvetta",
+            "score": 0.006514,
+            "is_bird": true
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "start_seconds": 4.5,
+        "end_seconds": 7.5,
+        "padded": false,
+        "inference_ms": 19.588,
+        "top_labels": [
+          {
+            "model_label": "Habia cristata_Crested Ant-Tanager",
+            "score": 0.070426,
+            "is_bird": true
+          },
+          {
+            "model_label": "Dendrocopos leucotos_White-backed Woodpecker",
+            "score": 0.014221,
+            "is_bird": true
+          },
+          {
+            "model_label": "Dendrocopos major_Great Spotted Woodpecker",
+            "score": 0.01409,
+            "is_bird": true
+          },
+          {
+            "model_label": "Oriolus oriolus_Eurasian Golden Oriole",
+            "score": 0.012733,
+            "is_bird": true
+          },
+          {
+            "model_label": "Dendrocoptes medius_Middle Spotted Woodpecker",
+            "score": 0.011083,
+            "is_bird": true
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "start_seconds": 6.0,
+        "end_seconds": 9.0,
+        "padded": false,
+        "inference_ms": 21.337,
+        "top_labels": [
+          {
+            "model_label": "Brachypteryx montana_White-browed Shortwing",
+            "score": 0.039384,
+            "is_bird": true
+          },
+          {
+            "model_label": "Habia cristata_Crested Ant-Tanager",
+            "score": 0.034228,
+            "is_bird": true
+          },
+          {
+            "model_label": "Cinnycerthia olivascens_Sharpe's Wren",
+            "score": 0.019119,
+            "is_bird": true
+          },
+          {
+            "model_label": "Myophonus caeruleus_Blue Whistling-Thrush",
+            "score": 0.013492,
+            "is_bird": true
+          },
+          {
+            "model_label": "Pogonocichla stellata_White-starred Robin",
+            "score": 0.013219,
+            "is_bird": true
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "start_seconds": 7.5,
+        "end_seconds": 10.0,
+        "padded": true,
+        "inference_ms": 22.863,
+        "top_labels": [
+          {
+            "model_label": "Brachypteryx montana_White-browed Shortwing",
+            "score": 0.03623,
+            "is_bird": true
+          },
+          {
+            "model_label": "Myophonus caeruleus_Blue Whistling-Thrush",
+            "score": 0.01518,
+            "is_bird": true
+          },
+          {
+            "model_label": "Monticola solitarius_Blue Rock-Thrush",
+            "score": 0.013485,
+            "is_bird": true
+          },
+          {
+            "model_label": "Ficedula elisae_Green-backed Flycatcher",
+            "score": 0.012661,
+            "is_bird": true
+          },
+          {
+            "model_label": "Dicrurus leucophaeus_Ashy Drongo",
+            "score": 0.009854,
+            "is_bird": true
+          }
+        ]
+      }
+    ]
+  },
+  "client_reference": "wx-demo-1",
+  "created_at": "2026-10-27T11:59:20.796033Z"
+}

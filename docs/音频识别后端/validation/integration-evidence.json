@@ -1,0 +1,2566 @@
+{
+  "generated_at": "2026-10-27T11:59:31.335130+00:00",
+  "entry_point": "http://127.0.0.1:8100",
+  "readyz_status": 200,
+  "readyz": {
+    "status": "ready",
+    "models": [
+      {
+        "name": "BirdNET_GLOBAL_6K_V2.4",
+        "backend": "ai-edge-litert",
+        "device": "cpu",
+        "ready": true,
+        "score_type": "birdnet_confidence",
+        "details": {
+          "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+          "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+          "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+          "window_samples": 144000,
+          "sample_rate": 48000,
+          "inference_threads": 4,
+          "sensitivity": 1.0,
+          "runtime": "ai-edge-litert"
+        }
+      },
+      {
+        "name": "audio-analysis-runtime",
+        "backend": "ffmpeg+ai-edge-litert",
+        "device": "cpu",
+        "ready": true,
+        "score_type": "birdnet_confidence",
+        "details": {
+          "ffmpeg_path": "<python-env>/imageio_ffmpeg/binaries/ffmpeg-win-x86_64-v7.1.exe",
+          "labels_source": "model_file",
+          "labels": {
+            "count": 6522,
+            "bird_classes": 6514,
+            "non_bird_classes": 8,
+            "mapped_classes": 6326,
+            "mapped_by_common_name": 205,
+            "unmapped_classes": 188,
+            "sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "source": "model_file"
+          },
+          "temp_dir": "<tmp>bird-audio-http",
+          "max_concurrent_analyses": 1,
+          "max_queued_analyses": 4,
+          "in_flight": 0,
+          "last_error": null
+        }
+      }
+    ]
+  },
+  "note": "Multipart uploads of real MP3/AAC/WAV files through the public endpoint. The clips come from the issue #6 set re-encoded to recorder-like formats; device-recorded files still need one run from the front end.",
+  "summary": {
+    "samples": 32,
+    "samples_ok": 32,
+    "candidate_results": 18,
+    "unknown_results": 14,
+    "error_cases": 7,
+    "error_cases_passed": 7,
+    "mean_total_ms": 161.209
+  },
+  "requests": [
+    {
+      "kind": "sample",
+      "sample_id": "A1_mp3_44k_mono",
+      "file": "A1_mp3_44k_mono.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": "Turdus merula",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 190.982,
+      "response": {
+        "analysis_id": "aud_e54be2dec86846dba1428e4048959781",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-88BB4F2A",
+            "scientific_name": "Turdus merula",
+            "common_name_zh": "欧乌鸫",
+            "score": 0.865437,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A1_mp3_44k_mono.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 120729,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 43.817,
+          "inference_ms": 127.198,
+          "aggregate_ms": 6.85,
+          "total_ms": 177.865
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A1_aac_16k_mono",
+      "file": "A1_aac_16k_mono.aac",
+      "content_type": "audio/aac",
+      "expected_scientific": "Turdus merula",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 202.664,
+      "response": {
+        "analysis_id": "aud_b232399d54da469caba6ac7c982a5e85",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-88BB4F2A",
+            "scientific_name": "Turdus merula",
+            "common_name_zh": "欧乌鸫",
+            "score": 0.957331,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A1_aac_16k_mono.aac",
+          "content_type": "audio/aac",
+          "format": "aac",
+          "size_bytes": 63403,
+          "duration_seconds": 10.112,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 16000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.388
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 49.42,
+          "inference_ms": 131.372,
+          "aggregate_ms": 8.308,
+          "total_ms": 189.1
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A1_wav_48k_mono",
+      "file": "A1_wav_48k_mono.wav",
+      "content_type": "audio/wav",
+      "expected_scientific": "Turdus merula",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 226.025,
+      "response": {
+        "analysis_id": "aud_055a83dfbf9a40d6b2b792605b8277fa",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-88BB4F2A",
+            "scientific_name": "Turdus merula",
+            "common_name_zh": "欧乌鸫",
+            "score": 0.879007,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A1_wav_48k_mono.wav",
+          "content_type": "audio/wav",
+          "format": "wav",
+          "size_bytes": 960078,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 48000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 46.525,
+          "inference_ms": 127.095,
+          "aggregate_ms": 35.329,
+          "total_ms": 208.948
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A1_mp3_44k_mono_short",
+      "file": "A1_mp3_44k_mono_short.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": "Turdus merula",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 67.996,
+      "response": {
+        "analysis_id": "aud_8dba9d33ef754b1cb6ac71885b663288",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "A1_mp3_44k_mono_short.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 24808,
+          "duration_seconds": 2.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 1,
+          "zero_padded_seconds": 1.0
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 1,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 34.941,
+          "inference_ms": 19.704,
+          "aggregate_ms": 5.424,
+          "total_ms": 60.069
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "short_clip_zero_padded",
+          "reduced_window_confirmation",
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A2_mp3_44k_mono",
+      "file": "A2_mp3_44k_mono.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": "Parus major",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 184.77,
+      "response": {
+        "analysis_id": "aud_7fa86e20572245a19309356a87c51204",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-E15BC0CB",
+            "scientific_name": "Parus major",
+            "common_name_zh": "欧亚大山雀",
+            "score": 0.974545,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A2_mp3_44k_mono.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 120729,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 43.894,
+          "inference_ms": 114.383,
+          "aggregate_ms": 8.75,
+          "total_ms": 167.027
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A2_aac_16k_mono",
+      "file": "A2_aac_16k_mono.aac",
+      "content_type": "audio/aac",
+      "expected_scientific": "Parus major",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 193.741,
+      "response": {
+        "analysis_id": "aud_63a772c003654b9a9a679eb469abd766",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-E15BC0CB",
+            "scientific_name": "Parus major",
+            "common_name_zh": "欧亚大山雀",
+            "score": 0.981942,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A2_aac_16k_mono.aac",
+          "content_type": "audio/aac",
+          "format": "aac",
+          "size_bytes": 61367,
+          "duration_seconds": 10.112,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 16000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.388
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 45.015,
+          "inference_ms": 126.751,
+          "aggregate_ms": 7.688,
+          "total_ms": 179.455
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A2_wav_48k_mono",
+      "file": "A2_wav_48k_mono.wav",
+      "content_type": "audio/wav",
+      "expected_scientific": "Parus major",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 206.314,
+      "response": {
+        "analysis_id": "aud_6aef6fed339440b0b8063adc3ae30585",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-E15BC0CB",
+            "scientific_name": "Parus major",
+            "common_name_zh": "欧亚大山雀",
+            "score": 0.977204,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A2_wav_48k_mono.wav",
+          "content_type": "audio/wav",
+          "format": "wav",
+          "size_bytes": 960078,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 48000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 50.643,
+          "inference_ms": 127.289,
+          "aggregate_ms": 11.658,
+          "total_ms": 189.59
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A2_mp3_44k_mono_short",
+      "file": "A2_mp3_44k_mono_short.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": "Parus major",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 89.463,
+      "response": {
+        "analysis_id": "aud_0597a84acdce4d81ba60a4485d963d9a",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "A2_mp3_44k_mono_short.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 24808,
+          "duration_seconds": 2.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 1,
+          "zero_padded_seconds": 1.0
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 1,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 45.608,
+          "inference_ms": 26.871,
+          "aggregate_ms": 5.189,
+          "total_ms": 77.669
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "short_clip_zero_padded",
+          "reduced_window_confirmation",
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A3_mp3_44k_mono",
+      "file": "A3_mp3_44k_mono.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": "Cyanistes caeruleus",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 194.476,
+      "response": {
+        "analysis_id": "aud_a92d5944f74d46f09e9f656168fb7383",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-9BE53D34",
+            "scientific_name": "Cyanistes caeruleus",
+            "common_name_zh": null,
+            "score": 0.998097,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A3_mp3_44k_mono.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 120729,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 47.552,
+          "inference_ms": 122.042,
+          "aggregate_ms": 8.711,
+          "total_ms": 178.305
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A3_aac_16k_mono",
+      "file": "A3_aac_16k_mono.aac",
+      "content_type": "audio/aac",
+      "expected_scientific": "Cyanistes caeruleus",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 189.822,
+      "response": {
+        "analysis_id": "aud_d3aec1d1daf541979fd6a9f1bdbeeb95",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-9BE53D34",
+            "scientific_name": "Cyanistes caeruleus",
+            "common_name_zh": null,
+            "score": 0.946935,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A3_aac_16k_mono.aac",
+          "content_type": "audio/aac",
+          "format": "aac",
+          "size_bytes": 60688,
+          "duration_seconds": 10.112,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 16000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.388
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 50.755,
+          "inference_ms": 118.445,
+          "aggregate_ms": 6.38,
+          "total_ms": 175.58
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A3_wav_48k_mono",
+      "file": "A3_wav_48k_mono.wav",
+      "content_type": "audio/wav",
+      "expected_scientific": "Cyanistes caeruleus",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 203.197,
+      "response": {
+        "analysis_id": "aud_e41080a61c4649ec8abac9ae4a704cb7",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-9BE53D34",
+            "scientific_name": "Cyanistes caeruleus",
+            "common_name_zh": null,
+            "score": 0.997433,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A3_wav_48k_mono.wav",
+          "content_type": "audio/wav",
+          "format": "wav",
+          "size_bytes": 960078,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 48000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 50.229,
+          "inference_ms": 124.83,
+          "aggregate_ms": 9.064,
+          "total_ms": 184.123
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A3_mp3_44k_mono_short",
+      "file": "A3_mp3_44k_mono_short.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": "Cyanistes caeruleus",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 76.545,
+      "response": {
+        "analysis_id": "aud_da9669ceafa743bb8bb20d1dc4f1ed62",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-9BE53D34",
+            "scientific_name": "Cyanistes caeruleus",
+            "common_name_zh": null,
+            "score": 0.963092,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A3_mp3_44k_mono_short.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 24808,
+          "duration_seconds": 2.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 1,
+          "zero_padded_seconds": 1.0
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 1,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 43.035,
+          "inference_ms": 21.306,
+          "aggregate_ms": 4.316,
+          "total_ms": 68.657
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "short_clip_zero_padded",
+          "reduced_window_confirmation"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A4_mp3_44k_mono",
+      "file": "A4_mp3_44k_mono.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": "Cuculus canorus",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 212.727,
+      "response": {
+        "analysis_id": "aud_cf1fde37c0b545c7b2c67d46e22ba98e",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-B3D2C3C5",
+            "scientific_name": "Cuculus canorus",
+            "common_name_zh": "大杜鹃",
+            "score": 0.993521,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A4_mp3_44k_mono.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 120729,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 49.106,
+          "inference_ms": 138.082,
+          "aggregate_ms": 9.584,
+          "total_ms": 196.772
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A4_aac_16k_mono",
+      "file": "A4_aac_16k_mono.aac",
+      "content_type": "audio/aac",
+      "expected_scientific": "Cuculus canorus",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 179.052,
+      "response": {
+        "analysis_id": "aud_b6a2b4a7da22446eb97c42359fb377b8",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-B3D2C3C5",
+            "scientific_name": "Cuculus canorus",
+            "common_name_zh": "大杜鹃",
+            "score": 0.998752,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          },
+          {
+            "rank": 2,
+            "species_id": "avibase-D929EB21",
+            "scientific_name": "Turdus philomelos",
+            "common_name_zh": "欧歌鸫",
+            "score": 0.589165,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A4_aac_16k_mono.aac",
+          "content_type": "audio/aac",
+          "format": "aac",
+          "size_bytes": 59542,
+          "duration_seconds": 10.112,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 16000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.388
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 43.213,
+          "inference_ms": 114.841,
+          "aggregate_ms": 6.398,
+          "total_ms": 164.452
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A4_wav_48k_mono",
+      "file": "A4_wav_48k_mono.wav",
+      "content_type": "audio/wav",
+      "expected_scientific": "Cuculus canorus",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 288.63,
+      "response": {
+        "analysis_id": "aud_0f5b93e34ada4c6bb44ba991b8164477",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-B3D2C3C5",
+            "scientific_name": "Cuculus canorus",
+            "common_name_zh": "大杜鹃",
+            "score": 0.993337,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A4_wav_48k_mono.wav",
+          "content_type": "audio/wav",
+          "format": "wav",
+          "size_bytes": 960078,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 48000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 52.277,
+          "inference_ms": 208.097,
+          "aggregate_ms": 9.99,
+          "total_ms": 270.364
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A4_mp3_44k_mono_short",
+      "file": "A4_mp3_44k_mono_short.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": "Cuculus canorus",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 104.263,
+      "response": {
+        "analysis_id": "aud_eb32fbb84507479788bb5950eca3641d",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-B3D2C3C5",
+            "scientific_name": "Cuculus canorus",
+            "common_name_zh": "大杜鹃",
+            "score": 0.962781,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A4_mp3_44k_mono_short.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 24808,
+          "duration_seconds": 2.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 1,
+          "zero_padded_seconds": 1.0
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 1,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 40.133,
+          "inference_ms": 21.663,
+          "aggregate_ms": 32.482,
+          "total_ms": 94.278
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "short_clip_zero_padded",
+          "reduced_window_confirmation"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A5_mp3_44k_mono",
+      "file": "A5_mp3_44k_mono.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": "Fringilla coelebs",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 191.745,
+      "response": {
+        "analysis_id": "aud_aaad478d39e54ccf9c8e3f2dcdf5dd72",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-6364E4A5",
+            "scientific_name": "Fringilla coelebs",
+            "common_name_zh": "苍头燕雀",
+            "score": 0.970581,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A5_mp3_44k_mono.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 120729,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 46.803,
+          "inference_ms": 122.503,
+          "aggregate_ms": 7.771,
+          "total_ms": 177.078
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A5_aac_16k_mono",
+      "file": "A5_aac_16k_mono.aac",
+      "content_type": "audio/aac",
+      "expected_scientific": "Fringilla coelebs",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 216.872,
+      "response": {
+        "analysis_id": "aud_608d9f52fcb7415886cde1dca1cd3347",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-6364E4A5",
+            "scientific_name": "Fringilla coelebs",
+            "common_name_zh": "苍头燕雀",
+            "score": 0.960117,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A5_aac_16k_mono.aac",
+          "content_type": "audio/aac",
+          "format": "aac",
+          "size_bytes": 60306,
+          "duration_seconds": 10.112,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 16000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.388
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 61.966,
+          "inference_ms": 131.981,
+          "aggregate_ms": 8.246,
+          "total_ms": 202.193
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A5_wav_48k_mono",
+      "file": "A5_wav_48k_mono.wav",
+      "content_type": "audio/wav",
+      "expected_scientific": "Fringilla coelebs",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 216.586,
+      "response": {
+        "analysis_id": "aud_262e4a43fda64498820c4da76c6523c1",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-6364E4A5",
+            "scientific_name": "Fringilla coelebs",
+            "common_name_zh": "苍头燕雀",
+            "score": 0.956368,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A5_wav_48k_mono.wav",
+          "content_type": "audio/wav",
+          "format": "wav",
+          "size_bytes": 960078,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 48000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 49.664,
+          "inference_ms": 138.135,
+          "aggregate_ms": 10.241,
+          "total_ms": 198.04
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "A5_mp3_44k_mono_short",
+      "file": "A5_mp3_44k_mono_short.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": "Fringilla coelebs",
+      "expected_kind": "bird",
+      "http_status": 200,
+      "elapsed_ms": 80.904,
+      "response": {
+        "analysis_id": "aud_2663eb12992b45be8b2942aecba47316",
+        "state": "candidate",
+        "reason": "candidate_above_threshold",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "avibase-6364E4A5",
+            "scientific_name": "Fringilla coelebs",
+            "common_name_zh": "苍头燕雀",
+            "score": 0.757383,
+            "score_type": "birdnet_confidence",
+            "mapped": true
+          }
+        ],
+        "audio": {
+          "filename": "A5_mp3_44k_mono_short.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 24808,
+          "duration_seconds": 2.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 1,
+          "zero_padded_seconds": 1.0
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 1,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "candidate",
+          "reason": "candidate_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 42.721,
+          "inference_ms": 22.631,
+          "aggregate_ms": 5.306,
+          "total_ms": 70.657
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "short_clip_zero_padded",
+          "reduced_window_confirmation"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N1_mp3_44k_mono",
+      "file": "N1_mp3_44k_mono.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 195.043,
+      "response": {
+        "analysis_id": "aud_e77e8227d872473e97571af9541e483d",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "N1_mp3_44k_mono.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 120729,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 44.367,
+          "inference_ms": 124.164,
+          "aggregate_ms": 9.482,
+          "total_ms": 178.013
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N1_aac_16k_mono",
+      "file": "N1_aac_16k_mono.aac",
+      "content_type": "audio/aac",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 201.602,
+      "response": {
+        "analysis_id": "aud_13f20651908546f09631df98a600be5e",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "N1_aac_16k_mono.aac",
+          "content_type": "audio/aac",
+          "format": "aac",
+          "size_bytes": 67744,
+          "duration_seconds": 10.112,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 16000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.388
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 45.014,
+          "inference_ms": 128.714,
+          "aggregate_ms": 10.575,
+          "total_ms": 184.303
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N1_wav_48k_mono",
+      "file": "N1_wav_48k_mono.wav",
+      "content_type": "audio/wav",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 204.75,
+      "response": {
+        "analysis_id": "aud_b23166e5bf094770b3f7aa38d908ec6f",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "N1_wav_48k_mono.wav",
+          "content_type": "audio/wav",
+          "format": "wav",
+          "size_bytes": 960078,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 48000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 52.782,
+          "inference_ms": 123.665,
+          "aggregate_ms": 9.983,
+          "total_ms": 186.431
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N1_mp3_44k_mono_short",
+      "file": "N1_mp3_44k_mono_short.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 81.187,
+      "response": {
+        "analysis_id": "aud_26ebb144b7c342529e502eb42b9246cb",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "N1_mp3_44k_mono_short.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 24808,
+          "duration_seconds": 2.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 1,
+          "zero_padded_seconds": 1.0
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 1,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 41.239,
+          "inference_ms": 23.967,
+          "aggregate_ms": 6.063,
+          "total_ms": 71.27
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "short_clip_zero_padded",
+          "reduced_window_confirmation",
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N2_mp3_44k_mono",
+      "file": "N2_mp3_44k_mono.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 207.332,
+      "response": {
+        "analysis_id": "aud_217470f4854b4694ab5ee10ea1e1a653",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "N2_mp3_44k_mono.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 120729,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 41.937,
+          "inference_ms": 138.966,
+          "aggregate_ms": 10.117,
+          "total_ms": 191.019
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N2_aac_16k_mono",
+      "file": "N2_aac_16k_mono.aac",
+      "content_type": "audio/aac",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 199.931,
+      "response": {
+        "analysis_id": "aud_3e64f2d5d3d848e39cb6d39c16e10027",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "N2_aac_16k_mono.aac",
+          "content_type": "audio/aac",
+          "format": "aac",
+          "size_bytes": 60133,
+          "duration_seconds": 10.112,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 16000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.388
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 41.374,
+          "inference_ms": 131.972,
+          "aggregate_ms": 9.943,
+          "total_ms": 183.289
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N2_wav_48k_mono",
+      "file": "N2_wav_48k_mono.wav",
+      "content_type": "audio/wav",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 209.177,
+      "response": {
+        "analysis_id": "aud_2dc13ae8bca441faa87c771297fa4413",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "N2_wav_48k_mono.wav",
+          "content_type": "audio/wav",
+          "format": "wav",
+          "size_bytes": 960078,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 48000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 45.557,
+          "inference_ms": 131.142,
+          "aggregate_ms": 12.051,
+          "total_ms": 188.75
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N2_mp3_44k_mono_short",
+      "file": "N2_mp3_44k_mono_short.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 70.935,
+      "response": {
+        "analysis_id": "aud_1a5a96b4af164a058c41ede098e0d470",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "N2_mp3_44k_mono_short.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 24808,
+          "duration_seconds": 2.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 1,
+          "zero_padded_seconds": 1.0
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 1,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 38.802,
+          "inference_ms": 18.908,
+          "aggregate_ms": 5.501,
+          "total_ms": 63.212
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "short_clip_zero_padded",
+          "reduced_window_confirmation",
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N3_mp3_44k_mono",
+      "file": "N3_mp3_44k_mono.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 228.731,
+      "response": {
+        "analysis_id": "aud_a20e06270da1487eb43f2787c69713f8",
+        "state": "unknown",
+        "reason": "insufficient_window_confirmation",
+        "candidates": [],
+        "audio": {
+          "filename": "N3_mp3_44k_mono.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 120729,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "insufficient_window_confirmation"
+        },
+        "timing": {
+          "decode_ms": 60.965,
+          "inference_ms": 120.976,
+          "aggregate_ms": 35.309,
+          "total_ms": 217.25
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N3_aac_16k_mono",
+      "file": "N3_aac_16k_mono.aac",
+      "content_type": "audio/aac",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 199.307,
+      "response": {
+        "analysis_id": "aud_ff19f6de47274268ac509356c4db1660",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "N3_aac_16k_mono.aac",
+          "content_type": "audio/aac",
+          "format": "aac",
+          "size_bytes": 61124,
+          "duration_seconds": 10.112,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 16000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.388
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 50.572,
+          "inference_ms": 123.395,
+          "aggregate_ms": 8.925,
+          "total_ms": 182.893
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N3_wav_48k_mono",
+      "file": "N3_wav_48k_mono.wav",
+      "content_type": "audio/wav",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 215.503,
+      "response": {
+        "analysis_id": "aud_baa3f9f5f466417abc854c70cbf954ca",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "N3_wav_48k_mono.wav",
+          "content_type": "audio/wav",
+          "format": "wav",
+          "size_bytes": 960078,
+          "duration_seconds": 10.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 48000,
+          "original_channels": 1,
+          "window_count": 6,
+          "zero_padded_seconds": 0.5
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 2,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 60.948,
+          "inference_ms": 132.095,
+          "aggregate_ms": 8.668,
+          "total_ms": 201.71
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "sample",
+      "sample_id": "N3_mp3_44k_mono_short",
+      "file": "N3_mp3_44k_mono_short.mp3",
+      "content_type": "audio/mpeg",
+      "expected_scientific": null,
+      "expected_kind": "negative",
+      "http_status": 200,
+      "elapsed_ms": 89.993,
+      "response": {
+        "analysis_id": "aud_53e2e747ff54459295fb6b771e7be973",
+        "state": "unknown",
+        "reason": "no_label_above_threshold",
+        "candidates": [],
+        "audio": {
+          "filename": "N3_mp3_44k_mono_short.mp3",
+          "content_type": "audio/mpeg",
+          "format": "mp3",
+          "size_bytes": 24808,
+          "duration_seconds": 2.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "original_sample_rate": 44100,
+          "original_channels": 1,
+          "window_count": 1,
+          "zero_padded_seconds": 1.0
+        },
+        "policy": {
+          "min_score": 0.5,
+          "min_confirming_windows": 2,
+          "required_windows": 1,
+          "min_margin": 0.0,
+          "candidate_count": 5,
+          "window_seconds": 3.0,
+          "hop_seconds": 1.5,
+          "min_duration_seconds": 1.0,
+          "max_duration_seconds": 60.0,
+          "max_audio_bytes": 10485760,
+          "score_type": "birdnet_confidence",
+          "decision": "unknown",
+          "reason": "no_label_above_threshold"
+        },
+        "timing": {
+          "decode_ms": 46.302,
+          "inference_ms": 28.769,
+          "aggregate_ms": 5.269,
+          "total_ms": 80.34
+        },
+        "model": {
+          "name": "BirdNET_GLOBAL_6K_V2.4",
+          "backend": "ai-edge-litert",
+          "details": {
+            "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+            "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+            "window_samples": 144000,
+            "sample_rate": 48000,
+            "inference_threads": 4,
+            "sensitivity": 1.0,
+            "runtime": "ai-edge-litert",
+            "version": "2.4"
+          }
+        },
+        "notes": [
+          "short_clip_zero_padded",
+          "reduced_window_confirmation",
+          "non_bird_labels_excluded"
+        ]
+      }
+    },
+    {
+      "kind": "error_case",
+      "sample_id": "empty",
+      "file": "empty.mp3",
+      "content_type": "audio/mpeg",
+      "expected_code": "EMPTY_AUDIO",
+      "expected_status": 422,
+      "http_status": 422,
+      "error_code": "EMPTY_AUDIO",
+      "passed": true,
+      "elapsed_ms": 6.632,
+      "response": {
+        "error": {
+          "code": "EMPTY_AUDIO",
+          "message": "uploaded audio is empty",
+          "request_id": "req_0e9bb47a37754b7abb198fb9a52183b3",
+          "details": null
+        }
+      }
+    },
+    {
+      "kind": "error_case",
+      "sample_id": "corrupt",
+      "file": "corrupt.mp3",
+      "content_type": "audio/mpeg",
+      "expected_code": "AUDIO_DECODE_FAILED",
+      "expected_status": 422,
+      "http_status": 422,
+      "error_code": "AUDIO_DECODE_FAILED",
+      "passed": true,
+      "elapsed_ms": 46.485,
+      "response": {
+        "error": {
+          "code": "AUDIO_DECODE_FAILED",
+          "message": "audio cannot be decoded",
+          "request_id": "req_a5fb85a35515450e8650df3de56a100e",
+          "details": {
+            "ffmpeg": "Error opening input files: Invalid data found when processing input"
+          }
+        }
+      }
+    },
+    {
+      "kind": "error_case",
+      "sample_id": "unsupported",
+      "file": "notes.txt",
+      "content_type": "application/octet-stream",
+      "expected_code": "UNSUPPORTED_AUDIO_FORMAT",
+      "expected_status": 415,
+      "http_status": 415,
+      "error_code": "UNSUPPORTED_AUDIO_FORMAT",
+      "passed": true,
+      "elapsed_ms": 7.352,
+      "response": {
+        "error": {
+          "code": "UNSUPPORTED_AUDIO_FORMAT",
+          "message": "file is not a recognised MP3, WAV, AAC or M4A recording",
+          "request_id": "req_d759f4a1d8844b1c8d60f96490978458",
+          "details": {
+            "content_type": "application/octet-stream"
+          }
+        }
+      }
+    },
+    {
+      "kind": "error_case",
+      "sample_id": "mismatch",
+      "file": "mismatch.wav",
+      "content_type": "audio/wav",
+      "expected_code": "AUDIO_FORMAT_MISMATCH",
+      "expected_status": 415,
+      "http_status": 415,
+      "error_code": "AUDIO_FORMAT_MISMATCH",
+      "passed": true,
+      "elapsed_ms": 17.637,
+      "response": {
+        "error": {
+          "code": "AUDIO_FORMAT_MISMATCH",
+          "message": "declared content type does not match the file content",
+          "request_id": "req_50bea5bb203548c487d5550d7301f9ff",
+          "details": {
+            "content_type": "audio/wav",
+            "detected_format": "mp3"
+          }
+        }
+      }
+    },
+    {
+      "kind": "error_case",
+      "sample_id": "too_short",
+      "file": "too-short.mp3",
+      "content_type": "audio/mpeg",
+      "expected_code": "AUDIO_TOO_SHORT",
+      "expected_status": 422,
+      "http_status": 422,
+      "error_code": "AUDIO_TOO_SHORT",
+      "passed": true,
+      "elapsed_ms": 57.317,
+      "response": {
+        "error": {
+          "code": "AUDIO_TOO_SHORT",
+          "message": "audio is shorter than the minimum analyzable duration",
+          "request_id": "req_5e8ca1a395fa44879015a45b75667a2e",
+          "details": {
+            "min_duration_seconds": 1.0,
+            "detected_seconds": 0.3
+          }
+        }
+      }
+    },
+    {
+      "kind": "error_case",
+      "sample_id": "too_long",
+      "file": "too-long.mp3",
+      "content_type": "audio/mpeg",
+      "expected_code": "AUDIO_TOO_LONG",
+      "expected_status": 413,
+      "http_status": 413,
+      "error_code": "AUDIO_TOO_LONG",
+      "passed": true,
+      "elapsed_ms": 119.893,
+      "response": {
+        "error": {
+          "code": "AUDIO_TOO_LONG",
+          "message": "audio exceeds the configured duration limit",
+          "request_id": "req_4e2b191722834ef288799baae4bd4155",
+          "details": {
+            "max_duration_seconds": 60.0,
+            "detected_min_seconds": 61.0
+          }
+        }
+      }
+    },
+    {
+      "kind": "error_case",
+      "sample_id": "oversized",
+      "file": "oversized.mp3",
+      "content_type": "audio/mpeg",
+      "expected_code": "AUDIO_TOO_LARGE",
+      "expected_status": 413,
+      "http_status": 413,
+      "error_code": "AUDIO_TOO_LARGE",
+      "passed": true,
+      "elapsed_ms": 23.584,
+      "response": {
+        "error": {
+          "code": "AUDIO_TOO_LARGE",
+          "message": "upload exceeds the byte limit",
+          "request_id": "req_a9d1b9b96e9c4565833e426d0ceb76f5",
+          "details": null
+        }
+      }
+    }
+  ]
+}

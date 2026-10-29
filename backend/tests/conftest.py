@@ -29,3 +29,46 @@ def jpeg_bytes() -> bytes:
     buffer = BytesIO()
     image.save(buffer, format="JPEG")
     return buffer.getvalue()
+
+
+# ---- audio / business service fixtures -------------------------------------
+
+
+@pytest.fixture
+def audio_settings(tmp_path):
+    from bird_audio.config import AudioSettings
+
+    return AudioSettings(
+        environment="test",
+        engine_backend="mock",
+        temp_dir=tmp_path / "tmp-audio",
+        min_duration_seconds=1.0,
+        max_duration_seconds=60.0,
+    )
+
+
+@pytest.fixture
+def wav_bytes():
+    import io
+    import math
+    import struct
+    import wave
+
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as handle:
+        handle.setnchannels(1)
+        handle.setsampwidth(2)
+        handle.setframerate(44_100)
+        frames = bytearray()
+        for index in range(44_100 * 2):
+            value = int(12_000 * math.sin(2 * math.pi * 880 * index / 44_100))
+            frames += struct.pack("<h", value)
+        handle.writeframes(bytes(frames))
+    return buffer.getvalue()
+
+
+@pytest.fixture
+def business_settings(tmp_path):
+    from bird_business.config import BusinessSettings
+
+    return BusinessSettings(environment="test", database_path=tmp_path / "observations.sqlite3")

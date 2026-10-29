@@ -1,8 +1,16 @@
-# 观鸟助手视觉识别后端
+# 观鸟助手识别后端
 
-这是从第 1 周技术预研演进出的可部署服务。它负责实时鸟体检测、会话级跟踪、最佳裁剪选择和可选的 BioCLIP 2 鸟种候选，不包含音频识别与业务数据库。
+这是从第 1 周技术预研演进出的可部署服务群，同一个发行包里包含两个独立进程：
 
-## 已实现
+| 服务 | 包 | 职责 | 默认端口 | 额外安装 |
+|---|---|---|---:|---|
+| `bird-vision` | `bird_vision` | 实时鸟体检测、会话级跟踪、BioCLIP 候选 | 8000 | `.[gpu]` |
+| `bird-audio` | `bird_audio` | 录音一次性识别：上传校验、解码、48 kHz 单声道、3 s 分窗、BirdNET v2.4、候选聚合与拒识 | 8100 | `.[audio]` |
+
+共享代码在 `bird_common`（应用外壳、鉴权、错误信封、日志、物种目录加载），音频服务与视觉服务
+遵循同一套健康检查、请求 ID、错误格式与鉴权规则。
+
+## 视觉服务已实现
 
 - FastAPI + OpenAPI；
 - `mock` / CPU / CUDA 运行模式；
@@ -108,10 +116,39 @@ bird-vision --host 0.0.0.0 --port 8000 --workers 1
 
 ## 文档
 
-- [架构与边界](../docs/视觉识别后端/README.md)
-- [API 详细协议](../docs/视觉识别后端/API.md)
+- [视觉架构与边界](../docs/视觉识别后端/README.md)
+- [视觉 API 详细协议](../docs/视觉识别后端/API.md)
 - [云容器部署与运维](../docs/视觉识别后端/DEPLOYMENT.md)
 - [模型、词表与评测规则](../docs/视觉识别后端/MODELS.md)
+- [音频服务说明](../docs/音频识别后端/README.md)
+- [音频 API 与前端联调](../docs/音频识别后端/API.md)
+- [音频部署与运维](../docs/音频识别后端/DEPLOYMENT.md)
+- [音频模型、标签与分数语义](../docs/音频识别后端/MODELS.md)
+- [音频样本验证报告](../docs/音频识别后端/VALIDATION.md) · [验收检查表](../docs/音频识别后端/CHECKLIST.md)
+- [本 PR 说明](../docs/PR/音频识别后端.md)
+
+## 音频服务
+
+```bash
+python -m pip install -e '.[test]'
+python -m pip install -e '.[audio]'        # 真实 BirdNET 引擎需要（mock 不需要）
+cp .env.example .env
+bird-audio --host 127.0.0.1 --port 8100
+```
+
+音频服务默认 `BIRD_AUDIO_ENGINE_BACKEND=mock`，前端可在没有模型的情况下联调接口；真实推理需
+把 BirdNET 权重放到 `鸟类识别预研/models/birdnet/` 并设置 `BIRD_AUDIO_ENGINE_BACKEND=birdnet`。
+ffmpeg 依次取 `BIRD_AUDIO_FFMPEG_PATH`、系统 PATH、`imageio-ffmpeg` 自带二进制。
+
+真实模型 smoke 与样本验证：
+
+```bash
+export BIRD_AUDIO_ENGINE_BACKEND=birdnet
+python scripts/prepare_audio_samples.py
+python scripts/evaluate_audio.py
+bird-audio --port 8100 &
+python scripts/smoke_audio_service.py --base-url http://127.0.0.1:8100
+```
 
 ## 目录
 
@@ -124,8 +161,12 @@ backend/
 │   ├── build_occurrence_profile.py 从 GBIF 构建地点时空索引
 │   ├── check_runtime.py          云端模型加载与推理自检
 │   ├── prepare_model_artifacts.py 固定模型 revision 与工件哈希
+│   ├── prepare_audio_samples.py  生成小程序录音格式样本与 manifest
+│   ├── evaluate_audio.py         真实模型的样本验证与阈值扫描
+│   ├── smoke_audio_service.py    真实 HTTP 端到端 smoke 与联调证据
 │   ├── evaluate_species.py       已裁剪图片准确率与拒识评测
 │   └── evaluate_pipeline.py      检测、跟踪、裁剪、分类全链路评测
+├── src/bird_common/            共享应用外壳、鉴权、错误、日志、物种目录加载
 ├── src/bird_vision/
 │   ├── api.py                  HTTP / WebSocket 接口
 │   ├── app.py                  生命周期、中间件、错误处理
@@ -138,5 +179,13 @@ backend/
 │       ├── detectors.py        Mock / YOLO 检测器
 │       ├── species.py          Disabled / Mock / BioCLIP 2
 │       └── pipeline.py         检测、跟踪、裁剪、分类与输出
+├── src/bird_audio/
+│   ├── audio.py                上传暂存、容器嗅探、ffmpeg 解码、临时文件清理
+│   ├── windows.py              3 s 分窗、补零、确认窗数
+│   ├── labels.py               标签解析、非鸟类过滤、物种目录对齐
+│   ├── analyzer.py             聚合、排序、拒识（纯函数）
+│   ├── engine.py               BirdNET LiteRT 引擎 / mock 引擎 / 资产校验
+│   ├── service.py              准入、并发、超时、取消与报告
+│   └── app.py                  API、生命周期与就绪检查
 └── tests/
 ```

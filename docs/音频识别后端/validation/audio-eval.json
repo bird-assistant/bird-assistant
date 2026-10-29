@@ -1,0 +1,1550 @@
+{
+  "generated_at": "2026-10-27T11:57:55.344881+00:00",
+  "manifest": "<repo>/backend/results/audio-samples/manifest.json",
+  "note": "Containers and sample rates mirror what the WeChat recorder can produce; the audio itself is the issue #6 clip set. These are NOT device recordings.",
+  "engine": {
+    "name": "BirdNET_GLOBAL_6K_V2.4",
+    "backend": "ai-edge-litert",
+    "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+    "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+    "labels": 6522
+  },
+  "catalog": {
+    "available": true,
+    "path": "config\\catalog\\avilist_v2026_global.csv",
+    "version": "v2026",
+    "checksum_sha256": "40152332a2da42d7a1c094301ec204720f9974614ea8eef20d75c61ca183262c",
+    "total_species": 11172
+  },
+  "policy": {
+    "min_score": 0.5,
+    "min_confirming_windows": 2,
+    "window_seconds": 3.0,
+    "hop_seconds": 1.5,
+    "candidate_count": 5
+  },
+  "summary": {
+    "bird_samples": 20,
+    "bird_top1": 18,
+    "bird_found": 18,
+    "negative_samples": 12,
+    "negative_false_positives": 0,
+    "unknown_ratio": 0.4375,
+    "total_ms_p50": 166.695,
+    "total_ms_p95": 219.224,
+    "decode_ms_p50": 48.175,
+    "decode_ms_p95": 91.704,
+    "inference_ms_p50": 18.935,
+    "inference_ms_p95": 23.733,
+    "mean_total_ms": 155.175
+  },
+  "samples": [
+    {
+      "sample_id": "A1_mp3_44k_mono",
+      "file": "A1_mp3_44k_mono.mp3",
+      "kind": "bird",
+      "container": "mp3",
+      "short": false,
+      "recorded_like": "WeChat mp3 default",
+      "expected_scientific": "Turdus merula",
+      "expected_species_id": "avibase-88BB4F2A",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-88BB4F2A",
+      "top1_scientific_name": "Turdus merula",
+      "top1_mapped": true,
+      "top1_score": 0.865437,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 122.162,
+        "inference_ms": 122.173,
+        "aggregate_ms": 9.876,
+        "total_ms": 254.212
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Turdus merula_Eurasian Blackbird",
+          "score": 0.865437
+        },
+        {
+          "model_label": "Erithacus rubecula_European Robin",
+          "score": 0.522484
+        },
+        {
+          "model_label": "Coccothraustes coccothraustes_Hawfinch",
+          "score": 0.133718
+        }
+      ]
+    },
+    {
+      "sample_id": "A1_aac_16k_mono",
+      "file": "A1_aac_16k_mono.aac",
+      "kind": "bird",
+      "container": "aac",
+      "short": false,
+      "recorded_like": "WeChat aac low rate",
+      "expected_scientific": "Turdus merula",
+      "expected_species_id": "avibase-88BB4F2A",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-88BB4F2A",
+      "top1_scientific_name": "Turdus merula",
+      "top1_mapped": true,
+      "top1_score": 0.957331,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.112,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 91.704,
+        "inference_ms": 108.069,
+        "aggregate_ms": 5.867,
+        "total_ms": 205.64
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Turdus merula_Eurasian Blackbird",
+          "score": 0.957331
+        },
+        {
+          "model_label": "Monticola solitarius_Blue Rock-Thrush",
+          "score": 0.286306
+        },
+        {
+          "model_label": "Erithacus rubecula_European Robin",
+          "score": 0.122611
+        }
+      ]
+    },
+    {
+      "sample_id": "A1_wav_48k_mono",
+      "file": "A1_wav_48k_mono.wav",
+      "kind": "bird",
+      "container": "wav",
+      "short": false,
+      "recorded_like": "WeChat wav",
+      "expected_scientific": "Turdus merula",
+      "expected_species_id": "avibase-88BB4F2A",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-88BB4F2A",
+      "top1_scientific_name": "Turdus merula",
+      "top1_mapped": true,
+      "top1_score": 0.879007,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 49.012,
+        "inference_ms": 107.254,
+        "aggregate_ms": 7.229,
+        "total_ms": 163.495
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Turdus merula_Eurasian Blackbird",
+          "score": 0.879007
+        },
+        {
+          "model_label": "Erithacus rubecula_European Robin",
+          "score": 0.548558
+        },
+        {
+          "model_label": "Coccothraustes coccothraustes_Hawfinch",
+          "score": 0.090217
+        }
+      ]
+    },
+    {
+      "sample_id": "A1_mp3_44k_mono_short",
+      "file": "A1_mp3_44k_mono_short.mp3",
+      "kind": "bird",
+      "container": "mp3",
+      "short": true,
+      "recorded_like": "2 s excerpt, WeChat mp3",
+      "expected_scientific": "Turdus merula",
+      "expected_species_id": "avibase-88BB4F2A",
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 2.0,
+      "window_count": 1,
+      "timing": {
+        "decode_ms": 38.914,
+        "inference_ms": 17.288,
+        "aggregate_ms": 4.092,
+        "total_ms": 60.294
+      },
+      "notes": [
+        "short_clip_zero_padded",
+        "reduced_window_confirmation",
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Strix aluco_Tawny Owl",
+          "score": 0.18164
+        },
+        {
+          "model_label": "Erithacus rubecula_European Robin",
+          "score": 0.065932
+        },
+        {
+          "model_label": "Accipiter gentilis_Northern Goshawk",
+          "score": 0.061375
+        }
+      ]
+    },
+    {
+      "sample_id": "A2_mp3_44k_mono",
+      "file": "A2_mp3_44k_mono.mp3",
+      "kind": "bird",
+      "container": "mp3",
+      "short": false,
+      "recorded_like": "WeChat mp3 default",
+      "expected_scientific": "Parus major",
+      "expected_species_id": "avibase-E15BC0CB",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-E15BC0CB",
+      "top1_scientific_name": "Parus major",
+      "top1_mapped": true,
+      "top1_score": 0.974545,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 42.777,
+        "inference_ms": 117.733,
+        "aggregate_ms": 8.399,
+        "total_ms": 168.909
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Parus major_Great Tit",
+          "score": 0.974545
+        },
+        {
+          "model_label": "Habia cristata_Crested Ant-Tanager",
+          "score": 0.070426
+        },
+        {
+          "model_label": "Rhipidura albicollis_White-throated Fantail",
+          "score": 0.050023
+        }
+      ]
+    },
+    {
+      "sample_id": "A2_aac_16k_mono",
+      "file": "A2_aac_16k_mono.aac",
+      "kind": "bird",
+      "container": "aac",
+      "short": false,
+      "recorded_like": "WeChat aac low rate",
+      "expected_scientific": "Parus major",
+      "expected_species_id": "avibase-E15BC0CB",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-E15BC0CB",
+      "top1_scientific_name": "Parus major",
+      "top1_mapped": true,
+      "top1_score": 0.981942,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.112,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 48.955,
+        "inference_ms": 129.413,
+        "aggregate_ms": 8.137,
+        "total_ms": 186.506
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Parus major_Great Tit",
+          "score": 0.981942
+        },
+        {
+          "model_label": "Habia cristata_Crested Ant-Tanager",
+          "score": 0.145177
+        },
+        {
+          "model_label": "Swynnertonia swynnertoni_Swynnerton's Robin",
+          "score": 0.044198
+        }
+      ]
+    },
+    {
+      "sample_id": "A2_wav_48k_mono",
+      "file": "A2_wav_48k_mono.wav",
+      "kind": "bird",
+      "container": "wav",
+      "short": false,
+      "recorded_like": "WeChat wav",
+      "expected_scientific": "Parus major",
+      "expected_species_id": "avibase-E15BC0CB",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-E15BC0CB",
+      "top1_scientific_name": "Parus major",
+      "top1_mapped": true,
+      "top1_score": 0.977204,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 58.036,
+        "inference_ms": 125.081,
+        "aggregate_ms": 36.107,
+        "total_ms": 219.224
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Parus major_Great Tit",
+          "score": 0.977204
+        },
+        {
+          "model_label": "Rhipidura albicollis_White-throated Fantail",
+          "score": 0.049646
+        },
+        {
+          "model_label": "Myophonus caeruleus_Blue Whistling-Thrush",
+          "score": 0.037887
+        }
+      ]
+    },
+    {
+      "sample_id": "A2_mp3_44k_mono_short",
+      "file": "A2_mp3_44k_mono_short.mp3",
+      "kind": "bird",
+      "container": "mp3",
+      "short": true,
+      "recorded_like": "2 s excerpt, WeChat mp3",
+      "expected_scientific": "Parus major",
+      "expected_species_id": "avibase-E15BC0CB",
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 2.0,
+      "window_count": 1,
+      "timing": {
+        "decode_ms": 51.162,
+        "inference_ms": 22.598,
+        "aggregate_ms": 5.329,
+        "total_ms": 79.089
+      },
+      "notes": [
+        "short_clip_zero_padded",
+        "reduced_window_confirmation",
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Phylloscopus magnirostris_Large-billed Leaf Warbler",
+          "score": 0.24242
+        },
+        {
+          "model_label": "Abroscopus superciliaris_Yellow-bellied Warbler",
+          "score": 0.07793
+        },
+        {
+          "model_label": "Rhipidura albicollis_White-throated Fantail",
+          "score": 0.077803
+        }
+      ]
+    },
+    {
+      "sample_id": "A3_mp3_44k_mono",
+      "file": "A3_mp3_44k_mono.mp3",
+      "kind": "bird",
+      "container": "mp3",
+      "short": false,
+      "recorded_like": "WeChat mp3 default",
+      "expected_scientific": "Cyanistes caeruleus",
+      "expected_species_id": "avibase-9BE53D34",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-9BE53D34",
+      "top1_scientific_name": "Cyanistes caeruleus",
+      "top1_mapped": true,
+      "top1_score": 0.998097,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 47.639,
+        "inference_ms": 113.233,
+        "aggregate_ms": 7.588,
+        "total_ms": 168.46
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Cyanistes caeruleus_Eurasian Blue Tit",
+          "score": 0.998097
+        },
+        {
+          "model_label": "Turdus merula_Eurasian Blackbird",
+          "score": 0.392199
+        },
+        {
+          "model_label": "Human vocal_Human vocal",
+          "score": 0.050757
+        }
+      ]
+    },
+    {
+      "sample_id": "A3_aac_16k_mono",
+      "file": "A3_aac_16k_mono.aac",
+      "kind": "bird",
+      "container": "aac",
+      "short": false,
+      "recorded_like": "WeChat aac low rate",
+      "expected_scientific": "Cyanistes caeruleus",
+      "expected_species_id": "avibase-9BE53D34",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-9BE53D34",
+      "top1_scientific_name": "Cyanistes caeruleus",
+      "top1_mapped": true,
+      "top1_score": 0.946935,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.112,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 48.896,
+        "inference_ms": 109.764,
+        "aggregate_ms": 7.044,
+        "total_ms": 165.703
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Cyanistes caeruleus_Eurasian Blue Tit",
+          "score": 0.946935
+        },
+        {
+          "model_label": "Turdus merula_Eurasian Blackbird",
+          "score": 0.343429
+        },
+        {
+          "model_label": "Parus major_Great Tit",
+          "score": 0.098484
+        }
+      ]
+    },
+    {
+      "sample_id": "A3_wav_48k_mono",
+      "file": "A3_wav_48k_mono.wav",
+      "kind": "bird",
+      "container": "wav",
+      "short": false,
+      "recorded_like": "WeChat wav",
+      "expected_scientific": "Cyanistes caeruleus",
+      "expected_species_id": "avibase-9BE53D34",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-9BE53D34",
+      "top1_scientific_name": "Cyanistes caeruleus",
+      "top1_mapped": true,
+      "top1_score": 0.997433,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 48.175,
+        "inference_ms": 109.908,
+        "aggregate_ms": 6.166,
+        "total_ms": 164.248
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Cyanistes caeruleus_Eurasian Blue Tit",
+          "score": 0.997433
+        },
+        {
+          "model_label": "Turdus merula_Eurasian Blackbird",
+          "score": 0.396177
+        },
+        {
+          "model_label": "Human vocal_Human vocal",
+          "score": 0.044356
+        }
+      ]
+    },
+    {
+      "sample_id": "A3_mp3_44k_mono_short",
+      "file": "A3_mp3_44k_mono_short.mp3",
+      "kind": "bird",
+      "container": "mp3",
+      "short": true,
+      "recorded_like": "2 s excerpt, WeChat mp3",
+      "expected_scientific": "Cyanistes caeruleus",
+      "expected_species_id": "avibase-9BE53D34",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-9BE53D34",
+      "top1_scientific_name": "Cyanistes caeruleus",
+      "top1_mapped": true,
+      "top1_score": 0.963092,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 2.0,
+      "window_count": 1,
+      "timing": {
+        "decode_ms": 38.046,
+        "inference_ms": 19.033,
+        "aggregate_ms": 3.515,
+        "total_ms": 60.595
+      },
+      "notes": [
+        "short_clip_zero_padded",
+        "reduced_window_confirmation"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Cyanistes caeruleus_Eurasian Blue Tit",
+          "score": 0.963092
+        },
+        {
+          "model_label": "Parus major_Great Tit",
+          "score": 0.038816
+        },
+        {
+          "model_label": "Poecile palustris_Marsh Tit",
+          "score": 0.01846
+        }
+      ]
+    },
+    {
+      "sample_id": "A4_mp3_44k_mono",
+      "file": "A4_mp3_44k_mono.mp3",
+      "kind": "bird",
+      "container": "mp3",
+      "short": false,
+      "recorded_like": "WeChat mp3 default",
+      "expected_scientific": "Cuculus canorus",
+      "expected_species_id": "avibase-B3D2C3C5",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-B3D2C3C5",
+      "top1_scientific_name": "Cuculus canorus",
+      "top1_mapped": true,
+      "top1_score": 0.993521,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 47.17,
+        "inference_ms": 112.582,
+        "aggregate_ms": 7.846,
+        "total_ms": 167.598
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Cuculus canorus_Common Cuckoo",
+          "score": 0.993521
+        },
+        {
+          "model_label": "Turdus philomelos_Song Thrush",
+          "score": 0.543568
+        },
+        {
+          "model_label": "Sclerurus scansor_Rufous-breasted Leaftosser",
+          "score": 0.313316
+        }
+      ]
+    },
+    {
+      "sample_id": "A4_aac_16k_mono",
+      "file": "A4_aac_16k_mono.aac",
+      "kind": "bird",
+      "container": "aac",
+      "short": false,
+      "recorded_like": "WeChat aac low rate",
+      "expected_scientific": "Cuculus canorus",
+      "expected_species_id": "avibase-B3D2C3C5",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-B3D2C3C5",
+      "top1_scientific_name": "Cuculus canorus",
+      "top1_mapped": true,
+      "top1_score": 0.998752,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.112,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 55.447,
+        "inference_ms": 113.908,
+        "aggregate_ms": 6.8,
+        "total_ms": 176.154
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Cuculus canorus_Common Cuckoo",
+          "score": 0.998752
+        },
+        {
+          "model_label": "Turdus philomelos_Song Thrush",
+          "score": 0.589165
+        },
+        {
+          "model_label": "Turdus merula_Eurasian Blackbird",
+          "score": 0.358618
+        }
+      ]
+    },
+    {
+      "sample_id": "A4_wav_48k_mono",
+      "file": "A4_wav_48k_mono.wav",
+      "kind": "bird",
+      "container": "wav",
+      "short": false,
+      "recorded_like": "WeChat wav",
+      "expected_scientific": "Cuculus canorus",
+      "expected_species_id": "avibase-B3D2C3C5",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-B3D2C3C5",
+      "top1_scientific_name": "Cuculus canorus",
+      "top1_mapped": true,
+      "top1_score": 0.993337,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 53.943,
+        "inference_ms": 112.89,
+        "aggregate_ms": 6.322,
+        "total_ms": 173.155
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Cuculus canorus_Common Cuckoo",
+          "score": 0.993337
+        },
+        {
+          "model_label": "Turdus philomelos_Song Thrush",
+          "score": 0.48703
+        },
+        {
+          "model_label": "Turdus merula_Eurasian Blackbird",
+          "score": 0.275982
+        }
+      ]
+    },
+    {
+      "sample_id": "A4_mp3_44k_mono_short",
+      "file": "A4_mp3_44k_mono_short.mp3",
+      "kind": "bird",
+      "container": "mp3",
+      "short": true,
+      "recorded_like": "2 s excerpt, WeChat mp3",
+      "expected_scientific": "Cuculus canorus",
+      "expected_species_id": "avibase-B3D2C3C5",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-B3D2C3C5",
+      "top1_scientific_name": "Cuculus canorus",
+      "top1_mapped": true,
+      "top1_score": 0.962781,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 2.0,
+      "window_count": 1,
+      "timing": {
+        "decode_ms": 38.261,
+        "inference_ms": 24.114,
+        "aggregate_ms": 4.303,
+        "total_ms": 66.678
+      },
+      "notes": [
+        "short_clip_zero_padded",
+        "reduced_window_confirmation"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Cuculus canorus_Common Cuckoo",
+          "score": 0.962781
+        },
+        {
+          "model_label": "Turdus philomelos_Song Thrush",
+          "score": 0.018681
+        },
+        {
+          "model_label": "Turdus merula_Eurasian Blackbird",
+          "score": 0.01704
+        }
+      ]
+    },
+    {
+      "sample_id": "A5_mp3_44k_mono",
+      "file": "A5_mp3_44k_mono.mp3",
+      "kind": "bird",
+      "container": "mp3",
+      "short": false,
+      "recorded_like": "WeChat mp3 default",
+      "expected_scientific": "Fringilla coelebs",
+      "expected_species_id": "avibase-6364E4A5",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-6364E4A5",
+      "top1_scientific_name": "Fringilla coelebs",
+      "top1_mapped": true,
+      "top1_score": 0.970581,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 171.69,
+        "inference_ms": 118.83,
+        "aggregate_ms": 5.938,
+        "total_ms": 296.458
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Fringilla coelebs_Common Chaffinch",
+          "score": 0.970581
+        },
+        {
+          "model_label": "Parus major_Great Tit",
+          "score": 0.101019
+        },
+        {
+          "model_label": "Glaucidium passerinum_Eurasian Pygmy-Owl",
+          "score": 0.031634
+        }
+      ]
+    },
+    {
+      "sample_id": "A5_aac_16k_mono",
+      "file": "A5_aac_16k_mono.aac",
+      "kind": "bird",
+      "container": "aac",
+      "short": false,
+      "recorded_like": "WeChat aac low rate",
+      "expected_scientific": "Fringilla coelebs",
+      "expected_species_id": "avibase-6364E4A5",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-6364E4A5",
+      "top1_scientific_name": "Fringilla coelebs",
+      "top1_mapped": true,
+      "top1_score": 0.960117,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.112,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 48.895,
+        "inference_ms": 106.902,
+        "aggregate_ms": 5.455,
+        "total_ms": 161.252
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Fringilla coelebs_Common Chaffinch",
+          "score": 0.960117
+        },
+        {
+          "model_label": "Parus major_Great Tit",
+          "score": 0.253921
+        },
+        {
+          "model_label": "Turdus pilaris_Fieldfare",
+          "score": 0.032181
+        }
+      ]
+    },
+    {
+      "sample_id": "A5_wav_48k_mono",
+      "file": "A5_wav_48k_mono.wav",
+      "kind": "bird",
+      "container": "wav",
+      "short": false,
+      "recorded_like": "WeChat wav",
+      "expected_scientific": "Fringilla coelebs",
+      "expected_species_id": "avibase-6364E4A5",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-6364E4A5",
+      "top1_scientific_name": "Fringilla coelebs",
+      "top1_mapped": true,
+      "top1_score": 0.956368,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 51.389,
+        "inference_ms": 134.428,
+        "aggregate_ms": 7.842,
+        "total_ms": 193.659
+      },
+      "notes": [],
+      "top_labels": [
+        {
+          "model_label": "Fringilla coelebs_Common Chaffinch",
+          "score": 0.956368
+        },
+        {
+          "model_label": "Parus major_Great Tit",
+          "score": 0.097385
+        },
+        {
+          "model_label": "Glaucidium passerinum_Eurasian Pygmy-Owl",
+          "score": 0.03868
+        }
+      ]
+    },
+    {
+      "sample_id": "A5_mp3_44k_mono_short",
+      "file": "A5_mp3_44k_mono_short.mp3",
+      "kind": "bird",
+      "container": "mp3",
+      "short": true,
+      "recorded_like": "2 s excerpt, WeChat mp3",
+      "expected_scientific": "Fringilla coelebs",
+      "expected_species_id": "avibase-6364E4A5",
+      "state": "candidate",
+      "reason": "candidate_above_threshold",
+      "top1_species_id": "avibase-6364E4A5",
+      "top1_scientific_name": "Fringilla coelebs",
+      "top1_mapped": true,
+      "top1_score": 0.757383,
+      "expected_rank": 1,
+      "correct_top1": true,
+      "expected_found": true,
+      "false_positive": false,
+      "duration_seconds": 2.0,
+      "window_count": 1,
+      "timing": {
+        "decode_ms": 48.227,
+        "inference_ms": 25.489,
+        "aggregate_ms": 30.265,
+        "total_ms": 103.981
+      },
+      "notes": [
+        "short_clip_zero_padded",
+        "reduced_window_confirmation"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Fringilla coelebs_Common Chaffinch",
+          "score": 0.757383
+        },
+        {
+          "model_label": "Parus major_Great Tit",
+          "score": 0.201973
+        },
+        {
+          "model_label": "Regulus regulus_Goldcrest",
+          "score": 0.054634
+        }
+      ]
+    },
+    {
+      "sample_id": "N1_mp3_44k_mono",
+      "file": "N1_mp3_44k_mono.mp3",
+      "kind": "negative",
+      "container": "mp3",
+      "short": false,
+      "recorded_like": "WeChat mp3 default",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 46.395,
+        "inference_ms": 125.111,
+        "aggregate_ms": 8.516,
+        "total_ms": 180.021
+      },
+      "notes": [
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Human vocal_Human vocal",
+          "score": 0.175512
+        },
+        {
+          "model_label": "Human non-vocal_Human non-vocal",
+          "score": 0.062324
+        },
+        {
+          "model_label": "Power tools_Power tools",
+          "score": 0.046964
+        }
+      ]
+    },
+    {
+      "sample_id": "N1_aac_16k_mono",
+      "file": "N1_aac_16k_mono.aac",
+      "kind": "negative",
+      "container": "aac",
+      "short": false,
+      "recorded_like": "WeChat aac low rate",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 10.112,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 44.117,
+        "inference_ms": 129.688,
+        "aggregate_ms": 8.711,
+        "total_ms": 182.516
+      },
+      "notes": [
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Human vocal_Human vocal",
+          "score": 0.157782
+        },
+        {
+          "model_label": "Picoides arcticus_Black-backed Woodpecker",
+          "score": 0.10367
+        },
+        {
+          "model_label": "Human non-vocal_Human non-vocal",
+          "score": 0.054536
+        }
+      ]
+    },
+    {
+      "sample_id": "N1_wav_48k_mono",
+      "file": "N1_wav_48k_mono.wav",
+      "kind": "negative",
+      "container": "wav",
+      "short": false,
+      "recorded_like": "WeChat wav",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 59.091,
+        "inference_ms": 122.463,
+        "aggregate_ms": 9.11,
+        "total_ms": 190.664
+      },
+      "notes": [
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Human vocal_Human vocal",
+          "score": 0.177996
+        },
+        {
+          "model_label": "Human non-vocal_Human non-vocal",
+          "score": 0.05659
+        },
+        {
+          "model_label": "Power tools_Power tools",
+          "score": 0.043761
+        }
+      ]
+    },
+    {
+      "sample_id": "N1_mp3_44k_mono_short",
+      "file": "N1_mp3_44k_mono_short.mp3",
+      "kind": "negative",
+      "container": "mp3",
+      "short": true,
+      "recorded_like": "2 s excerpt, WeChat mp3",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 2.0,
+      "window_count": 1,
+      "timing": {
+        "decode_ms": 40.833,
+        "inference_ms": 20.666,
+        "aggregate_ms": 4.733,
+        "total_ms": 66.232
+      },
+      "notes": [
+        "short_clip_zero_padded",
+        "reduced_window_confirmation",
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Loxia curvirostra_Red Crossbill",
+          "score": 0.014755
+        },
+        {
+          "model_label": "Human vocal_Human vocal",
+          "score": 0.01268
+        },
+        {
+          "model_label": "Corvus corax_Common Raven",
+          "score": 0.012462
+        }
+      ]
+    },
+    {
+      "sample_id": "N2_mp3_44k_mono",
+      "file": "N2_mp3_44k_mono.mp3",
+      "kind": "negative",
+      "container": "mp3",
+      "short": false,
+      "recorded_like": "WeChat mp3 default",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 45.927,
+        "inference_ms": 110.626,
+        "aggregate_ms": 7.013,
+        "total_ms": 163.567
+      },
+      "notes": [
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Porzana porzana_Spotted Crake",
+          "score": 0.124465
+        },
+        {
+          "model_label": "Tringa totanus_Common Redshank",
+          "score": 0.083105
+        },
+        {
+          "model_label": "Pluvialis apricaria_European Golden-Plover",
+          "score": 0.065097
+        }
+      ]
+    },
+    {
+      "sample_id": "N2_aac_16k_mono",
+      "file": "N2_aac_16k_mono.aac",
+      "kind": "negative",
+      "container": "aac",
+      "short": false,
+      "recorded_like": "WeChat aac low rate",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 10.112,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 42.516,
+        "inference_ms": 118.371,
+        "aggregate_ms": 9.424,
+        "total_ms": 170.311
+      },
+      "notes": [
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Pluvialis squatarola_Black-bellied Plover",
+          "score": 0.054983
+        },
+        {
+          "model_label": "Pyrrhula pyrrhula_Eurasian Bullfinch",
+          "score": 0.05325
+        },
+        {
+          "model_label": "Tringa totanus_Common Redshank",
+          "score": 0.051123
+        }
+      ]
+    },
+    {
+      "sample_id": "N2_wav_48k_mono",
+      "file": "N2_wav_48k_mono.wav",
+      "kind": "negative",
+      "container": "wav",
+      "short": false,
+      "recorded_like": "WeChat wav",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 51.947,
+        "inference_ms": 107.745,
+        "aggregate_ms": 6.669,
+        "total_ms": 166.361
+      },
+      "notes": [
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Tringa totanus_Common Redshank",
+          "score": 0.162483
+        },
+        {
+          "model_label": "Porzana porzana_Spotted Crake",
+          "score": 0.144866
+        },
+        {
+          "model_label": "Pluvialis squatarola_Black-bellied Plover",
+          "score": 0.141862
+        }
+      ]
+    },
+    {
+      "sample_id": "N2_mp3_44k_mono_short",
+      "file": "N2_mp3_44k_mono_short.mp3",
+      "kind": "negative",
+      "container": "mp3",
+      "short": true,
+      "recorded_like": "2 s excerpt, WeChat mp3",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 2.0,
+      "window_count": 1,
+      "timing": {
+        "decode_ms": 36.009,
+        "inference_ms": 17.986,
+        "aggregate_ms": 5.148,
+        "total_ms": 59.143
+      },
+      "notes": [
+        "short_clip_zero_padded",
+        "reduced_window_confirmation",
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Bubo virginianus_Great Horned Owl",
+          "score": 0.028437
+        },
+        {
+          "model_label": "Aegolius acadicus_Northern Saw-whet Owl",
+          "score": 0.020741
+        },
+        {
+          "model_label": "Strix aluco_Tawny Owl",
+          "score": 0.019155
+        }
+      ]
+    },
+    {
+      "sample_id": "N3_mp3_44k_mono",
+      "file": "N3_mp3_44k_mono.mp3",
+      "kind": "negative",
+      "container": "mp3",
+      "short": false,
+      "recorded_like": "WeChat mp3 default",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "insufficient_window_confirmation",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 42.764,
+        "inference_ms": 113.959,
+        "aggregate_ms": 7.758,
+        "total_ms": 164.48
+      },
+      "notes": [
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Psiloscops flammeolus_Flammulated Owl",
+          "score": 0.641856
+        },
+        {
+          "model_label": "Euphonia luteicapilla_Yellow-crowned Euphonia",
+          "score": 0.030373
+        },
+        {
+          "model_label": "Sitta canadensis_Red-breasted Nuthatch",
+          "score": 0.008068
+        }
+      ]
+    },
+    {
+      "sample_id": "N3_aac_16k_mono",
+      "file": "N3_aac_16k_mono.aac",
+      "kind": "negative",
+      "container": "aac",
+      "short": false,
+      "recorded_like": "WeChat aac low rate",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 10.112,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 46.156,
+        "inference_ms": 109.77,
+        "aggregate_ms": 6.248,
+        "total_ms": 162.173
+      },
+      "notes": [
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Asio otus_Long-eared Owl",
+          "score": 0.006692
+        },
+        {
+          "model_label": "Psiloscops flammeolus_Flammulated Owl",
+          "score": 0.00582
+        },
+        {
+          "model_label": "Strix varia_Barred Owl",
+          "score": 0.005802
+        }
+      ]
+    },
+    {
+      "sample_id": "N3_wav_48k_mono",
+      "file": "N3_wav_48k_mono.wav",
+      "kind": "negative",
+      "container": "wav",
+      "short": false,
+      "recorded_like": "WeChat wav",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 10.0,
+      "window_count": 6,
+      "timing": {
+        "decode_ms": 46.7,
+        "inference_ms": 113.558,
+        "aggregate_ms": 6.437,
+        "total_ms": 166.695
+      },
+      "notes": [
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Psiloscops flammeolus_Flammulated Owl",
+          "score": 0.25342
+        },
+        {
+          "model_label": "Euphonia luteicapilla_Yellow-crowned Euphonia",
+          "score": 0.027862
+        },
+        {
+          "model_label": "Vireo olivaceus_Red-eyed Vireo",
+          "score": 0.007462
+        }
+      ]
+    },
+    {
+      "sample_id": "N3_mp3_44k_mono_short",
+      "file": "N3_mp3_44k_mono_short.mp3",
+      "kind": "negative",
+      "container": "mp3",
+      "short": true,
+      "recorded_like": "2 s excerpt, WeChat mp3",
+      "expected_scientific": null,
+      "expected_species_id": null,
+      "state": "unknown",
+      "reason": "no_label_above_threshold",
+      "top1_species_id": null,
+      "top1_scientific_name": null,
+      "top1_mapped": null,
+      "top1_score": null,
+      "expected_rank": null,
+      "correct_top1": false,
+      "expected_found": false,
+      "false_positive": false,
+      "duration_seconds": 2.0,
+      "window_count": 1,
+      "timing": {
+        "decode_ms": 35.678,
+        "inference_ms": 17.525,
+        "aggregate_ms": 4.922,
+        "total_ms": 58.125
+      },
+      "notes": [
+        "short_clip_zero_padded",
+        "reduced_window_confirmation",
+        "non_bird_labels_excluded"
+      ],
+      "top_labels": [
+        {
+          "model_label": "Psiloscops flammeolus_Flammulated Owl",
+          "score": 0.051246
+        },
+        {
+          "model_label": "Ramphastos sulfuratus_Keel-billed Toucan",
+          "score": 0.01188
+        },
+        {
+          "model_label": "Euphonia luteicapilla_Yellow-crowned Euphonia",
+          "score": 0.00929
+        }
+      ]
+    }
+  ],
+  "failures": [],
+  "sweep": [
+    {
+      "min_score": 0.25,
+      "min_confirming_windows": 1,
+      "bird_top1": 18,
+      "bird_samples": 20,
+      "negative_false_positives": 2,
+      "negative_samples": 12,
+      "unknown_results": 12
+    },
+    {
+      "min_score": 0.25,
+      "min_confirming_windows": 2,
+      "bird_top1": 18,
+      "bird_samples": 20,
+      "negative_false_positives": 0,
+      "negative_samples": 12,
+      "unknown_results": 14
+    },
+    {
+      "min_score": 0.25,
+      "min_confirming_windows": 3,
+      "bird_top1": 15,
+      "bird_samples": 20,
+      "negative_false_positives": 0,
+      "negative_samples": 12,
+      "unknown_results": 17
+    },
+    {
+      "min_score": 0.5,
+      "min_confirming_windows": 1,
+      "bird_top1": 18,
+      "bird_samples": 20,
+      "negative_false_positives": 1,
+      "negative_samples": 12,
+      "unknown_results": 13
+    },
+    {
+      "min_score": 0.5,
+      "min_confirming_windows": 2,
+      "bird_top1": 18,
+      "bird_samples": 20,
+      "negative_false_positives": 0,
+      "negative_samples": 12,
+      "unknown_results": 14
+    },
+    {
+      "min_score": 0.5,
+      "min_confirming_windows": 3,
+      "bird_top1": 15,
+      "bird_samples": 20,
+      "negative_false_positives": 0,
+      "negative_samples": 12,
+      "unknown_results": 17
+    },
+    {
+      "min_score": 0.7,
+      "min_confirming_windows": 1,
+      "bird_top1": 18,
+      "bird_samples": 20,
+      "negative_false_positives": 0,
+      "negative_samples": 12,
+      "unknown_results": 14
+    },
+    {
+      "min_score": 0.7,
+      "min_confirming_windows": 2,
+      "bird_top1": 18,
+      "bird_samples": 20,
+      "negative_false_positives": 0,
+      "negative_samples": 12,
+      "unknown_results": 14
+    },
+    {
+      "min_score": 0.7,
+      "min_confirming_windows": 3,
+      "bird_top1": 14,
+      "bird_samples": 20,
+      "negative_false_positives": 0,
+      "negative_samples": 12,
+      "unknown_results": 18
+    }
+  ]
+}

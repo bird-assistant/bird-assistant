@@ -1,0 +1,719 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Bird Assistant Audio API",
+    "description": "One-shot bird sound recognition for recordings made in the WeChat mini program. Uploads are validated and decoded server-side, converted to 48 kHz mono, cut into 3 s windows and scored with BirdNET v2.4. Candidates are ranked model scores aligned to the AviList catalog; they are not calibrated correctness probabilities.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "summary": "Health",
+        "operationId": "health_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "summary": "Readiness",
+        "operationId": "readiness_readyz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/models": {
+      "get": {
+        "tags": [
+          "models"
+        ],
+        "summary": "List Models",
+        "operationId": "list_models_api_v1_models_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audio/analyses": {
+      "post": {
+        "tags": [
+          "audio"
+        ],
+        "summary": "Create Analysis",
+        "operationId": "create_analysis_api_v1_audio_analyses_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_analysis_api_v1_audio_analyses_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioAnalysisResponse"
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Upload or decode deadline exceeded"
+          },
+          "413": {
+            "description": "Audio exceeds the byte or duration limit"
+          },
+          "415": {
+            "description": "Unsupported or mismatched container"
+          },
+          "422": {
+            "description": "Empty, unreadable or too short audio"
+          },
+          "429": {
+            "description": "Service capacity exhausted"
+          },
+          "503": {
+            "description": "Model or ffmpeg runtime unavailable"
+          },
+          "504": {
+            "description": "Processing deadline exceeded"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AudioAnalysisResponse": {
+        "properties": {
+          "analysis_id": {
+            "type": "string",
+            "title": "Analysis Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "candidate",
+              "unknown"
+            ],
+            "title": "State"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/AudioCandidateResponse"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelStatusResponse"
+          },
+          "audio": {
+            "$ref": "#/components/schemas/AudioFileInfo"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/AudioPolicyResponse"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/AudioTimingResponse"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          },
+          "diagnostics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AudioDiagnosticsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "client_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Reference"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "analysis_id",
+          "state",
+          "model",
+          "audio",
+          "policy",
+          "timing",
+          "created_at"
+        ],
+        "title": "AudioAnalysisResponse"
+      },
+      "AudioCandidateResponse": {
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          },
+          "species_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Species Id"
+          },
+          "scientific_name": {
+            "type": "string",
+            "title": "Scientific Name"
+          },
+          "common_name_zh": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Common Name Zh"
+          },
+          "common_name_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Common Name En"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score"
+          },
+          "score_type": {
+            "type": "string",
+            "enum": [
+              "birdnet_confidence",
+              "mock"
+            ],
+            "title": "Score Type"
+          },
+          "confirming_windows": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Confirming Windows"
+          },
+          "mapped": {
+            "type": "boolean",
+            "title": "Mapped"
+          },
+          "match": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "scientific_name",
+                  "common_name"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match"
+          },
+          "model_label": {
+            "type": "string",
+            "title": "Model Label"
+          },
+          "window_scores": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Window Scores"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rank",
+          "scientific_name",
+          "score",
+          "score_type",
+          "confirming_windows",
+          "mapped",
+          "model_label"
+        ],
+        "title": "AudioCandidateResponse"
+      },
+      "AudioDiagnosticsResponse": {
+        "properties": {
+          "top_labels": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Top Labels"
+          },
+          "non_bird_top": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Non Bird Top"
+          },
+          "windows": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Windows"
+          }
+        },
+        "type": "object",
+        "title": "AudioDiagnosticsResponse"
+      },
+      "AudioFileInfo": {
+        "properties": {
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "format": {
+            "type": "string",
+            "title": "Format"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "duration_seconds": {
+            "type": "number",
+            "title": "Duration Seconds"
+          },
+          "sample_rate": {
+            "type": "integer",
+            "title": "Sample Rate"
+          },
+          "channels": {
+            "type": "integer",
+            "title": "Channels",
+            "default": 1
+          },
+          "original_sample_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Sample Rate"
+          },
+          "original_channels": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Channels"
+          },
+          "window_count": {
+            "type": "integer",
+            "title": "Window Count"
+          },
+          "zero_padded_seconds": {
+            "type": "number",
+            "title": "Zero Padded Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "format",
+          "size_bytes",
+          "duration_seconds",
+          "sample_rate",
+          "window_count",
+          "zero_padded_seconds"
+        ],
+        "title": "AudioFileInfo"
+      },
+      "AudioPolicyResponse": {
+        "properties": {
+          "min_score": {
+            "type": "number",
+            "title": "Min Score"
+          },
+          "min_confirming_windows": {
+            "type": "integer",
+            "title": "Min Confirming Windows"
+          },
+          "required_windows": {
+            "type": "integer",
+            "title": "Required Windows"
+          },
+          "min_margin": {
+            "type": "number",
+            "title": "Min Margin"
+          },
+          "candidate_count": {
+            "type": "integer",
+            "title": "Candidate Count"
+          },
+          "window_seconds": {
+            "type": "number",
+            "title": "Window Seconds"
+          },
+          "hop_seconds": {
+            "type": "number",
+            "title": "Hop Seconds"
+          },
+          "min_duration_seconds": {
+            "type": "number",
+            "title": "Min Duration Seconds"
+          },
+          "max_duration_seconds": {
+            "type": "number",
+            "title": "Max Duration Seconds"
+          },
+          "max_audio_bytes": {
+            "type": "integer",
+            "title": "Max Audio Bytes"
+          },
+          "score_type": {
+            "type": "string",
+            "enum": [
+              "birdnet_confidence",
+              "mock"
+            ],
+            "title": "Score Type"
+          },
+          "decision": {
+            "type": "string",
+            "title": "Decision"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "min_score",
+          "min_confirming_windows",
+          "required_windows",
+          "min_margin",
+          "candidate_count",
+          "window_seconds",
+          "hop_seconds",
+          "min_duration_seconds",
+          "max_duration_seconds",
+          "max_audio_bytes",
+          "score_type",
+          "decision",
+          "reason"
+        ],
+        "title": "AudioPolicyResponse"
+      },
+      "AudioTimingResponse": {
+        "properties": {
+          "decode_ms": {
+            "type": "number",
+            "title": "Decode Ms"
+          },
+          "inference_ms": {
+            "type": "number",
+            "title": "Inference Ms"
+          },
+          "aggregate_ms": {
+            "type": "number",
+            "title": "Aggregate Ms"
+          },
+          "total_ms": {
+            "type": "number",
+            "title": "Total Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decode_ms",
+          "inference_ms",
+          "aggregate_ms",
+          "total_ms"
+        ],
+        "title": "AudioTimingResponse"
+      },
+      "Body_create_analysis_api_v1_audio_analyses_post": {
+        "properties": {
+          "audio": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Audio",
+            "description": "Recorded clip: MP3, WAV, AAC or M4A"
+          },
+          "top_k": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 50.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top K",
+            "description": "Candidate count"
+          },
+          "client_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Reference",
+            "description": "Caller-side id echoed back"
+          }
+        },
+        "type": "object",
+        "required": [
+          "audio"
+        ],
+        "title": "Body_create_analysis_api_v1_audio_analyses_post"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "default": "ok"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "service",
+          "version",
+          "timestamp"
+        ],
+        "title": "HealthResponse"
+      },
+      "ModelListResponse": {
+        "properties": {
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/ModelStatusResponse"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "labels": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Labels"
+          },
+          "catalog": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Catalog"
+          },
+          "policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Policy"
+          },
+          "formats": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Formats"
+          }
+        },
+        "type": "object",
+        "required": [
+          "models",
+          "labels",
+          "catalog",
+          "policy"
+        ],
+        "title": "ModelListResponse"
+      },
+      "ModelStatusResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "backend": {
+            "type": "string",
+            "title": "Backend"
+          },
+          "device": {
+            "type": "string",
+            "title": "Device"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "score_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Type"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "backend",
+          "device",
+          "ready"
+        ],
+        "title": "ModelStatusResponse"
+      },
+      "ReadyResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "not_ready"
+            ],
+            "title": "Status"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/ModelStatusResponse"
+            },
+            "type": "array",
+            "title": "Models"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "models"
+        ],
+        "title": "ReadyResponse"
+      }
+    }
+  }
+}

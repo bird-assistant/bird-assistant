@@ -1,0 +1,312 @@
+{
+  "analysis_id": "aud_0928968e32ad4c909684914d47267a90",
+  "state": "unknown",
+  "candidates": [],
+  "model": {
+    "name": "BirdNET_GLOBAL_6K_V2.4",
+    "backend": "ai-edge-litert",
+    "device": "cpu",
+    "ready": true,
+    "score_type": "birdnet_confidence",
+    "details": {
+      "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+      "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+      "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+      "window_samples": 144000,
+      "sample_rate": 48000,
+      "inference_threads": 4,
+      "sensitivity": 1.0,
+      "runtime": "ai-edge-litert",
+      "version": "2.4"
+    }
+  },
+  "audio": {
+    "filename": "N2_mp3_44k_mono.mp3",
+    "content_type": "audio/mpeg",
+    "format": "mp3",
+    "size_bytes": 120729,
+    "duration_seconds": 10.0,
+    "sample_rate": 48000,
+    "channels": 1,
+    "original_sample_rate": 44100,
+    "original_channels": 1,
+    "window_count": 6,
+    "zero_padded_seconds": 0.5
+  },
+  "policy": {
+    "min_score": 0.5,
+    "min_confirming_windows": 2,
+    "required_windows": 2,
+    "min_margin": 0.0,
+    "candidate_count": 5,
+    "window_seconds": 3.0,
+    "hop_seconds": 1.5,
+    "min_duration_seconds": 1.0,
+    "max_duration_seconds": 60.0,
+    "max_audio_bytes": 10485760,
+    "score_type": "birdnet_confidence",
+    "decision": "unknown",
+    "reason": "no_label_above_threshold"
+  },
+  "timing": {
+    "decode_ms": 43.603,
+    "inference_ms": 109.411,
+    "aggregate_ms": 7.334,
+    "total_ms": 160.348
+  },
+  "notes": [
+    "non_bird_labels_excluded"
+  ],
+  "diagnostics": {
+    "top_labels": [
+      {
+        "model_label": "Porzana porzana_Spotted Crake",
+        "scientific_name": "Porzana porzana",
+        "score": 0.124465,
+        "is_bird": true,
+        "confirming_windows": 0
+      },
+      {
+        "model_label": "Tringa totanus_Common Redshank",
+        "scientific_name": "Tringa totanus",
+        "score": 0.083105,
+        "is_bird": true,
+        "confirming_windows": 0
+      },
+      {
+        "model_label": "Pluvialis apricaria_European Golden-Plover",
+        "scientific_name": "Pluvialis apricaria",
+        "score": 0.065097,
+        "is_bird": true,
+        "confirming_windows": 0
+      },
+      {
+        "model_label": "Pluvialis squatarola_Black-bellied Plover",
+        "scientific_name": "Pluvialis squatarola",
+        "score": 0.061227,
+        "is_bird": true,
+        "confirming_windows": 0
+      },
+      {
+        "model_label": "Gallinago gallinago_Common Snipe",
+        "scientific_name": "Gallinago gallinago",
+        "score": 0.036483,
+        "is_bird": true,
+        "confirming_windows": 0
+      }
+    ],
+    "non_bird_top": {
+      "model_label": "Engine_Engine",
+      "score": 0.006574,
+      "above_threshold": false
+    },
+    "windows": [
+      {
+        "index": 0,
+        "start_seconds": 0.0,
+        "end_seconds": 3.0,
+        "padded": false,
+        "inference_ms": 19.116,
+        "top_labels": [
+          {
+            "model_label": "Athene noctua_Little Owl",
+            "score": 0.030601,
+            "is_bird": true
+          },
+          {
+            "model_label": "Haematopus ostralegus_Eurasian Oystercatcher",
+            "score": 0.02716,
+            "is_bird": true
+          },
+          {
+            "model_label": "Chroicocephalus ridibundus_Black-headed Gull",
+            "score": 0.026377,
+            "is_bird": true
+          },
+          {
+            "model_label": "Anser albifrons_Greater White-fronted Goose",
+            "score": 0.026246,
+            "is_bird": true
+          },
+          {
+            "model_label": "Rallus aquaticus_Water Rail",
+            "score": 0.023588,
+            "is_bird": true
+          }
+        ]
+      },
+      {
+        "index": 1,
+        "start_seconds": 1.5,
+        "end_seconds": 4.5,
+        "padded": false,
+        "inference_ms": 18.012,
+        "top_labels": [
+          {
+            "model_label": "Porzana porzana_Spotted Crake",
+            "score": 0.021663,
+            "is_bird": true
+          },
+          {
+            "model_label": "Athene noctua_Little Owl",
+            "score": 0.014135,
+            "is_bird": true
+          },
+          {
+            "model_label": "Hydrobates leucorhous_Leach's Storm-Petrel",
+            "score": 0.012894,
+            "is_bird": true
+          },
+          {
+            "model_label": "Ardea cinerea_Gray Heron",
+            "score": 0.008183,
+            "is_bird": true
+          },
+          {
+            "model_label": "Pterodroma sandwichensis_Hawaiian Petrel",
+            "score": 0.008056,
+            "is_bird": true
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "start_seconds": 3.0,
+        "end_seconds": 6.0,
+        "padded": false,
+        "inference_ms": 18.124,
+        "top_labels": [
+          {
+            "model_label": "Porzana porzana_Spotted Crake",
+            "score": 0.124465,
+            "is_bird": true
+          },
+          {
+            "model_label": "Numenius phaeopus_Whimbrel",
+            "score": 0.029569,
+            "is_bird": true
+          },
+          {
+            "model_label": "Tringa nebularia_Common Greenshank",
+            "score": 0.025402,
+            "is_bird": true
+          },
+          {
+            "model_label": "Gallinago gallinago_Common Snipe",
+            "score": 0.023532,
+            "is_bird": true
+          },
+          {
+            "model_label": "Tringa totanus_Common Redshank",
+            "score": 0.017943,
+            "is_bird": true
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "start_seconds": 4.5,
+        "end_seconds": 7.5,
+        "padded": false,
+        "inference_ms": 17.011,
+        "top_labels": [
+          {
+            "model_label": "Tringa totanus_Common Redshank",
+            "score": 0.083105,
+            "is_bird": true
+          },
+          {
+            "model_label": "Porzana porzana_Spotted Crake",
+            "score": 0.066514,
+            "is_bird": true
+          },
+          {
+            "model_label": "Pluvialis squatarola_Black-bellied Plover",
+            "score": 0.061227,
+            "is_bird": true
+          },
+          {
+            "model_label": "Gallinago gallinago_Common Snipe",
+            "score": 0.021569,
+            "is_bird": true
+          },
+          {
+            "model_label": "Haematopus ostralegus_Eurasian Oystercatcher",
+            "score": 0.021265,
+            "is_bird": true
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "start_seconds": 6.0,
+        "end_seconds": 9.0,
+        "padded": false,
+        "inference_ms": 17.422,
+        "top_labels": [
+          {
+            "model_label": "Porzana porzana_Spotted Crake",
+            "score": 0.081577,
+            "is_bird": true
+          },
+          {
+            "model_label": "Pluvialis apricaria_European Golden-Plover",
+            "score": 0.065097,
+            "is_bird": true
+          },
+          {
+            "model_label": "Pluvialis squatarola_Black-bellied Plover",
+            "score": 0.045285,
+            "is_bird": true
+          },
+          {
+            "model_label": "Gallinago gallinago_Common Snipe",
+            "score": 0.036483,
+            "is_bird": true
+          },
+          {
+            "model_label": "Haematopus ostralegus_Eurasian Oystercatcher",
+            "score": 0.029726,
+            "is_bird": true
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "start_seconds": 7.5,
+        "end_seconds": 10.0,
+        "padded": true,
+        "inference_ms": 19.726,
+        "top_labels": [
+          {
+            "model_label": "Turdus merula_Eurasian Blackbird",
+            "score": 0.030478,
+            "is_bird": true
+          },
+          {
+            "model_label": "Porzana porzana_Spotted Crake",
+            "score": 0.023487,
+            "is_bird": true
+          },
+          {
+            "model_label": "Numenius phaeopus_Whimbrel",
+            "score": 0.019612,
+            "is_bird": true
+          },
+          {
+            "model_label": "Prunella modularis_Dunnock",
+            "score": 0.018045,
+            "is_bird": true
+          },
+          {
+            "model_label": "Motacilla alba_White Wagtail",
+            "score": 0.014243,
+            "is_bird": true
+          }
+        ]
+      }
+    ]
+  },
+  "client_reference": null,
+  "created_at": "2026-10-27T11:59:20.986793Z"
+}

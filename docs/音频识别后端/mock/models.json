@@ -1,0 +1,120 @@
+{
+  "models": [
+    {
+      "name": "BirdNET_GLOBAL_6K_V2.4",
+      "backend": "ai-edge-litert",
+      "device": "cpu",
+      "ready": true,
+      "score_type": "birdnet_confidence",
+      "details": {
+        "model_path": "..\\鸟类识别预研\\models\\birdnet\\BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+        "model_sha256": "55f3e4055b1a13bfa9a2452731d0d34f6a02d6b775a334362665892794165e4c",
+        "labels_sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+        "window_samples": 144000,
+        "sample_rate": 48000,
+        "inference_threads": 4,
+        "sensitivity": 1.0,
+        "runtime": "ai-edge-litert",
+        "version": "2.4"
+      }
+    },
+    {
+      "name": "audio-analysis-runtime",
+      "backend": "ffmpeg+ai-edge-litert",
+      "device": "cpu",
+      "ready": true,
+      "score_type": "birdnet_confidence",
+      "details": {
+        "ffmpeg_path": "D:\\作业\\软工\\.venv\\Lib\\site-packages\\imageio_ffmpeg\\binaries\\ffmpeg-win-x86_64-v7.1.exe",
+        "labels_source": "model_file",
+        "labels": {
+          "count": 6522,
+          "bird_classes": 6514,
+          "non_bird_classes": 8,
+          "mapped_classes": 6326,
+          "mapped_by_common_name": 205,
+          "unmapped_classes": 188,
+          "sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+          "source": "model_file"
+        },
+        "temp_dir": "c:\\Users\\Lenovo\\.copilot\\session-state\\bae4633b-7ec7-452a-87e7-16fb56de98ee\\files\\runtime\\audio-tmp",
+        "max_concurrent_analyses": 1,
+        "max_queued_analyses": 4,
+        "in_flight": 0,
+        "last_error": null
+      }
+    }
+  ],
+  "labels": {
+    "count": 6522,
+    "bird_classes": 6514,
+    "non_bird_classes": 8,
+    "mapped_classes": 6326,
+    "mapped_by_common_name": 205,
+    "unmapped_classes": 188,
+    "sha256": "b50b77b7c3dfe40cd637e8cccdca0173a0a4ddee8867b830ff3c1a566f477f16",
+    "source": "model_file"
+  },
+  "catalog": {
+    "available": true,
+    "path": "D:\\作业\\软工\\backend\\config\\catalog\\avilist_v2026_global.csv",
+    "source": "AviList",
+    "version": "v2026",
+    "license": "CC BY 4.0 (AviList taxonomy)",
+    "checksum_sha256": "40152332a2da42d7a1c094301ec204720f9974614ea8eef20d75c61ca183262c",
+    "total_species": 11172,
+    "enabled_species": 10970
+  },
+  "policy": {
+    "min_score": 0.5,
+    "min_confirming_windows": 2,
+    "required_windows": 2,
+    "min_margin": 0.0,
+    "candidate_count": 5,
+    "window_seconds": 3.0,
+    "hop_seconds": 1.5,
+    "min_duration_seconds": 1.0,
+    "max_duration_seconds": 60.0,
+    "max_audio_bytes": 10485760,
+    "score_type": "birdnet_confidence",
+    "aggregation": "max_window_score"
+  },
+  "formats": {
+    "accepted": [
+      "mp3",
+      "wav",
+      "aac",
+      "m4a"
+    ],
+    "content_types": [
+      "audio/3gpp",
+      "audio/aac",
+      "audio/aacp",
+      "audio/adts",
+      "audio/m4a",
+      "audio/m4b",
+      "audio/mp3",
+      "audio/mp4",
+      "audio/mp4a-latm",
+      "audio/mpeg",
+      "audio/mpeg3",
+      "audio/vnd.dlna.adts",
+      "audio/vnd.wave",
+      "audio/wav",
+      "audio/wave",
+      "audio/x-aac",
+      "audio/x-aacp",
+      "audio/x-hx-aac-adts",
+      "audio/x-m4a",
+      "audio/x-mp3",
+      "audio/x-mpeg",
+      "audio/x-pn-wav",
+      "audio/x-wav",
+      "video/3gpp",
+      "video/mp4",
+      "video/x-m4v"
+    ],
+    "max_bytes": 10485760,
+    "min_duration_seconds": 1.0
+  }
+}

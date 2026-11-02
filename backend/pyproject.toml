@@ -17,6 +17,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# CPU-only BirdNET runtime. Kept out of the base install so the vision service
+# does not pull a 49 MB model runtime or a numerical stack.
+audio = [
+  "ai-edge-litert>=2.3,<3",
+  "imageio-ffmpeg>=0.6,<1",
+  "numpy>=2,<3",
+]
 gpu = [
   # Exact builds, including CUDA torch/torchvision, are locked on the target GPU host.
   "huggingface-hub",

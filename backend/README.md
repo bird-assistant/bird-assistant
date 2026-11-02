@@ -147,6 +147,9 @@ backend/
 │   ├── build_occurrence_profile.py 从 GBIF 构建地点时空索引
 │   ├── check_runtime.py          云端模型加载与推理自检
 │   ├── prepare_model_artifacts.py 固定模型 revision 与工件哈希
+│   ├── prepare_audio_samples.py  生成小程序录音格式样本与 manifest
+│   ├── evaluate_audio.py         真实模型的样本验证与阈值扫描
+│   ├── smoke_audio_service.py    真实 HTTP 端到端 smoke 与联调证据
 │   ├── evaluate_species.py       已裁剪图片准确率与拒识评测
 │   └── evaluate_pipeline.py      检测、跟踪、裁剪、分类全链路评测
 ├── src/bird_common/            共享应用外壳、鉴权、错误、日志、物种目录加载

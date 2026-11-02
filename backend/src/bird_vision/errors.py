@@ -1,18 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
+from bird_common.errors import ServiceError
 
-
-@dataclass(slots=True)
-class ServiceError(Exception):
-    code: str
-    message: str
-    status_code: int = 400
-    details: dict[str, Any] | None = None
-
-    def __str__(self) -> str:
-        return self.message
+__all__ = ["NotReadyError", "ServiceError", "SessionNotFoundError"]
 
 
 class NotReadyError(ServiceError):

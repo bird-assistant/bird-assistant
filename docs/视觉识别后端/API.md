@@ -125,6 +125,95 @@ GET /api/v1/species/catalog?q=avibase-F2858F9F&region_code=CN&limit=20
 
 Prometheus 文本格式，包含 HTTP 延迟、帧处理结果、推理延迟与活动会话数。该接口需要鉴权。
 
+## 2.1 单张照片一次性识别
+
+小程序拍照页只需要一次识别，不需要会话、跟踪与 WebSocket。该端点复用同一个检测器与物种
+Provider，只对单张图做一次“检测 → 裁剪 → 分类”，响应风格与音频服务一致，方便前端共用一套
+候选渲染与错误处理。
+
+```http
+POST /api/v1/vision/analyses
+Content-Type: multipart/form-data
+Authorization: ******
+
+image=<JPEG/PNG/WebP 文件>
+```
+
+| 限制 | 默认值 | 配置 |
+|---|---:|---|
+| 最大字节 | 6 MB | `BIRD_VISION_MAX_IMAGE_BYTES` |
+| 最大像素 | 3840×2160 | `BIRD_VISION_MAX_IMAGE_PIXELS` |
+| 单次参与分类的目标数 | 3 | `BIRD_VISION_PHOTO_MAX_SUBJECTS` |
+| 目标最小短边 | 64 px | `BIRD_VISION_MIN_RECOGNIZABLE_SIDE_PX` |
+
+成功返回 `200`：
+
+```json
+{
+  "analysis_id": "pho_3f7a...",
+  "state": "candidate",
+  "candidates": [
+    {
+      "rank": 1,
+      "species_id": "avibase-F2858F9F",
+      "scientific_name": "Egretta garzetta",
+      "common_name_zh": "白鹭",
+      "common_name_en": "Little Egret",
+      "score": 0.93,
+      "score_type": "relative_similarity",
+      "similarity": 0.412,
+      "region_match": true,
+      "local_occurrence_count": 120
+    }
+  ],
+  "subjects": [
+    {
+      "rank": 1,
+      "bbox": {"x1": 0.24, "y1": 0.18, "x2": 0.76, "y2": 0.82},
+      "detection_score": 0.91,
+      "short_side_px": 288.0,
+      "state": "candidate",
+      "reason": "candidate_above_similarity",
+      "candidates": ["…同上结构…"]
+    }
+  ],
+  "model": {"name": "bioclip-2-zero-shot", "backend": "open-clip", "device": "cuda:0", "ready": true},
+  "image": {"filename": "bird.jpg", "content_type": "image/jpeg", "width": 1280, "height": 960, "size_bytes": 231231},
+  "policy": {
+    "max_subjects": 3,
+    "min_short_side_px": 64,
+    "detection_confidence": 0.25,
+    "candidate_count": 5,
+    "decision": "candidate",
+    "reason": "candidate_above_similarity",
+    "score_type": "relative_similarity"
+  },
+  "timing": {"decode_ms": 8.1, "detection_ms": 45.2, "species_ms": 120.4, "total_ms": 173.7},
+  "notes": [],
+  "created_at": "2026-10-27T12:00:00Z"
+}
+```
+
+状态与拒绝原因：
+
+| `state` / `reason` | 含义 |
+|---|---|
+| `candidate` / `candidate_above_similarity` | 至少一个目标通过相似度与间隔检查 |
+| `unknown` / `no_bird_detected` | 检测不到目标 |
+| `unknown` / `subject_below_minimum_size` | 有目标但短边小于下限，未送分类 |
+| `unknown` / `species_backend_disabled` | 服务未启用物种分类（联调配置） |
+| `unknown` / 其它 | 分类器自身的拒识原因（如 `below_min_similarity`） |
+
+错误：`EMPTY_IMAGE`(422)、`IMAGE_TOO_LARGE`(413)、`UNSUPPORTED_IMAGE_TYPE`(415)、
+`IMAGE_DIMENSIONS_INVALID`(413)、`IMAGE_DECODE_FAILED`(422)、`INVALID_MULTIPART`(422)、
+`UPLOAD_TIMEOUT`(408)、`AUTH_*`(401)，与帧上传一致。
+
+样例：[`mock/photo-analysis-candidate.json`](mock/photo-analysis-candidate.json)（`species_backend=mock`
+的形状示例，真实部署会返回 BioCLIP 候选）。
+
+注意：`score_type=relative_similarity` 是候选集合内的相对排序分数，不是概率；
+该端点只做一次性推理，不产生会话、不进入跟踪、不写观察记录。
+
 ## 3. 创建实时会话
 
 ```http

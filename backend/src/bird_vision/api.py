@@ -25,6 +25,7 @@ from fastapi.routing import APIRoute
 from starlette.exceptions import HTTPException
 from starlette.requests import Request as StarletteRequest
 
+from bird_vision.analyses import analyze_photo
 from bird_vision.auth import Principal, require_principal
 from bird_vision.domain import FrameJob
 from bird_vision.errors import ServiceError
@@ -37,6 +38,7 @@ from bird_vision.schemas import (
     ModelInfo,
     OccurrenceCachePrepareRequest,
     OccurrenceCachePrepareResponse,
+    PhotoAnalysisResponse,
     ReadyResponse,
     SessionResponse,
     SpeciesCatalogInfo,
@@ -46,15 +48,27 @@ from bird_vision.schemas import (
 
 
 class FrameAdmissionRoute(APIRoute):
+    """Enforce the per-file byte limit and upload deadline before the handler runs."""
+
+    ADMITTED_PATHS = {
+        "/api/v1/vision/sessions/{session_id}/frames",
+        "/api/v1/vision/analyses",
+    }
+
     def get_route_handler(self):
         handler = super().get_route_handler()
-        if self.path != "/api/v1/vision/sessions/{session_id}/frames":
+        if self.path not in self.ADMITTED_PATHS:
             return handler
+        is_session_frame = self.path.endswith("/frames")
 
         async def admitted(request: Request):
             manager = request.app.state.sessions
             principal = request.app.state.auth.verify_request(request)
-            reservation = manager.begin_upload(request.path_params["session_id"], principal.subject)
+            reservation = (
+                manager.begin_upload(request.path_params["session_id"], principal.subject)
+                if is_session_frame
+                else None
+            )
             limit = request.app.state.settings.max_image_bytes + 64 * 1024
             received = 0
 
@@ -68,7 +82,8 @@ class FrameAdmissionRoute(APIRoute):
                 return message
 
             bounded = StarletteRequest(request.scope, limited_receive)
-            bounded.state.upload_reservation = reservation
+            if reservation is not None:
+                bounded.state.upload_reservation = reservation
             try:
                 content_length = request.headers.get("content-length")
                 if content_length:
@@ -88,7 +103,8 @@ class FrameAdmissionRoute(APIRoute):
                 return await handler(bounded)
             finally:
                 await bounded.close()
-                manager.finish_upload(reservation)
+                if reservation is not None:
+                    manager.finish_upload(reservation)
 
         return admitted
 
@@ -169,6 +185,43 @@ async def models(request: Request, _: Annotated[Principal, Depends(require_princ
             details=species.metadata(),
         ),
     ]
+
+
+@router.post(
+    "/api/v1/vision/analyses",
+    response_model=PhotoAnalysisResponse,
+    responses={
+        413: {"description": "Image exceeds the byte or pixel limit"},
+        415: {"description": "Unsupported image encoding"},
+        422: {"description": "Image cannot be decoded"},
+    },
+    tags=["photo"],
+)
+async def create_photo_analysis(
+    request: Request,
+    _: Annotated[Principal, Depends(require_principal)],
+    image: Annotated[UploadFile, File(description="Single still image: JPEG, PNG or WebP")],
+) -> PhotoAnalysisResponse:
+    """One-shot photo recognition for the mini program's photo screen.
+
+    The realtime pipeline is session-based; this adapter classifies the largest
+    detections of a single still image once and returns candidates immediately.
+    """
+    settings = request.app.state.settings
+    data = await image.read()
+    decoded, decode_ms = decode_image(data, image.content_type, settings)
+    async with request.app.state.photo_slots:
+        return await asyncio.to_thread(
+            analyze_photo,
+            image=decoded,
+            settings=settings,
+            detector=request.app.state.detector,
+            species=request.app.state.species,
+            filename=image.filename,
+            content_type=image.content_type,
+            size_bytes=len(data),
+            decode_ms=decode_ms,
+        )
 
 
 @router.get(

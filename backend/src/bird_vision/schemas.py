@@ -262,3 +262,64 @@ class StatusEvent(BaseModel):
     frame_id: str | None = None
     reason: str | None = None
     details: dict[str, Any] = Field(default_factory=dict)
+
+
+class PhotoCandidateResponse(BaseModel):
+    rank: int
+    species_id: str
+    scientific_name: str
+    common_name_zh: str | None = None
+    common_name_en: str | None = None
+    score: float
+    score_type: Literal["relative_similarity", "mock"]
+    similarity: float | None = None
+    region_match: bool = False
+    local_occurrence_count: int | None = None
+
+
+class PhotoSubjectResponse(BaseModel):
+    rank: int
+    bbox: NormalizedBox
+    detection_score: float
+    short_side_px: float
+    state: Literal["candidate", "unknown"]
+    reason: str
+    candidates: list[PhotoCandidateResponse] = Field(default_factory=list)
+
+
+class PhotoImageInfo(BaseModel):
+    filename: str | None = None
+    content_type: str | None = None
+    width: int
+    height: int
+    size_bytes: int
+
+
+class PhotoPolicyResponse(BaseModel):
+    max_subjects: int
+    min_short_side_px: int
+    detection_confidence: float
+    candidate_count: int
+    decision: Literal["candidate", "unknown"]
+    reason: str
+    score_type: str
+
+
+class PhotoTimingResponse(BaseModel):
+    decode_ms: float
+    detection_ms: float
+    species_ms: float
+    total_ms: float
+
+
+class PhotoAnalysisResponse(BaseModel):
+    analysis_id: str
+    state: Literal["candidate", "unknown"]
+    candidates: list[PhotoCandidateResponse] = Field(default_factory=list)
+    subjects: list[PhotoSubjectResponse] = Field(default_factory=list)
+    model: ModelInfo
+    image: PhotoImageInfo
+    policy: PhotoPolicyResponse
+    timing: PhotoTimingResponse
+    notes: list[str] = Field(default_factory=list)
+    created_at: datetime

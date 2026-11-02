@@ -52,6 +52,23 @@ jobs:
           BIRD_VISION_DETECTOR_BACKEND: mock
           BIRD_VISION_SPECIES_BACKEND: mock
           BIRD_VISION_DEVICE: cpu
+      - name: Business service startup and readiness
+        run: |
+          BIRD_BUSINESS_DATABASE_PATH="$RUNNER_TEMP/observations-ci.sqlite3" bird-business --host 127.0.0.1 --port 8200 &
+          ready=0
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8200/readyz > business-readyz.json 2>/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != "1" ]; then
+            echo "business service did not become ready"
+            exit 1
+          fi
+          python -c "import json; d=json.load(open('business-readyz.json')); assert d['status']=='ready', d; print('business ready:', d['database'])"
+          kill %1 2>/dev/null || true
       - run: ruff format --check src tests scripts
       - uses: actions/upload-artifact@v4
         if: always()

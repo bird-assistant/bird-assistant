@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import csv
 import hashlib
 import logging
 import re
@@ -14,6 +13,8 @@ from typing import Any, Protocol
 
 from PIL import Image
 
+from bird_common.catalog import Taxon, load_catalog
+from bird_common.catalog import sha256_file as _sha256
 from bird_vision.config import Settings
 from bird_vision.domain import ObservationContext, SpeciesCandidate, SpeciesPrediction
 from bird_vision.occurrence import (
@@ -23,27 +24,17 @@ from bird_vision.occurrence import (
     OccurrenceLookupPending,
 )
 
+__all__ = [
+    "CatalogBackedProvider",
+    "CandidateSelection",
+    "SpeciesProvider",
+    "Taxon",
+    "build_species_provider",
+    "load_catalog",
+]
+
 LOGGER = logging.getLogger(__name__)
 PROMPT_VERSION = "bioclip-bird-prompt-v1"
-
-
-@dataclass(frozen=True, slots=True)
-class Taxon:
-    species_id: str
-    scientific_name: str
-    common_name_zh: str | None
-    common_name_en: str | None
-    order: str | None
-    family: str | None
-    ebird_code: str | None = None
-    avibase_id: str | None = None
-    region_codes: frozenset[str] = frozenset()
-    extinction_status: str | None = None
-    iucn_status: str | None = None
-    taxon_source: str | None = None
-    taxon_version: str | None = None
-    license: str | None = None
-    enabled: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -1000,34 +991,6 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
             self._torch.cuda.empty_cache()
 
 
-def _optional(value: str | None) -> str | None:
-    value = (value or "").strip()
-    return value or None
-
-
-def _boolean(value: str | None, *, default: bool = True) -> bool:
-    if value is None or not value.strip():
-        return default
-    normalized = value.strip().casefold()
-    if normalized in {"1", "true", "yes"}:
-        return True
-    if normalized in {"0", "false", "no"}:
-        return False
-    raise ValueError(f"invalid boolean value: {value}")
-
-
-def _regions(value: str | None) -> frozenset[str]:
-    return frozenset(part.strip().upper() for part in (value or "").split(";") if part.strip())
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _directory_fingerprint(path: Path) -> str:
     """Hash the root artifacts consumed by OpenCLIP's local-dir loader."""
     if not path.is_dir():
@@ -1050,58 +1013,6 @@ def _directory_fingerprint(path: Path) -> str:
             for chunk in iter(lambda: handle.read(4 * 1024 * 1024), b""):
                 digest.update(chunk)
     return digest.hexdigest()
-
-
-def load_catalog(path: Path) -> list[Taxon]:
-    resolved = path.expanduser().resolve()
-    if not resolved.is_file():
-        raise FileNotFoundError(f"species catalog not found: {resolved}")
-    with resolved.open("r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        required = {"species_id", "scientific_name"}
-        missing = required - set(reader.fieldnames or [])
-        if missing:
-            raise ValueError(f"species catalog missing columns: {sorted(missing)}")
-        taxa: list[Taxon] = []
-        ids: set[str] = set()
-        scientific_names: set[str] = set()
-        for line_number, row in enumerate(reader, start=2):
-            species_id = (row.get("species_id") or "").strip()
-            scientific_name = (row.get("scientific_name") or "").strip()
-            if not species_id or not scientific_name:
-                raise ValueError(f"catalog line {line_number} has an empty id or scientific name")
-            if species_id in ids:
-                raise ValueError(f"duplicate species_id in catalog: {species_id}")
-            if scientific_name.casefold() in scientific_names:
-                raise ValueError(f"duplicate scientific_name in catalog: {scientific_name}")
-            ids.add(species_id)
-            scientific_names.add(scientific_name.casefold())
-            try:
-                enabled = _boolean(row.get("enabled"))
-            except ValueError as exc:
-                raise ValueError(f"catalog line {line_number}: {exc}") from exc
-            taxa.append(
-                Taxon(
-                    species_id=species_id,
-                    scientific_name=scientific_name,
-                    common_name_zh=_optional(row.get("common_name_zh")),
-                    common_name_en=_optional(row.get("common_name_en")),
-                    order=_optional(row.get("order")),
-                    family=_optional(row.get("family")),
-                    ebird_code=_optional(row.get("ebird_code")),
-                    avibase_id=_optional(row.get("avibase_id")),
-                    region_codes=_regions(row.get("region_codes")),
-                    extinction_status=_optional(row.get("extinction_status")),
-                    iucn_status=_optional(row.get("iucn_status")),
-                    taxon_source=_optional(row.get("taxon_source")),
-                    taxon_version=_optional(row.get("taxon_version")),
-                    license=_optional(row.get("license")),
-                    enabled=enabled,
-                )
-            )
-    if not taxa:
-        raise ValueError("species catalog is empty")
-    return taxa
 
 
 def build_species_provider(settings: Settings) -> SpeciesProvider:

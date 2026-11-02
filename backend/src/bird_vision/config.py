@@ -105,6 +105,9 @@ class Settings(BaseSettings):
     species_evidence_window: int = Field(default=5, ge=1, le=32)
     species_switch_confirmations: int = Field(default=2, ge=1, le=10)
 
+    # One-shot photo analysis (POST /api/v1/vision/analyses).
+    photo_max_subjects: int = Field(default=3, ge=1, le=10)
+
     cors_origins: str = ""
 
     @field_validator("log_level")

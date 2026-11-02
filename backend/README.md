@@ -1,8 +1,18 @@
-# 观鸟助手视觉识别后端
+# 观鸟助手识别后端
 
-这是从第 1 周技术预研演进出的可部署服务。它负责实时鸟体检测、会话级跟踪、最佳裁剪选择和可选的 BioCLIP 2 鸟种候选，不包含音频识别与业务数据库。
+这是从第 1 周技术预研演进出的可部署服务群，同一个发行包里包含两个独立进程：
 
-## 已实现
+| 服务 | 包 | 职责 | 默认端口 | 额外安装 |
+|---|---|---|---:|---|
+| `bird-vision` | `bird_vision` | 实时鸟体检测、会话级跟踪、BioCLIP 候选；**新增单张照片一次性识别** `/api/v1/vision/analyses` | 8000 | `.[gpu]` |
+| `bird-business` | `bird_business` | 保存用户确认后的观察记录（SQLite，幂等、按凭证隔离） | 8200 | 无 |
+
+共享代码在 `bird_common`（应用外壳、鉴权、错误信封、日志、物种目录加载），两个服务遵循同一套
+健康检查、请求 ID、错误格式与鉴权规则；视觉服务原有的重复实现改为委托该共享层，对外行为不变。
+
+> 音频识别服务（`bird-audio`）在独立的分支/PR 中交付，本 PR 不含音频代码。
+
+## 视觉服务已实现
 
 - FastAPI + OpenAPI；
 - `mock` / CPU / CUDA 运行模式；
@@ -108,10 +118,23 @@ bird-vision --host 0.0.0.0 --port 8000 --workers 1
 
 ## 文档
 
-- [架构与边界](../docs/视觉识别后端/README.md)
-- [API 详细协议](../docs/视觉识别后端/API.md)
+- [视觉架构与边界](../docs/视觉识别后端/README.md)
+- [视觉 API 详细协议](../docs/视觉识别后端/API.md)（含单张照片一次性识别）
 - [云容器部署与运维](../docs/视觉识别后端/DEPLOYMENT.md)
 - [模型、词表与评测规则](../docs/视觉识别后端/MODELS.md)
+- [观察记录服务](../docs/业务后端/README.md)
+- [本 PR 说明](../docs/PR/照片与观察记录.md)
+
+## 照片识别与观察记录
+
+```bash
+python -m pip install -e '.[test]'
+cp .env.example .env
+bird-vision --host 127.0.0.1 --port 8000      # 单张照片：POST /api/v1/vision/analyses
+bird-business --host 127.0.0.1 --port 8200    # 观察记录：POST/GET/DELETE /api/v1/observations
+```
+
+两个端点与音频服务共用同一套候选结构、错误信封与鉴权规则，前端只需一套 mock 与错误处理。
 
 ## 目录
 
@@ -126,10 +149,12 @@ backend/
 │   ├── prepare_model_artifacts.py 固定模型 revision 与工件哈希
 │   ├── evaluate_species.py       已裁剪图片准确率与拒识评测
 │   └── evaluate_pipeline.py      检测、跟踪、裁剪、分类全链路评测
+├── src/bird_common/            共享应用外壳、鉴权、错误、日志、物种目录加载
 ├── src/bird_vision/
-│   ├── api.py                  HTTP / WebSocket 接口
+│   ├── api.py                  HTTP / WebSocket 接口（含单张照片识别）
+│   ├── analyses.py             单张照片一次性识别
 │   ├── app.py                  生命周期、中间件、错误处理
-│   ├── auth.py                 API Key 与会话所有权
+│   ├── auth.py                 共享鉴权（委托 bird_common）
 │   ├── images.py               图片类型、尺寸与解码保护
 │   ├── occurrence.py           任意坐标 GBIF 查询、缓存、地点覆盖与索引校验
 │   ├── sessions.py             最新帧队列、会话、背压与清理
@@ -138,5 +163,6 @@ backend/
 │       ├── detectors.py        Mock / YOLO 检测器
 │       ├── species.py          Disabled / Mock / BioCLIP 2
 │       └── pipeline.py         检测、跟踪、裁剪、分类与输出
+├── src/bird_business/          观察记录持久化（SQLite）
 └── tests/
 ```

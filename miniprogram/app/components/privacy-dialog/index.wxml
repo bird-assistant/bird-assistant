@@ -1,0 +1,9 @@
+<view wx:if="{{visible}}" class="privacy-mask">
+  <view class="privacy-card card">
+    <view class="title">使用位置前，请先了解</view>
+    <view class="muted">定位仅用于你主动选择的地图浏览或观察选点。地点搜索与地址解析会将查询词或选点坐标发送至腾讯位置服务。拒绝后仍可拖动地图和手动选点。</view>
+    <button class="contract" bindtap="openContract">查看《{{contractName}}》</button>
+    <view wx:if="{{error}}" class="notice error">{{error}}</view>
+    <view class="actions"><button class="action" bindtap="disagree">暂不使用定位</button><button id="location-privacy-agree" class="action primary" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="agree">同意并继续</button></view>
+  </view>
+</view>

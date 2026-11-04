@@ -1,0 +1,15 @@
+{
+  "description": "羽迹观鸟助手",
+  "miniprogramRoot": "app/",
+  "compileType": "miniprogram",
+  "appid": "touristappid",
+  "projectname": "bird-assistant",
+  "libVersion": "3.7.0",
+  "setting": {
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "urlCheck": true
+  },
+  "packOptions": { "ignore": [] }
+}

@@ -1,0 +1,42 @@
+<view class="map-page {{sheetOpen ? 'has-sheet' : ''}}">
+  <map id="bird-map" class="map-canvas" latitude="{{latitude}}" longitude="{{longitude}}" scale="{{scale}}"
+    markers="{{markers}}" show-location="{{showLocation}}" enable-zoom="{{true}}" enable-scroll="{{true}}"
+    bindregionchange="onRegionChange" bindmarkertap="onMarkerTap" bindcallouttap="onMarkerTap" />
+  <view class="toolbar">
+    <view class="search-box row">
+      <text class="search-icon" aria-hidden="true">⌕</text>
+      <input class="grow" aria-label="搜索观鸟地点" placeholder="搜索公园、湖泊或地点" value="{{keyword}}" bindinput="keywordChanged" bindconfirm="search" confirm-type="search" maxlength="60" />
+      <button wx:if="{{keyword}}" class="clear" bindtap="clearSearch" aria-label="清空地点搜索">×</button>
+      <button class="search-button" bindtap="search" loading="{{searchStatus === 'loading'}}">搜索</button>
+    </view>
+    <view class="filters">
+      <picker range="{{scopes}}" range-key="label" value="{{scopeIndex}}" data-field="scopeIndex" bindchange="filterChanged"><view class="filter">{{scopes[scopeIndex].label}} ▾</view></picker>
+      <picker range="{{periods}}" range-key="label" value="{{periodIndex}}" data-field="periodIndex" bindchange="filterChanged"><view class="filter">{{periods[periodIndex].label}} ▾</view></picker>
+      <picker range="{{species}}" range-key="label" value="{{speciesIndex}}" data-field="speciesIndex" bindchange="filterChanged"><view class="filter">{{species[speciesIndex].label}} ▾</view></picker>
+    </view>
+    <view wx:if="{{isMock || mockLocations}}" class="source-note">{{isMock ? '观测：合成演示数据' : '观测：业务接口'}} · {{mockLocations ? '地点：模拟搜索' : '地点：腾讯位置服务'}}<text wx:if="{{isMock}}" bindtap="demoScenario" class="scenario">情景：{{scenarioLabel}} ▾</text></view>
+    <view wx:if="{{searchStatus === 'loading'}}" class="state">正在搜索地点…</view>
+    <view wx:if="{{searchStatus === 'empty'}}" class="state muted">未找到地点，请换个关键词或手动浏览地图</view>
+    <view wx:if="{{searchStatus === 'error'}}" class="state error">{{searchError}}<button bindtap="search">重试搜索</button></view>
+    <scroll-view wx:if="{{searchStatus === 'ready'}}" class="search-results" scroll-y="{{true}}">
+      <button wx:for="{{searchResults}}" wx:key="id" class="place" data-index="{{index}}" bindtap="choosePlace"><view>{{item.title}}</view><view class="muted">{{item.address}}</view></button>
+    </scroll-view>
+    <view wx:if="{{notice}}" class="notice">{{notice}}</view>
+  </view>
+  <view class="map-controls">
+    <button data-delta="1" bindtap="zoom" aria-label="放大地图">＋</button>
+    <button data-delta="-1" bindtap="zoom" aria-label="缩小地图">－</button>
+    <button bindtap="locate" loading="{{locationBusy}}" aria-label="定位到当前位置">◎</button>
+    <button class="settings" bindtap="openSettings">权限</button>
+  </view>
+  <view class="legend"><text class="public-dot">●</text> 公开观察 <text class="private-dot">◆</text> 我的私人标记</view>
+  <view wx:if="{{!sheetOpen}}" class="bottom-card">
+    <view wx:if="{{error}}" class="error-box"><text>{{error}}</text><button bindtap="retry">重新加载</button></view>
+    <view wx:elif="{{loading}}" class="muted">正在加载此区域的观察…</view>
+    <view wx:elif="{{!loadedCount}}" class="muted">此区域暂无符合条件的观察，试试移动地图或调整筛选</view>
+    <view wx:else class="row"><view class="grow"><view class="summary-title">此区域 · {{loadedCount}} 条观察</view><view class="muted">{{total > loadedCount ? '还有更多记录，可继续加载' : '点选标记，查看观察详情'}} · 非鸟只数量</view></view><button wx:if="{{nextCursor}}" bindtap="loadMore" disabled="{{loading}}">加载更多</button></view>
+    <view class="footer-row"><button bindtap="chooseLocation">确认观察位置 ›</button><text wx:if="{{confirmedLocation}}" class="muted">已确认 · {{confirmedLocation.latitude}}, {{confirmedLocation.longitude}}</text><text wx:else class="muted">默认合肥视野，非自动定位</text></view>
+  </view>
+  <view wx:if="{{sheetOpen}}" class="sheet-host"><observation-sheet title="{{sheetTitle}}" subtitle="{{sheetRecords.length}} 条已加载观察 · 按实际观察时间倒序" records="{{sheetRecords}}" bindclose="closeSheet" bindopen="openObservation" /></view>
+  <privacy-dialog />
+</view>

@@ -1,0 +1,16 @@
+<view class="picker-page">
+  <map id="location-map" class="picker-map" latitude="{{latitude}}" longitude="{{longitude}}" scale="{{scale}}"
+    enable-scroll="{{true}}" enable-zoom="{{true}}" show-location="{{showLocation}}" bindregionchange="onRegionChange" bindtap="onMapTap" />
+  <view class="picker-top card"><view class="title">这次观察发生在哪里？</view><view class="muted">拖动地图，将地点移到中心；也可以点选地图。只有确认后才会使用。</view></view>
+  <view class="crosshair" aria-hidden="true"><view class="pin"></view><view class="shadow"></view></view>
+  <view class="picker-controls"><button bindtap="locate" loading="{{locating}}">◎ 当前位置</button><button bindtap="openSettings">位置权限设置</button></view>
+  <view class="confirmation">
+    <view class="address">{{address}}</view>
+    <view wx:if="{{candidate}}" class="muted">{{candidate.latitude}}, {{candidate.longitude}} · GCJ-02</view>
+    <view wx:if="{{error}}" class="notice error">{{error}}</view>
+    <view wx:if="{{mockLocations}}" class="notice">地址为模拟结果；地图仍使用微信原生组件</view>
+    <view class="muted hint">当前位置不会自动应用到旧照片；取消保留原位置。此页面只回传选点，不会发布鸟讯。</view>
+    <view class="actions"><button bindtap="cancel">取消</button><button class="primary" bindtap="confirm" disabled="{{!candidate || locating}}">确认此位置</button></view>
+  </view>
+  <privacy-dialog />
+</view>

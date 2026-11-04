@@ -1,0 +1,1 @@
+{ "desc": "观察及位置页面不参与索引", "rules": [{ "action": "disallow", "page": "*" }] }

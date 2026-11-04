@@ -1,0 +1,19 @@
+<view class="sheet">
+  <view class="handle"></view>
+  <view class="row heading">
+    <view class="grow"><view class="title">{{title}}</view><view class="muted">{{subtitle}}</view></view>
+    <button class="close-button" aria-label="关闭观察列表" bindtap="close">收起</button>
+  </view>
+  <scroll-view scroll-y="{{true}}" class="records">
+    <button wx:for="{{records}}" wx:key="id" class="record" data-id="{{item.id}}" bindtap="open">
+      <image wx:if="{{item.thumbnailUrl}}" class="thumbnail" src="{{item.thumbnailUrl}}" mode="aspectFill" data-index="{{index}}" binderror="imageError" />
+      <view wx:else class="thumbnail fallback">{{item.mediaLabel}}</view>
+      <view class="grow record-info">
+        <view class="record-name">{{item.speciesName}} <text wx:if="{{item.visibility === 'private'}}" class="private-label">私人</text></view>
+        <view class="muted">{{item.observedLabel}} · 观察</view>
+        <view class="muted">{{item.publicName}}</view>
+      </view>
+      <view aria-hidden="true">›</view>
+    </button>
+  </scroll-view>
+</view>

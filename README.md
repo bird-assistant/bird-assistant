@@ -3,6 +3,7 @@
 
 ## 当前实现
 
+- 微信原生小程序地图模块（Issue #14，待开发者工具及真机验收）：[工程与配置](miniprogram/README.md) / [测试与未完成项](miniprogram/TESTING.md)。观测默认使用合成 Mock 数据；真实地点搜索需 AppID、腾讯位置服务 Key 及平台配置。
 - 第 1 周视觉与音频可行性预研：[即时鸟类识别](docs/即时鸟类识别/识别技术预研-README.md)
 - 可部署视觉后端：[backend](backend/README.md)
 - 视觉后端架构与接口：[视觉识别后端](docs/视觉识别后端/README.md)

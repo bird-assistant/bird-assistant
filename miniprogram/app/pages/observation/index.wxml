@@ -1,0 +1,22 @@
+<view class="detail-page">
+  <view wx:if="{{isMock}}" class="notice">合成演示记录 · 非真实鸟讯</view>
+  <view wx:if="{{loading}}" class="state">正在读取观察…</view>
+  <view wx:elif="{{error}}" class="state error">{{error}}<button bindtap="load">重试</button></view>
+  <view wx:elif="{{record}}" class="card detail-card">
+    <view class="eyebrow">OBSERVATION</view>
+    <view class="detail-title">{{record.speciesName}}</view>
+    <view class="pill">{{record.visibility === 'private' ? '私人 · 仅自己可见' : '公开观察'}}</view>
+    <image wx:if="{{record.thumbnailUrl}}" class="media" src="{{record.thumbnailUrl}}" mode="aspectFill" binderror="imageError" />
+    <view wx:else class="media media-fallback">{{record.mediaLabel}} · 尚无可展示预览</view>
+    <view class="field"><text>观察时间</text><view>{{record.observedLabel}}</view></view>
+    <view class="field"><text>地点</text><view>{{record.placeName}}</view></view>
+    <view class="field"><text>署名</text><view>{{record.publicName}}</view></view>
+    <view class="field"><text>来源</text><view>{{record.source}}</view></view>
+    <view class="field"><text>数据更新</text><view>{{record.updatedAt || '未知'}}</view></view>
+    <view class="field"><text>展示坐标</text><view>{{record.displayLocation.latitude}}, {{record.displayLocation.longitude}} · {{record.coordinateSystem}}</view></view>
+    <view class="muted">{{record.locationNote}}。历史记录不代表当前一定能看到该鸟。</view>
+    <view class="record-id muted">记录 ID：{{record.id}}</view>
+  </view>
+  <view class="muted boundary">此页用于验证地图详情入口与记录 ID；完整详情、编辑与发布由后续业务模块接入。</view>
+  <button bindtap="back">返回地图</button>
+</view>

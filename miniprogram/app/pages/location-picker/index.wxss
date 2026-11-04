@@ -1,0 +1,93 @@
+.picker-page {
+  position: relative;
+  height: 100%;
+  background: #e4ebd7;
+  overflow: hidden;
+}
+.picker-map {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 58%;
+}
+.picker-top {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  top: 24rpx;
+  padding: 22rpx;
+  pointer-events: none;
+}
+.picker-top .title {
+  font-size: 31rpx;
+}
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 29%;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+.pin {
+  width: 36rpx;
+  height: 36rpx;
+  background: #b9784e;
+  border: 6rpx solid white;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 5rpx 12rpx #243b3520;
+}
+.shadow {
+  margin-top: 12rpx;
+  width: 22rpx;
+  height: 7rpx;
+  border-radius: 50%;
+  background: #243b3530;
+}
+.picker-controls {
+  position: absolute;
+  right: 24rpx;
+  bottom: calc(42% + 70rpx);
+  display: flex;
+  gap: 12rpx;
+}
+.picker-controls button {
+  background: #fffef9;
+  font-size: 23rpx;
+  padding: 18rpx;
+}
+.confirmation {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 42%;
+  padding: 26rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: #fafbf6;
+  overflow-y: auto;
+}
+.address {
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.confirmation .notice {
+  margin-top: 12rpx;
+}
+.hint {
+  margin-top: 14rpx;
+  font-size: 22rpx;
+}
+.actions {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 20rpx;
+}
+.actions button {
+  flex: 1;
+  min-height: 84rpx;
+}

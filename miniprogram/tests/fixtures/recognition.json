@@ -1,0 +1,95 @@
+{
+  "source": "bird-assistant/bird-assistant@016a3811f3c99a4c88980bf08537486f4bedaab1",
+  "note": "Contract fixture projections only; audio is not a current sighting and photo uses the upstream mock model.",
+  "audio": {
+    "analysis_id": "aud_0b6784ecf376459491d6e6ca85373f57",
+    "state": "candidate",
+    "candidates": [
+      {
+        "rank": 1,
+        "species_id": "avibase-E15BC0CB",
+        "scientific_name": "Parus major",
+        "common_name_zh": "欧亚大山雀",
+        "common_name_en": "Great Tit",
+        "score": 0.974545,
+        "score_type": "birdnet_confidence",
+        "confirming_windows": 2,
+        "mapped": true,
+        "match": "scientific_name",
+        "model_label": "Parus major_Great Tit",
+        "window_scores": [
+          0.974545,
+          0.852267,
+          0.005245,
+          0.000854,
+          0.000643,
+          0.000267
+        ]
+      }
+    ],
+    "model": {
+      "name": "BirdNET_GLOBAL_6K_V2.4",
+      "backend": "ai-edge-litert"
+    },
+    "policy": {
+      "reason": "candidate_above_threshold",
+      "score_type": "birdnet_confidence"
+    },
+    "client_reference": "wx-demo-1"
+  },
+  "photo": {
+    "analysis_id": "pho_95ba82d6a3354138b5b087b9fe545118",
+    "state": "candidate",
+    "candidates": [
+      {
+        "rank": 1,
+        "species_id": "mock_bird",
+        "scientific_name": "Avis exemplum",
+        "common_name_zh": "示例鸟种",
+        "common_name_en": "Example bird",
+        "score": 0.8,
+        "score_type": "mock",
+        "similarity": null,
+        "region_match": false,
+        "local_occurrence_count": null
+      }
+    ],
+    "subjects": [
+      {
+        "rank": 1,
+        "bbox": {
+          "x1": 0.25,
+          "y1": 0.2,
+          "x2": 0.75,
+          "y2": 0.8
+        },
+        "detection_score": 0.9,
+        "short_side_px": 288,
+        "state": "candidate",
+        "reason": "candidate_above_similarity",
+        "candidates": [
+          {
+            "rank": 1,
+            "species_id": "mock_bird",
+            "scientific_name": "Avis exemplum",
+            "common_name_zh": "示例鸟种",
+            "common_name_en": "Example bird",
+            "score": 0.8,
+            "score_type": "mock",
+            "similarity": null,
+            "region_match": false,
+            "local_occurrence_count": null
+          }
+        ]
+      }
+    ],
+    "model": {
+      "name": "mock-species-classifier",
+      "backend": "mock"
+    },
+    "policy": {
+      "reason": "candidate_above_similarity",
+      "score_type": "mock"
+    }
+  }
+}

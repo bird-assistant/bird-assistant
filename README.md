@@ -3,6 +3,8 @@
 
 ## 当前实现
 
+- 原生微信小程序源码检查点：[运行与交接说明](miniprogram/README.md) · [验证记录](miniprogram/TESTING.md)。0.2.9五Tab客户端可本地评阅；真实识别/地图/账号/云同步仍待接入，与地图PR #17另行整合。
+
 - 第 1 周视觉与音频可行性预研：[即时鸟类识别](docs/即时鸟类识别/识别技术预研-README.md)
 - 可部署视觉后端：[backend](backend/README.md)
 - 视觉后端架构与接口：[视觉识别后端](docs/视觉识别后端/README.md)

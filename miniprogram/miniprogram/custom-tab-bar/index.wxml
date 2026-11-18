@@ -1,0 +1,9 @@
+<view wx:if="{{!hidden}}" class="tab-shell">
+  <view class="tab-row">
+    <button wx:for="{{tabs}}" wx:key="route" class="tab {{selected === index ? 'selected' : ''}} {{index === 2 ? 'central' : ''}}" data-index="{{index}}" bindtap="switchTab" aria-label="{{item.name}}" aria-role="button">
+      <view wx:if="{{index === 2}}" class="orb"><image src="/assets/icons/scan-white.png" class="scan-icon" /></view>
+      <image wx:else src="/assets/icons/{{item.icon}}.png" class="tab-icon" />
+      <text class="tab-label">{{item.name}}</text>
+    </button>
+  </view>
+</view>

@@ -1,0 +1,5 @@
+.tab-shell{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fffef9;border-top:1px solid #e0e7d9;padding-bottom:env(safe-area-inset-bottom)}
+.tab-row{display:flex;align-items:flex-start;max-width:620px;height:65px;margin:0 auto}
+.tab{box-sizing:border-box;width:20%;height:65px;border:0;border-radius:0;background:none;padding:10px 0 0;display:flex;flex-direction:column;align-items:center;gap:4px;overflow:visible;line-height:1.2;color:#7c8d76}
+.tab::after{border:0}.tab-icon{width:22px;height:22px;opacity:.62}.tab-label{font-size:10px;line-height:16px}.selected{color:#285b49;font-weight:600}.selected .tab-icon{opacity:1}
+.central{padding-top:0;position:relative;top:-22px;height:87px}.orb{box-sizing:border-box;width:56px;height:56px;flex:0 0 56px;border:5px solid #fafbf5;border-radius:50%;background:#285b49;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px #253c3426}.scan-icon{width:27px;height:27px}.central .tab-label{margin-top:0}

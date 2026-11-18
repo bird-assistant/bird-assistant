@@ -1,0 +1,60 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/journal/index",
+    "pages/identify/index",
+    "pages/community/index",
+    "pages/profile/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "羽迹",
+    "navigationBarBackgroundColor": "#fafbf5",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#fafbf5",
+    "backgroundTextStyle": "dark",
+    "navigationStyle": "custom"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#788979",
+    "selectedColor": "#285b49",
+    "backgroundColor": "#fafbf5",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "assets/icons/home.png",
+        "selectedIconPath": "assets/icons/home.png"
+      },
+      {
+        "pagePath": "pages/journal/index",
+        "text": "手帐",
+        "iconPath": "assets/icons/journal.png",
+        "selectedIconPath": "assets/icons/journal.png"
+      },
+      {
+        "pagePath": "pages/identify/index",
+        "text": "识别",
+        "iconPath": "assets/icons/scan.png",
+        "selectedIconPath": "assets/icons/scan.png"
+      },
+      {
+        "pagePath": "pages/community/index",
+        "text": "讨论",
+        "iconPath": "assets/icons/chat.png",
+        "selectedIconPath": "assets/icons/chat.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "assets/icons/user.png",
+        "selectedIconPath": "assets/icons/user.png"
+      }
+    ]
+  },
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json",
+  "usingComponents": {
+    "app-header": "/components/app-header/index"
+  }
+}

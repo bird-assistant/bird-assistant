@@ -1,0 +1,4 @@
+<view style="height:{{headerHeight}}px"><view class="header" style="height:{{headerHeight}}px;padding-top:{{status}}px;padding-right:{{right}}px">
+  <button wx:if="{{back}}" class="back" bindtap="goBack" aria-label="返回"><image class="back-icon" src="/assets/icons/back.png" /></button>
+  <image wx:else class="leaf" src="/assets/icons/leaf.png" /><text class="heading {{back ? 'subheading' : ''}}">{{title}}</text>
+</view></view>

@@ -1,0 +1,575 @@
+{
+  "version": 1,
+  "runtime_version": "0.2.9",
+  "source_checkpoint": "031cf420cfb20b99b9e016d7b0d7b3958340a584",
+  "team_base_commit": "0155825c26dce5f26395a3ba3fce076895326aba",
+  "exported_on": "2026-11-18",
+  "timezone": "Asia/Shanghai",
+  "notes": [
+    "Source runtime, tests, scripts, template and dependencies retain their original bytes.",
+    "Only the project .gitignore adds gallery exclusion; team handoff documentation and CI are new.",
+    "Local configuration, dependencies, generated outputs, gallery, private history and private development log are excluded."
+  ],
+  "source_files": [
+    {
+      "path": ".gitignore",
+      "source_git_blob_sha": "fb36c33deb1cb800cb3ff55da2bcc965c8539644",
+      "delivered_git_blob_sha": "b25b63bef20311af5a0645cf41d23b0507c1ad35"
+    },
+    {
+      "path": ".nvmrc",
+      "source_git_blob_sha": "a45fd52cc5891570d6299fab38643103c3955474",
+      "delivered_git_blob_sha": "a45fd52cc5891570d6299fab38643103c3955474"
+    },
+    {
+      "path": "miniprogram/app.json",
+      "source_git_blob_sha": "ac482dd4c2fd88340e64449d7702e516a2e81d8b",
+      "delivered_git_blob_sha": "ac482dd4c2fd88340e64449d7702e516a2e81d8b"
+    },
+    {
+      "path": "miniprogram/app.ts",
+      "source_git_blob_sha": "e16a8cc67334ec7ec6e9c24eb46b4efb7eb35f1d",
+      "delivered_git_blob_sha": "e16a8cc67334ec7ec6e9c24eb46b4efb7eb35f1d"
+    },
+    {
+      "path": "miniprogram/app.wxss",
+      "source_git_blob_sha": "0e17971b90b74d6a874792ff0b0796f8ecf37cb1",
+      "delivered_git_blob_sha": "0e17971b90b74d6a874792ff0b0796f8ecf37cb1"
+    },
+    {
+      "path": "miniprogram/assets/avatars/finch.png",
+      "source_git_blob_sha": "249d14981b2d500440eb6c06571b116efa43ba1c",
+      "delivered_git_blob_sha": "249d14981b2d500440eb6c06571b116efa43ba1c"
+    },
+    {
+      "path": "miniprogram/assets/avatars/leaf.png",
+      "source_git_blob_sha": "88310360446cf83ec8071a8f035fe50b7087c1c9",
+      "delivered_git_blob_sha": "88310360446cf83ec8071a8f035fe50b7087c1c9"
+    },
+    {
+      "path": "miniprogram/assets/avatars/letter.png",
+      "source_git_blob_sha": "a6995d423728b90c01d129cef29791cadec894bb",
+      "delivered_git_blob_sha": "a6995d423728b90c01d129cef29791cadec894bb"
+    },
+    {
+      "path": "miniprogram/assets/avatars/mountain.png",
+      "source_git_blob_sha": "b1cd0ba661c2113f93cad5a75dc5108dd7792d70",
+      "delivered_git_blob_sha": "b1cd0ba661c2113f93cad5a75dc5108dd7792d70"
+    },
+    {
+      "path": "miniprogram/assets/avatars/owl.png",
+      "source_git_blob_sha": "ea17736de9440296440141bdedc14c1df48e6b17",
+      "delivered_git_blob_sha": "ea17736de9440296440141bdedc14c1df48e6b17"
+    },
+    {
+      "path": "miniprogram/assets/avatars/water.png",
+      "source_git_blob_sha": "fdfbd0dfd74a6d525b8acd78796de4e2be7ef829",
+      "delivered_git_blob_sha": "fdfbd0dfd74a6d525b8acd78796de4e2be7ef829"
+    },
+    {
+      "path": "miniprogram/assets/bird-preview.png",
+      "source_git_blob_sha": "cd04ce402df3c6ed4ba5e9aab75069e00d3f4716",
+      "delivered_git_blob_sha": "cd04ce402df3c6ed4ba5e9aab75069e00d3f4716"
+    },
+    {
+      "path": "miniprogram/assets/decorations/feather.png",
+      "source_git_blob_sha": "f063787df6feb2481e86fa0bc0a1ed35d077057a",
+      "delivered_git_blob_sha": "f063787df6feb2481e86fa0bc0a1ed35d077057a"
+    },
+    {
+      "path": "miniprogram/assets/decorations/flower.png",
+      "source_git_blob_sha": "795e1dbf26a0807a05a72175375af972c96755d8",
+      "delivered_git_blob_sha": "795e1dbf26a0807a05a72175375af972c96755d8"
+    },
+    {
+      "path": "miniprogram/assets/decorations/leaf.png",
+      "source_git_blob_sha": "d1007c714c22691eca02c612e28400c77f1a1b58",
+      "delivered_git_blob_sha": "d1007c714c22691eca02c612e28400c77f1a1b58"
+    },
+    {
+      "path": "miniprogram/assets/decorations/stamp.png",
+      "source_git_blob_sha": "4a430a7737a463b91376490cccb43991003e0bf0",
+      "delivered_git_blob_sha": "4a430a7737a463b91376490cccb43991003e0bf0"
+    },
+    {
+      "path": "miniprogram/assets/decorations/star.png",
+      "source_git_blob_sha": "f9a5cbd5b94c012915e17002b460f9c5b6b9a6ea",
+      "delivered_git_blob_sha": "f9a5cbd5b94c012915e17002b460f9c5b6b9a6ea"
+    },
+    {
+      "path": "miniprogram/assets/icons/arrow.png",
+      "source_git_blob_sha": "0b3fc639e6580cf7526d84bf53d4dc827a7dd274",
+      "delivered_git_blob_sha": "0b3fc639e6580cf7526d84bf53d4dc827a7dd274"
+    },
+    {
+      "path": "miniprogram/assets/icons/back.png",
+      "source_git_blob_sha": "606c12d5600a16566078b1481fc0a287b107fde8",
+      "delivered_git_blob_sha": "606c12d5600a16566078b1481fc0a287b107fde8"
+    },
+    {
+      "path": "miniprogram/assets/icons/camera.png",
+      "source_git_blob_sha": "f9afc2ca6af405238df05bf683e7235b11a01900",
+      "delivered_git_blob_sha": "f9afc2ca6af405238df05bf683e7235b11a01900"
+    },
+    {
+      "path": "miniprogram/assets/icons/chat.png",
+      "source_git_blob_sha": "b92581650da1df8e43cafded63507cfa6093ffec",
+      "delivered_git_blob_sha": "b92581650da1df8e43cafded63507cfa6093ffec"
+    },
+    {
+      "path": "miniprogram/assets/icons/check.png",
+      "source_git_blob_sha": "0e4ad7f446907d1ef586df0f561da1e85ece468e",
+      "delivered_git_blob_sha": "0e4ad7f446907d1ef586df0f561da1e85ece468e"
+    },
+    {
+      "path": "miniprogram/assets/icons/chevron.png",
+      "source_git_blob_sha": "18b71f90fea9786d7628476fe5c341e616801dce",
+      "delivered_git_blob_sha": "18b71f90fea9786d7628476fe5c341e616801dce"
+    },
+    {
+      "path": "miniprogram/assets/icons/clock.png",
+      "source_git_blob_sha": "35824013bce443261be10347179fde8d3fda6d6b",
+      "delivered_git_blob_sha": "35824013bce443261be10347179fde8d3fda6d6b"
+    },
+    {
+      "path": "miniprogram/assets/icons/close.png",
+      "source_git_blob_sha": "f8d79a537e15da109fecd9b0d693673592d7db3b",
+      "delivered_git_blob_sha": "f8d79a537e15da109fecd9b0d693673592d7db3b"
+    },
+    {
+      "path": "miniprogram/assets/icons/collection.png",
+      "source_git_blob_sha": "8370105d93d8762c212884047c10aa68c97e32fb",
+      "delivered_git_blob_sha": "8370105d93d8762c212884047c10aa68c97e32fb"
+    },
+    {
+      "path": "miniprogram/assets/icons/heart.png",
+      "source_git_blob_sha": "397f8781a387d0033a763fd82733d374d2b4da5b",
+      "delivered_git_blob_sha": "397f8781a387d0033a763fd82733d374d2b4da5b"
+    },
+    {
+      "path": "miniprogram/assets/icons/home.png",
+      "source_git_blob_sha": "4a70bc5633e753357b1e88fc874edf42776dafdb",
+      "delivered_git_blob_sha": "4a70bc5633e753357b1e88fc874edf42776dafdb"
+    },
+    {
+      "path": "miniprogram/assets/icons/image.png",
+      "source_git_blob_sha": "436eff3b0df8506ed644fcd084e70cb8e922f51c",
+      "delivered_git_blob_sha": "436eff3b0df8506ed644fcd084e70cb8e922f51c"
+    },
+    {
+      "path": "miniprogram/assets/icons/journal.png",
+      "source_git_blob_sha": "5f1d4ca73ef94f622ff9dcb74a4f6a41520e2168",
+      "delivered_git_blob_sha": "5f1d4ca73ef94f622ff9dcb74a4f6a41520e2168"
+    },
+    {
+      "path": "miniprogram/assets/icons/leaf.png",
+      "source_git_blob_sha": "def8267583161ba2c4e343c7f8fb8d411b899107",
+      "delivered_git_blob_sha": "def8267583161ba2c4e343c7f8fb8d411b899107"
+    },
+    {
+      "path": "miniprogram/assets/icons/locate.png",
+      "source_git_blob_sha": "79bf711058d4bb1ca29e7f78f70affcf8d0258d0",
+      "delivered_git_blob_sha": "79bf711058d4bb1ca29e7f78f70affcf8d0258d0"
+    },
+    {
+      "path": "miniprogram/assets/icons/mic.png",
+      "source_git_blob_sha": "7876723a5551767be0e0e48ec340cd24322537d5",
+      "delivered_git_blob_sha": "7876723a5551767be0e0e48ec340cd24322537d5"
+    },
+    {
+      "path": "miniprogram/assets/icons/minus.png",
+      "source_git_blob_sha": "a3ca78eb1d3724ea805439c9c54f5705b51cdaf0",
+      "delivered_git_blob_sha": "a3ca78eb1d3724ea805439c9c54f5705b51cdaf0"
+    },
+    {
+      "path": "miniprogram/assets/icons/pin.png",
+      "source_git_blob_sha": "9b440dd60b597d36b208ee7990eb353fd36355ad",
+      "delivered_git_blob_sha": "9b440dd60b597d36b208ee7990eb353fd36355ad"
+    },
+    {
+      "path": "miniprogram/assets/icons/plus.png",
+      "source_git_blob_sha": "3637a5774908f6d86e87ba8157f5f65b1ff33f78",
+      "delivered_git_blob_sha": "3637a5774908f6d86e87ba8157f5f65b1ff33f78"
+    },
+    {
+      "path": "miniprogram/assets/icons/redo.png",
+      "source_git_blob_sha": "1b70a6c9941300d93807ce62c9ab56eda90bfd2a",
+      "delivered_git_blob_sha": "1b70a6c9941300d93807ce62c9ab56eda90bfd2a"
+    },
+    {
+      "path": "miniprogram/assets/icons/scan-white.png",
+      "source_git_blob_sha": "2de0e6374f83348f7c9ee585753648e3745f7f51",
+      "delivered_git_blob_sha": "2de0e6374f83348f7c9ee585753648e3745f7f51"
+    },
+    {
+      "path": "miniprogram/assets/icons/scan.png",
+      "source_git_blob_sha": "a4d85433b643a4b36b024d1a4ec8c676ea4c029d",
+      "delivered_git_blob_sha": "a4d85433b643a4b36b024d1a4ec8c676ea4c029d"
+    },
+    {
+      "path": "miniprogram/assets/icons/search.png",
+      "source_git_blob_sha": "2256e830c25b451b2097588149aa480d0187bc5d",
+      "delivered_git_blob_sha": "2256e830c25b451b2097588149aa480d0187bc5d"
+    },
+    {
+      "path": "miniprogram/assets/icons/settings.png",
+      "source_git_blob_sha": "1295366a7623efd2a113f11f90cb68f1fdbe2cf9",
+      "delivered_git_blob_sha": "1295366a7623efd2a113f11f90cb68f1fdbe2cf9"
+    },
+    {
+      "path": "miniprogram/assets/icons/sound.png",
+      "source_git_blob_sha": "89e8bfa30b05c51fddb5d223874f2cde17603466",
+      "delivered_git_blob_sha": "89e8bfa30b05c51fddb5d223874f2cde17603466"
+    },
+    {
+      "path": "miniprogram/assets/icons/undo.png",
+      "source_git_blob_sha": "423447a1bca7efd4222da5b801673f3f6eef23a9",
+      "delivered_git_blob_sha": "423447a1bca7efd4222da5b801673f3f6eef23a9"
+    },
+    {
+      "path": "miniprogram/assets/icons/user.png",
+      "source_git_blob_sha": "eee7a84a25b48f613381f5a2a352fe183b714247",
+      "delivered_git_blob_sha": "eee7a84a25b48f613381f5a2a352fe183b714247"
+    },
+    {
+      "path": "miniprogram/assets/icons/video.png",
+      "source_git_blob_sha": "181bdb28677f6f16b1f5fafbfc00493677afd2fd",
+      "delivered_git_blob_sha": "181bdb28677f6f16b1f5fafbfc00493677afd2fd"
+    },
+    {
+      "path": "miniprogram/assets/map-preview.png",
+      "source_git_blob_sha": "8379e8ce43602eb7207a3137489e1e3705315b49",
+      "delivered_git_blob_sha": "8379e8ce43602eb7207a3137489e1e3705315b49"
+    },
+    {
+      "path": "miniprogram/assets/samples/field-0.png",
+      "source_git_blob_sha": "491c5a8aa484df690bf701b35b50f1b7e83d8732",
+      "delivered_git_blob_sha": "491c5a8aa484df690bf701b35b50f1b7e83d8732"
+    },
+    {
+      "path": "miniprogram/assets/samples/field-1.png",
+      "source_git_blob_sha": "c1749932c8549c48a10580ac43646033866bf367",
+      "delivered_git_blob_sha": "c1749932c8549c48a10580ac43646033866bf367"
+    },
+    {
+      "path": "miniprogram/assets/samples/field-2.png",
+      "source_git_blob_sha": "2927b7588ecf908bfaa145301da5172081cc6712",
+      "delivered_git_blob_sha": "2927b7588ecf908bfaa145301da5172081cc6712"
+    },
+    {
+      "path": "miniprogram/assets/samples/field-3.png",
+      "source_git_blob_sha": "b40f108135e39c4cfd1e81ade6f13a340022e675",
+      "delivered_git_blob_sha": "b40f108135e39c4cfd1e81ade6f13a340022e675"
+    },
+    {
+      "path": "miniprogram/assets/samples/live-scene.png",
+      "source_git_blob_sha": "08ab8884337e5fe6c076f21c820386ea23d63cab",
+      "delivered_git_blob_sha": "08ab8884337e5fe6c076f21c820386ea23d63cab"
+    },
+    {
+      "path": "miniprogram/components/app-header/index.json",
+      "source_git_blob_sha": "d80dd20a6bff3a1e4094d2712d37b3f370dfc189",
+      "delivered_git_blob_sha": "d80dd20a6bff3a1e4094d2712d37b3f370dfc189"
+    },
+    {
+      "path": "miniprogram/components/app-header/index.ts",
+      "source_git_blob_sha": "c192cb6d28de16d0d99da668207436ddd1d16b22",
+      "delivered_git_blob_sha": "c192cb6d28de16d0d99da668207436ddd1d16b22"
+    },
+    {
+      "path": "miniprogram/components/app-header/index.wxml",
+      "source_git_blob_sha": "a8afedddd56d10b71da43f5a7ad435c5c1bc56fe",
+      "delivered_git_blob_sha": "a8afedddd56d10b71da43f5a7ad435c5c1bc56fe"
+    },
+    {
+      "path": "miniprogram/components/app-header/index.wxss",
+      "source_git_blob_sha": "634ca5f7c0c424fc9fb5a68139441e7ffafb0f50",
+      "delivered_git_blob_sha": "634ca5f7c0c424fc9fb5a68139441e7ffafb0f50"
+    },
+    {
+      "path": "miniprogram/custom-tab-bar/index.json",
+      "source_git_blob_sha": "67f8e032f11eb302ba2afd878eb7562e88537de2",
+      "delivered_git_blob_sha": "67f8e032f11eb302ba2afd878eb7562e88537de2"
+    },
+    {
+      "path": "miniprogram/custom-tab-bar/index.ts",
+      "source_git_blob_sha": "485111a179cb4cb2ee12ef2de9c6bb1ff68b719f",
+      "delivered_git_blob_sha": "485111a179cb4cb2ee12ef2de9c6bb1ff68b719f"
+    },
+    {
+      "path": "miniprogram/custom-tab-bar/index.wxml",
+      "source_git_blob_sha": "ab9a95eae62882bff9917ec1310d19a412210a7f",
+      "delivered_git_blob_sha": "ab9a95eae62882bff9917ec1310d19a412210a7f"
+    },
+    {
+      "path": "miniprogram/custom-tab-bar/index.wxss",
+      "source_git_blob_sha": "12f4be3b1c45ada57853451b9eab49cc1fad3ecc",
+      "delivered_git_blob_sha": "12f4be3b1c45ada57853451b9eab49cc1fad3ecc"
+    },
+    {
+      "path": "miniprogram/pages/community/index.json",
+      "source_git_blob_sha": "1ad79f1515a0b0c87ef9bbe66f58d853cb28156e",
+      "delivered_git_blob_sha": "1ad79f1515a0b0c87ef9bbe66f58d853cb28156e"
+    },
+    {
+      "path": "miniprogram/pages/community/index.ts",
+      "source_git_blob_sha": "f480da89f5c9ee92dda37e47220e1234f85fb713",
+      "delivered_git_blob_sha": "f480da89f5c9ee92dda37e47220e1234f85fb713"
+    },
+    {
+      "path": "miniprogram/pages/community/index.wxml",
+      "source_git_blob_sha": "fa19c09dcc7be88c8c180968e88f2fe9b2758bb0",
+      "delivered_git_blob_sha": "fa19c09dcc7be88c8c180968e88f2fe9b2758bb0"
+    },
+    {
+      "path": "miniprogram/pages/community/index.wxss",
+      "source_git_blob_sha": "8ad7499c2818ef35d3b983a76a48a1799d2e4d54",
+      "delivered_git_blob_sha": "8ad7499c2818ef35d3b983a76a48a1799d2e4d54"
+    },
+    {
+      "path": "miniprogram/pages/home/index.json",
+      "source_git_blob_sha": "df462be865afa99ffebe1c0d87eb1f389c675a42",
+      "delivered_git_blob_sha": "df462be865afa99ffebe1c0d87eb1f389c675a42"
+    },
+    {
+      "path": "miniprogram/pages/home/index.ts",
+      "source_git_blob_sha": "29148a4c822b50fe4c0caca802acdcab8738ad33",
+      "delivered_git_blob_sha": "29148a4c822b50fe4c0caca802acdcab8738ad33"
+    },
+    {
+      "path": "miniprogram/pages/home/index.wxml",
+      "source_git_blob_sha": "3a6b3c54d4b9d637148b8a5cc8405f6686311839",
+      "delivered_git_blob_sha": "3a6b3c54d4b9d637148b8a5cc8405f6686311839"
+    },
+    {
+      "path": "miniprogram/pages/home/index.wxss",
+      "source_git_blob_sha": "fdce607cc033bf744dbc510cc7b96ab7064d83a9",
+      "delivered_git_blob_sha": "fdce607cc033bf744dbc510cc7b96ab7064d83a9"
+    },
+    {
+      "path": "miniprogram/pages/identify/index.json",
+      "source_git_blob_sha": "ccd3019c71c625ce58c2e6d6e19b05393317ad3b",
+      "delivered_git_blob_sha": "ccd3019c71c625ce58c2e6d6e19b05393317ad3b"
+    },
+    {
+      "path": "miniprogram/pages/identify/index.ts",
+      "source_git_blob_sha": "6e444543f478424ff2f571f6ef43916498b1b663",
+      "delivered_git_blob_sha": "6e444543f478424ff2f571f6ef43916498b1b663"
+    },
+    {
+      "path": "miniprogram/pages/identify/index.wxml",
+      "source_git_blob_sha": "6ddd75b0f15802ce219cabaced466c2cc6c8390c",
+      "delivered_git_blob_sha": "6ddd75b0f15802ce219cabaced466c2cc6c8390c"
+    },
+    {
+      "path": "miniprogram/pages/identify/index.wxss",
+      "source_git_blob_sha": "de83a89157569149705e2976a148ee59b4611afc",
+      "delivered_git_blob_sha": "de83a89157569149705e2976a148ee59b4611afc"
+    },
+    {
+      "path": "miniprogram/pages/journal/index.json",
+      "source_git_blob_sha": "38ce7bbd1762d29cf410a1f96c9d4e8f39728e46",
+      "delivered_git_blob_sha": "38ce7bbd1762d29cf410a1f96c9d4e8f39728e46"
+    },
+    {
+      "path": "miniprogram/pages/journal/index.ts",
+      "source_git_blob_sha": "a6997136721d43325d51a90feda444501ffc913d",
+      "delivered_git_blob_sha": "a6997136721d43325d51a90feda444501ffc913d"
+    },
+    {
+      "path": "miniprogram/pages/journal/index.wxml",
+      "source_git_blob_sha": "cb9d7929b7f62f4eeb68ce14940afedc23636cb5",
+      "delivered_git_blob_sha": "cb9d7929b7f62f4eeb68ce14940afedc23636cb5"
+    },
+    {
+      "path": "miniprogram/pages/journal/index.wxss",
+      "source_git_blob_sha": "b2cfe9efa9d027416cb571785df8c0c1e18814e6",
+      "delivered_git_blob_sha": "b2cfe9efa9d027416cb571785df8c0c1e18814e6"
+    },
+    {
+      "path": "miniprogram/pages/profile/index.json",
+      "source_git_blob_sha": "48ff422bb66bfd96168996d73c1cbd5bdbf32829",
+      "delivered_git_blob_sha": "48ff422bb66bfd96168996d73c1cbd5bdbf32829"
+    },
+    {
+      "path": "miniprogram/pages/profile/index.ts",
+      "source_git_blob_sha": "e2576640674138f2752f112fcc4707782d4396b6",
+      "delivered_git_blob_sha": "e2576640674138f2752f112fcc4707782d4396b6"
+    },
+    {
+      "path": "miniprogram/pages/profile/index.wxml",
+      "source_git_blob_sha": "1db40583bb2786b1d6488bc61590a77928859bdb",
+      "delivered_git_blob_sha": "1db40583bb2786b1d6488bc61590a77928859bdb"
+    },
+    {
+      "path": "miniprogram/pages/profile/index.wxss",
+      "source_git_blob_sha": "dcf5c8aa438a3b2291ebb675b29b1cde5f8cb9ef",
+      "delivered_git_blob_sha": "dcf5c8aa438a3b2291ebb675b29b1cde5f8cb9ef"
+    },
+    {
+      "path": "miniprogram/services/camera-zoom.ts",
+      "source_git_blob_sha": "9a18c251d4dce198a7958038f5cd49a98379a2ef",
+      "delivered_git_blob_sha": "9a18c251d4dce198a7958038f5cd49a98379a2ef"
+    },
+    {
+      "path": "miniprogram/services/canvas.ts",
+      "source_git_blob_sha": "6d8bc6e606537622deda46b893bb1b271036e318",
+      "delivered_git_blob_sha": "6d8bc6e606537622deda46b893bb1b271036e318"
+    },
+    {
+      "path": "miniprogram/services/crop.ts",
+      "source_git_blob_sha": "7d3ab9d6432db527aa674e80c9bc8cfebeb7886b",
+      "delivered_git_blob_sha": "7d3ab9d6432db527aa674e80c9bc8cfebeb7886b"
+    },
+    {
+      "path": "miniprogram/services/journal-model.ts",
+      "source_git_blob_sha": "3f768fa51338c0b2867e4f0c9c338f02d7cb9a87",
+      "delivered_git_blob_sha": "3f768fa51338c0b2867e4f0c9c338f02d7cb9a87"
+    },
+    {
+      "path": "miniprogram/services/layout.ts",
+      "source_git_blob_sha": "dbabc78540543ec88308f98e154eb83fdbde64c7",
+      "delivered_git_blob_sha": "dbabc78540543ec88308f98e154eb83fdbde64c7"
+    },
+    {
+      "path": "miniprogram/services/map-model.ts",
+      "source_git_blob_sha": "a97af0b260f15c847cdbd929f2a4c33adb480806",
+      "delivered_git_blob_sha": "a97af0b260f15c847cdbd929f2a4c33adb480806"
+    },
+    {
+      "path": "miniprogram/services/map-motion.ts",
+      "source_git_blob_sha": "613f193841846bf0b1d93ed4dc2e120d5e41b556",
+      "delivered_git_blob_sha": "613f193841846bf0b1d93ed4dc2e120d5e41b556"
+    },
+    {
+      "path": "miniprogram/services/media.ts",
+      "source_git_blob_sha": "cb4d6de2e689c6eb9464ae102c1e9098a85c3959",
+      "delivered_git_blob_sha": "cb4d6de2e689c6eb9464ae102c1e9098a85c3959"
+    },
+    {
+      "path": "miniprogram/services/navigation.ts",
+      "source_git_blob_sha": "88306c93b2cee26da804f309b27d579012d30ede",
+      "delivered_git_blob_sha": "88306c93b2cee26da804f309b27d579012d30ede"
+    },
+    {
+      "path": "miniprogram/services/numbers.ts",
+      "source_git_blob_sha": "94eaac7987da22df9099d4380ecf9bead98fc414",
+      "delivered_git_blob_sha": "94eaac7987da22df9099d4380ecf9bead98fc414"
+    },
+    {
+      "path": "miniprogram/services/observation-context.ts",
+      "source_git_blob_sha": "097f793fd3df949e467abea080fb11a2ba057d0d",
+      "delivered_git_blob_sha": "097f793fd3df949e467abea080fb11a2ba057d0d"
+    },
+    {
+      "path": "miniprogram/services/post-writing.ts",
+      "source_git_blob_sha": "3af5f609f995240e9a46fb009d4a686eda7ff7f8",
+      "delivered_git_blob_sha": "3af5f609f995240e9a46fb009d4a686eda7ff7f8"
+    },
+    {
+      "path": "miniprogram/services/recognition.ts",
+      "source_git_blob_sha": "d68fa60c8045e1a9962df14abf99345cac6a8879",
+      "delivered_git_blob_sha": "d68fa60c8045e1a9962df14abf99345cac6a8879"
+    },
+    {
+      "path": "miniprogram/services/repository.ts",
+      "source_git_blob_sha": "7adf36791e28048f7e99e078f746f0bd891be0f7",
+      "delivered_git_blob_sha": "7adf36791e28048f7e99e078f746f0bd891be0f7"
+    },
+    {
+      "path": "miniprogram/services/tabs.ts",
+      "source_git_blob_sha": "d40aaf701f3c8781e8eefb6cf71e07b68a327e7f",
+      "delivered_git_blob_sha": "d40aaf701f3c8781e8eefb6cf71e07b68a327e7f"
+    },
+    {
+      "path": "miniprogram/sitemap.json",
+      "source_git_blob_sha": "1562154e6d27dc5ee1eb8ce86af8a30369871b0f",
+      "delivered_git_blob_sha": "1562154e6d27dc5ee1eb8ce86af8a30369871b0f"
+    },
+    {
+      "path": "package-lock.json",
+      "source_git_blob_sha": "2bd4c745d5f8f3651ae1de9a8dd8b31d13eea2d2",
+      "delivered_git_blob_sha": "2bd4c745d5f8f3651ae1de9a8dd8b31d13eea2d2"
+    },
+    {
+      "path": "package.json",
+      "source_git_blob_sha": "1afc891f87b16ad30a28d9f244580ddccef5f7fe",
+      "delivered_git_blob_sha": "1afc891f87b16ad30a28d9f244580ddccef5f7fe"
+    },
+    {
+      "path": "project.config.template.json",
+      "source_git_blob_sha": "89d13523e9c40e1b2d8cbbfc8820bcb7605f4d19",
+      "delivered_git_blob_sha": "89d13523e9c40e1b2d8cbbfc8820bcb7605f4d19"
+    },
+    {
+      "path": "scripts/check.mjs",
+      "source_git_blob_sha": "f6fc9c9b8d5b9106588c428dcdc002c6eadaa1d2",
+      "delivered_git_blob_sha": "f6fc9c9b8d5b9106588c428dcdc002c6eadaa1d2"
+    },
+    {
+      "path": "scripts/runtime-syntax.mjs",
+      "source_git_blob_sha": "d517447dfc1aac92416812efec1123eda779ee55",
+      "delivered_git_blob_sha": "d517447dfc1aac92416812efec1123eda779ee55"
+    },
+    {
+      "path": "scripts/setup.mjs",
+      "source_git_blob_sha": "14a55979a839bdb1e56ceb6af8b8c98f3cd8f222",
+      "delivered_git_blob_sha": "14a55979a839bdb1e56ceb6af8b8c98f3cd8f222"
+    },
+    {
+      "path": "scripts/test.mjs",
+      "source_git_blob_sha": "1bc9451772d21285de8ac843b20c02078dbae579",
+      "delivered_git_blob_sha": "1bc9451772d21285de8ac843b20c02078dbae579"
+    },
+    {
+      "path": "tests/design-interactions.test.cjs",
+      "source_git_blob_sha": "6ff041add3cfd3e8dcfc05012807b7e4f4ece276",
+      "delivered_git_blob_sha": "6ff041add3cfd3e8dcfc05012807b7e4f4ece276"
+    },
+    {
+      "path": "tests/fixtures/recognition.json",
+      "source_git_blob_sha": "dbeca3cd66f3adfddb106d186bdb6bcaa71a83c5",
+      "delivered_git_blob_sha": "dbeca3cd66f3adfddb106d186bdb6bcaa71a83c5"
+    },
+    {
+      "path": "tests/identify-page.test.cjs",
+      "source_git_blob_sha": "c140d5e26db00768cf5b4f5e94f1bc983a73c3a4",
+      "delivered_git_blob_sha": "c140d5e26db00768cf5b4f5e94f1bc983a73c3a4"
+    },
+    {
+      "path": "tests/media.test.cjs",
+      "source_git_blob_sha": "7b13e757fd4df46ae5b1721d9b5a9e2e254b4633",
+      "delivered_git_blob_sha": "7b13e757fd4df46ae5b1721d9b5a9e2e254b4633"
+    },
+    {
+      "path": "tests/native-parity.test.cjs",
+      "source_git_blob_sha": "a73a22708ec74b00dd263f9b9853aefac861d339",
+      "delivered_git_blob_sha": "a73a22708ec74b00dd263f9b9853aefac861d339"
+    },
+    {
+      "path": "tests/observation-context.test.cjs",
+      "source_git_blob_sha": "5119b0c12f61fecd3fbc249a1fc54eaffdce6532",
+      "delivered_git_blob_sha": "5119b0c12f61fecd3fbc249a1fc54eaffdce6532"
+    },
+    {
+      "path": "tests/recognition.test.cjs",
+      "source_git_blob_sha": "71325301ed8216a7de0f9d6223f513700b1b28fa",
+      "delivered_git_blob_sha": "71325301ed8216a7de0f9d6223f513700b1b28fa"
+    },
+    {
+      "path": "tests/repository.test.cjs",
+      "source_git_blob_sha": "fe65fca34265a4a9a8f43f3f4ba3e7f08a42f54c",
+      "delivered_git_blob_sha": "fe65fca34265a4a9a8f43f3f4ba3e7f08a42f54c"
+    },
+    {
+      "path": "tests/setup.test.cjs",
+      "source_git_blob_sha": "6d01ff7cd5757f9bfb9ad1adc1e2e76200cbff35",
+      "delivered_git_blob_sha": "6d01ff7cd5757f9bfb9ad1adc1e2e76200cbff35"
+    },
+    {
+      "path": "tsconfig.json",
+      "source_git_blob_sha": "12ec86ca7cfb25e6791461723c559df57edaef82",
+      "delivered_git_blob_sha": "12ec86ca7cfb25e6791461723c559df57edaef82"
+    }
+  ]
+}

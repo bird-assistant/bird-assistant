@@ -1,5 +1,7 @@
 # Bird Assistant native WeChat client — 0.2.9
 
+Current development version **0.3.0**: [journal layouts, preview performance and Qwen setup](JOURNAL-0.3.0.md) · [recognition delivery contract](../RECOGNITION-HANDOFF.md). Client/server adapters are implemented; real gateway/credentials and phone acceptance remain pending. The0.2.9 handoff below describes the imported baseline.
+
 [中文](../../README.md) · [Verification](../../TESTING.md) · [Integration status](../INTEGRATION-STATUS.md)
 
 This is a runnable source checkpoint for team review and continued integration. The five tabs, native components, packaged assets, domain helpers, configuration template, locked dependencies and automated tests are included.

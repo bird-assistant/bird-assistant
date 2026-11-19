@@ -188,7 +188,7 @@ test('dragging and resizing keep editable geometry within two decimals and contr
 test('crop preview is temporary, apply records one change, cancel restores the original and undo restores crop',()=>{
   const {p}=page('journal');p.sample();p.generate();const photo=p.data.doc.elements.find(e=>e.type==='photo');p.select(tap(photo.id));const before=structuredClone(p.data.doc),past=p._past.length;
   const crop=(key,value)=>({currentTarget:{dataset:{key}},detail:{value}});
-  p.openCrop();p.previewCrop(crop('zoom',2));p.previewCrop(crop('cropX',0));p.previewCrop(crop('cropY',100));assert.deepEqual(p.data.doc,before);assert.ok(p.data.cropPreview.canPanX&&p.data.cropPreview.canPanY);assert.equal(p.data.renderElements.find(e=>e.id===photo.id).imageX,0);p.cancelCrop();assert.deepEqual(p.data.doc,before);
+  p.openCrop();p.previewCrop(crop('zoom',2));p.previewCrop(crop('cropX',0));p.previewCrop(crop('cropY',100));p.flushPendingPreview();assert.deepEqual(p.data.doc,before);assert.ok(p.data.cropPreview.canPanX&&p.data.cropPreview.canPanY);assert.equal(p.data.renderElements.find(e=>e.id===photo.id).imageX,0);p.cancelCrop();assert.deepEqual(p.data.doc,before);
   p.openCrop();p.previewCrop(crop('zoom',2.34789));p.previewCrop(crop('cropX',81.229));p.applyCrop();assert.equal(p.data.selected.zoom,2.35);assert.equal(p.data.selected.cropX,81.23);assert.equal(p._past.length,past+1);p.undo();assert.deepEqual(p.data.doc,before);
 });
 test('shared crop geometry moves the sampled source, stays in bounds and scales the preview without changing the crop',()=>{

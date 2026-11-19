@@ -41,7 +41,7 @@ export function elementLabel(e:JournalElement,d:JournalDocument) {
 export function makeJournal(assets:JournalAsset[],title:string,ratio='3:4',style='nature',variant=1,includeNotes=false):JournalDocument {
   const width=900,height=ratio==='1:1'?900:ratio==='4:3'?675:1200;
   const d:JournalDocument={version:1,id:uid(),title:title||'沿着鸟鸣，慢慢走',ratio,style,width,height,background:style==='minimal'?'#fffef9':style==='magazine'?'#eee8da':'#f5efdf',variant,elements:[],updatedAt:new Date().toISOString()};
-  d.elements.push(element('text',{x:72,y:height*.055,w:756,fontSize:19,font:'sans',text:'FIELD NOTES / 羽迹',color:'#7a876c'}),element('text',{x:72,y:height*.105,w:756,fontSize:23,titleSize:46,title:d.title,text:'把每一次发现，留在纸上。'}));
+  d.elements.push(element('text',{x:72,y:height*.055,w:756,fontSize:19,font:'sans',text:'FIELD NOTES / 羽迹',color:'#7a876c'}),element('text',{x:72,y:height*.105,w:756,fontSize:23,titleSize:46,maxLines:3,title:d.title,text:'把每一次发现，留在纸上。'}));
   assets.forEach((a,i)=>{
     const photo=element('photo',{src:a.src,persisted:!!a.persisted||a.sample,photoNumber:i+1,rotation:style==='nature'?(i%2?3:-3):0});d.elements.push(photo);
     d.elements.push(element('text',{photoId:photo.id,maxLines:2,text:a.label+(includeNotes&&a.notes?'\n'+a.notes:''),fontSize:24,font:'hand',color:'#52654e'}));
@@ -56,6 +56,30 @@ export function reflowJournalPhotos(d:JournalDocument) {
   const photos=d.elements.filter(e=>e.type==='photo'),n=photos.length;
   const headers=d.elements.filter(e=>e.type==='text'&&!e.photoId).slice(0,2);
   const top=Math.max(d.height*.26,...headers.map(e=>e.y+textLayout(e,d).height+36)),bottom=d.height-48;
+  if(n===1||n===2){
+    const variant=((d.variant-1)%3+3)%3+1,caption=32+24*1.4*2,available=bottom-top;
+    const inset=d.style==='minimal'?90:72;
+    const place=(photo:JournalElement,x:number,y:number,w:number,h:number)=>{
+      Object.assign(photo,{x,y,w,h,rotation:0});
+      for(const text of d.elements.filter(e=>e.photoId===photo.id))Object.assign(text,{x,y:y+h+32,w,maxLines:2});
+    };
+    if(n===1){
+      const maxW=d.width-inset*2,h=Math.max(65,Math.min(available-caption,maxW*(variant===1?.80:variant===2?1:.54)));
+      const w=variant===2?Math.min(maxW,h*1.05):variant===3?maxW*.82:maxW;
+      place(photos[0],(d.width-w)/2,top,w,h);
+    }else if(variant===2&&d.height>d.width){
+      const cell=(available-32)/2,h=Math.max(65,cell-caption),w=Math.min(d.width-inset*2,h*2.35);
+      photos.forEach((p,i)=>place(p,(d.width-w)/2,top+i*(cell+32),w,h));
+    }else{
+      const gap=44,w=(d.width-inset*2-gap)/2,h=Math.max(65,Math.min(available-caption-(variant===3?52:0),w*(d.height>d.width?1.18:.82)));
+      if(variant===2){
+        const first=(d.width-inset*2-gap)*.58,second=d.width-inset*2-gap-first;
+        place(photos[0],inset,top,first,h);
+        place(photos[1],inset+first+gap,top+30,second,Math.max(65,h-30));
+      }else photos.forEach((p,i)=>place(p,inset+i*(w+gap),top+(variant===3&&i===1?52:0),w,h*(variant===3&&i===1?.82:1)));
+    }
+    return fit(d);
+  }
   const cols=n===1?1:d.width>d.height&&n>=3?3:2,rows=Math.ceil(n/cols),gapX=36,gapY=38,caption=32+24*1.4*2;
   const cellW=(d.width-144-gapX*(cols-1))/cols,cellH=(bottom-top-gapY*Math.max(0,rows-1))/Math.max(1,rows);
   photos.forEach((photo,i)=>{
@@ -63,7 +87,7 @@ export function reflowJournalPhotos(d:JournalDocument) {
     if(n===1)w=Math.min(cellW,h*1.45);
     const row=Math.floor(i/cols),inRow=Math.min(cols,n-row*cols),rowWidth=inRow*cellW+(inRow-1)*gapX;
     let x=(d.width-rowWidth)/2+(i%cols)*(cellW+gapX)+(cellW-w)/2,y=top+row*(cellH+gapY);
-    if(n===4&&d.ratio==='3:4'&&d.style!=='minimal'){
+    if(n===4&&d.ratio==='3:4'&&d.style!=='minimal'&&top<d.height*.28){
       const slot=[[.08,.25,.48,.29],[.65,.31,.27,.18],[.12,.65,.32,.20],[.53,.64,.38,.25]][i];x=d.width*slot[0];y=d.height*slot[1];w=d.width*slot[2];h=d.height*slot[3];
     }
     if(d.variant%2===0&&n>1)x=d.width-x-w;
@@ -71,6 +95,16 @@ export function reflowJournalPhotos(d:JournalDocument) {
     for(const text of d.elements.filter(e=>e.photoId===photo.id))Object.assign(text,{x,y:y+h+32,w,maxLines:2});
   });
   return fit(d);
+}
+export function compositionName(d:JournalDocument) {
+  const n=d.elements.filter(e=>e.type==='photo').length,index=((d.variant-1)%3+3)%3;
+  return (n===1?['留白主图','方寸肖像','横幅札记']:n===2?['并置双图','上下叙事','错落对话']:['照片组页','镜像组页','照片组页'])[index];
+}
+export function changeJournalRatio(d:JournalDocument,ratio:string) {
+  if(!['3:4','1:1','4:3'].includes(ratio))return false;
+  const height=ratio==='1:1'?900:ratio==='4:3'?675:1200,sy=height/d.height;
+  for(const e of d.elements)if(e.type!=='photo'&&!e.photoId){e.y*=sy;if(e.type!=='text')e.h*=sy;}
+  d.height=height;d.ratio=ratio;reflowJournalPhotos(d);return true;
 }
 export function snapshot(document:JournalDocument,selected:string):Snapshot {return {document:copy(document),selected};}
 export function recordHistory(past:Snapshot[],future:Snapshot[],before:Snapshot,document:JournalDocument) {if(JSON.stringify(before.document)===JSON.stringify(document))return false;past.push(copy(before));if(past.length>50)past.shift();future.splice(0);return true;}

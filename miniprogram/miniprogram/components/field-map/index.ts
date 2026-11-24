@@ -1,5 +1,7 @@
 import {api,hub,takeMapFocus} from '../../services/community';
 import {beijingDate} from '../../services/observation-context';
+import {layout} from '../../services/layout';
+import {mapPanes,clusterMarker} from '../../services/map-presentation';
 
 interface Pin {id:string;speciesId:string;speciesName:string;source:string;placeName:string;date:string;displayLocation:{latitude:number;longitude:number};}
 type Input=WechatMiniprogram.CustomEvent<{value:string}>;
@@ -7,12 +9,17 @@ type Bounds={minLatitude:number;maxLatitude:number;minLongitude:number;maxLongit
 type Cluster=Bounds & {latitude:number;longitude:number;count:number};
 const observations='/api/v1/map/observations';
 Component({
-  data:{_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:4,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
+  data:{headerHeight:88,fieldHeight:600,toolbarHeight:112,mapHeight:488,sheetHeight:325,sheetHeaderHeight:64,creditReserve:36,compact:false,listHeight:249,listTotal:0,listTitle:'本区域观察',wide:false,searching:false,searchError:'',_searchSeq:0,_visible:true,_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:4,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
     origin:0,origins:['全部来源','羽迹鸟友','外部鸟讯'],period:0,periods:['所有日期','今天','近七天','近三十天'],keyword:'',species:'',speciesLabel:'所有鸟种',matches:[] as any[],
     markers:[] as Array<{id:number;latitude:number;longitude:number;iconPath:string;width:number;height:number}>,selected:[] as Pin[],total:0,error:'',loading:false,dirty:false},
-  lifetimes:{ready(){void this.load();},detached(){this.data._ready=false;this.data._viewRead++;this.data._seq++;clearTimeout(this.data._timer);}},
-  pageLifetimes:{show(){const focus=takeMapFocus();if(focus){this.setData({...focus,scale:10,origin:0,period:0},()=>wx.nextTick(()=>void this.load()));}else if(this.data._ready)void this.load();}},
+  lifetimes:{ready(){this.resizeMap();void this.load();},detached(){this.data._visible=false;this.data._searchSeq++;this.data._ready=false;this.data._viewRead++;this.data._seq++;clearTimeout(this.data._timer);}},
+  pageLifetimes:{resize(){this.resizeMap();this.queueLoad();},hide(){this.data._visible=false;this.data._viewRead++;this.data._seq++;this.data._searchSeq++;clearTimeout(this.data._timer);this.setData({loading:false,searching:false});},show(){this.data._visible=true;const focus=takeMapFocus();if(focus){this.setData({...focus,scale:10,origin:0,period:0},()=>wx.nextTick(()=>void this.load()));}else if(this.data._ready)void this.load();}},
   methods:{
+    resizeMap(){const box=layout();this.setData({headerHeight:box.headerHeight,...mapPanes(box.width,box.height)});},
+    closeSearch(){this.data._searchSeq++;this.setData({matches:[],searching:false,searchError:''});wx.hideKeyboard?.();},
+    clearSpecies(){this.closeSearch();this.setData({species:'',keyword:'',speciesLabel:'所有鸟种'});void this.load();},
+    closeList(){this.data._seq++;this.setData({listOpen:false,selected:[],cursor:'',loading:false,error:''});},
+    retryRecords(){void this.showRecords(false);},
     async planTrip(){
       try{
         const map=wx.createMapContext('field-map',this);
@@ -49,8 +56,7 @@ Component({
         const res=await api(observations,'GET',{...data,zoom});
         if(seq!==this.data._seq)return;
         this.data._query=data;this.data._zoom=zoom;this.data._groups=res.clusters;
-        const markers=this.data._groups.map((group,index)=>({id:index+1,latitude:group.latitude,longitude:group.longitude,iconPath:'/assets/icons/pin.png',width:28,height:32,
-          callout:{content:group.count+' 条',display:'ALWAYS' as const,padding:4,borderRadius:5}}));
+        const markers=this.data._groups.map(clusterMarker);
         this.setData({total:res.total,markers,dirty:false});
       }catch{
         if(seq ? seq===this.data._seq : read===this.data._viewRead){
@@ -60,39 +66,50 @@ Component({
       }finally{if(seq&&seq===this.data._seq)this.setData({loading:false});}
     },
     queueLoad(){
+      if(!this.data._visible)return;
       clearTimeout(this.data._timer);
       this.data._viewRead++;
       this.data._timer=setTimeout(()=>void this.updateViewport(false),260);
     },
     moved(event:WechatMiniprogram.CustomEvent){
+      if(event.type==='begin'||event.detail?.type==='begin')this.closeSearch();
       if(this.data._ready && (event.type==='end'||event.detail?.type==='end'))this.queueLoad();
     },
     mapUpdated(){
       if(this.data._ready&&!this.data.error)this.queueLoad();
     },
     filter(event:Input){const key=event.currentTarget.dataset.field;this.setData({[key]:Number(event.detail.value)});void this.load();},
-    input(event:Input){this.setData({keyword:event.detail.value});},
-    async search(){try{const res=await api('/api/v1/species','GET',{q:this.data.keyword,limit:12});this.setData({matches:[{id:'',name:'所有鸟种'},...res.items]});}catch{this.setData({error:'搜索失败，请重试'});}},
-    species(event:WechatMiniprogram.TouchEvent){this.setData({species:event.currentTarget.dataset.id,speciesLabel:event.currentTarget.dataset.name,matches:[]});void this.load();},
+    input(event:Input){this.data._searchSeq++;this.setData({keyword:event.detail.value,matches:[],searching:false,searchError:''});},
+    async search(){
+      const seq=++this.data._searchSeq,keyword=this.data.keyword.trim();
+      if(!keyword){this.clearSpecies();return;}
+      this.setData({searching:true,searchError:''});
+      try{const res=await api('/api/v1/species','GET',{q:keyword,limit:12});
+        if(seq===this.data._searchSeq)this.setData({matches:[{id:'',name:'所有鸟种'},...res.items],searchError:res.items.length?'':'未找到鸟种，可修改关键词或查看所有鸟种。'});
+      }catch{if(seq===this.data._searchSeq)this.setData({searchError:'鸟种搜索未完成，请重试。'});}finally{if(seq===this.data._searchSeq)this.setData({searching:false});}
+    },
+    species(event:WechatMiniprogram.TouchEvent){this.closeSearch();this.setData({species:event.currentTarget.dataset.id,speciesLabel:event.currentTarget.dataset.name,keyword:event.currentTarget.dataset.id?event.currentTarget.dataset.name:''});void this.load();},
     marker(event:WechatMiniprogram.CustomEvent<{markerId:number}>){
       const group=this.data._groups[event.detail.markerId-1];if(!group||this.data.dirty)return;
+      this.closeSearch();
       if(this.data._zoom<20 && (group.minLatitude!==group.maxLatitude||group.minLongitude!==group.maxLongitude)){
         this.setData({latitude:group.latitude,longitude:group.longitude,scale:Math.min(20,this.data._zoom+2)},()=>this.queueLoad());return;
       }
       const {minLatitude,maxLatitude,minLongitude,maxLongitude}=group;
-      this.data._bounds={minLatitude,maxLatitude,minLongitude,maxLongitude};void this.showRecords(false);
+      this.data._bounds={minLatitude,maxLatitude,minLongitude,maxLongitude};this.setData({listTotal:group.count,listTitle:'此位置观察'});void this.showRecords(false);
     },
     async showRecords(append:boolean){
-      const seq=++this.data._seq;this.setData({loading:true,listOpen:true,error:''});
+      if(append&&this.data.loading)return;
+      const seq=++this.data._seq;this.setData({loading:true,listOpen:true,error:'',...(!append?{selected:[]}: {})});
       try{const res=await api(observations,'GET',{...this.data._query,...this.data._bounds,cursor:append?this.data.cursor:'',limit:60});
-        if(seq===this.data._seq)this.setData({selected:append?this.data.selected.concat(res.items):res.items,cursor:res.nextCursor});
+        if(seq===this.data._seq)this.setData({selected:append?Array.from(new Map(this.data.selected.concat(res.items).map((row:Pin)=>[row.id,row])).values()):res.items,cursor:res.nextCursor,listTotal:res.total??this.data.listTotal});
       }catch{if(seq===this.data._seq)this.setData({error:'记录加载失败，请重试。'});}finally{if(seq===this.data._seq)this.setData({loading:false});}
     },
     more(){if(this.data.cursor&&!this.data.loading)void this.showRecords(true);},
-    list(){if(this.data.listOpen){this.data._seq++;this.setData({listOpen:false,selected:[],loading:false});return;}this.data._bounds={};void this.showRecords(false);},
-    guide(event:WechatMiniprogram.TouchEvent){hub('species',event.currentTarget.dataset.id);},
+    list(){if(this.data.listOpen){this.closeList();return;}this.closeSearch();this.data._bounds={};this.setData({listTotal:this.data.total,listTitle:'本区域观察'});void this.showRecords(false);},
+    guide(event:WechatMiniprogram.TouchEvent){hub('species',event.currentTarget.dataset.id||this.data.species);},
     go(event:WechatMiniprogram.TouchEvent){hub('record',event.currentTarget.dataset.id);},
     async position(){try{const point=await wx.getLocation({type:'gcj02'});this.setData({latitude:point.latitude,longitude:point.longitude,scale:11},()=>this.queueLoad());}catch{this.setData({error:'定位不可用，可拖动地图选区。'});}},
-    async place(){try{const point=await wx.chooseLocation({});this.setData({latitude:point.latitude,longitude:point.longitude,scale:12},()=>this.queueLoad());}catch{this.setData({dirty:true});}}
+    async place(){this.closeSearch();try{const point=await wx.chooseLocation({});this.setData({latitude:point.latitude,longitude:point.longitude,scale:12},()=>this.queueLoad());}catch(error){if(!/cancel/i.test(String((error as {errMsg?:string})?.errMsg)))this.setData({error:'地点选择未完成，可拖动地图选区。'});}}
   }
 });

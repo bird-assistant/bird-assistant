@@ -273,3 +273,43 @@ test('forum writing validation rejects empty or impossible polish requests and d
   const restored=page('community',390,844,{getStorageSync:()=>saved}).p;restored.loadDraft();assert.equal(restored.data.writingPurpose,2);assert.equal(restored.data.writingInstructions,'Natural wording');
   const legacy=page('community',390,844,{getStorageSync:()=>({title:'Old title',body:'Old draft',image:''})}).p;legacy.loadDraft();assert.equal(legacy.data.body,'Old draft');assert.equal(legacy.data.writingInstructions,'');assert.equal(legacy.data.writingPurpose,1);
 });
+
+test('free deformation stretches each image axis, preserves the source and exports the same preview',async()=>{
+  const calls=[],context=new Proxy({}, {get:(_,key)=>key==='drawImage'?(...args)=>calls.push(args):()=>{},set:()=>true});
+  const node={getContext:()=>context,createImage:()=>({width:600,height:400,set src(v){queueMicrotask(()=>this.onload());}})};
+  const {p}=page('journal',390,844,{createSelectorQuery:()=>{const q={in:()=>q,select:()=>q,fields:()=>q,exec:fn=>fn([{node}])};return q;},canvasToTempFilePath:o=>o.success({tempFilePath:'wxfile://stretched.png'}),previewImage:()=>{}});
+  p.openDocument(journal.makeJournal([{id:'stretch',src:'/assets/samples/field-0.png',selected:true,label:'Stretch',notes:'',sample:true}],'Stretch'),true);
+  const photo=p.data.doc.elements.find(e=>e.type==='photo');Object.assign(photo,{iw:600,ih:400,zoom:1});p.select(tap(photo.id));
+  const source=photo.src;
+  p.lockRatio(tap('free'));assert.equal(p.data.selected.photoFit,'stretch');
+  for(const [key,value]of [['w',150],['h',400]])p.adjust({currentTarget:{dataset:{key}},detail:{value}});
+  assert.equal(p.data.selected.w,150);assert.equal(p.data.selected.h,400);
+  const preview=p.data.renderElements.find(e=>e.id===photo.id);
+  assert.deepEqual([preview.sourceX,preview.sourceY,preview.sourceW,preview.sourceH],[0,0,600,400]);
+  assert.equal(preview.imageW,150*p.data.scale);assert.equal(preview.imageH,400*p.data.scale);
+  p.data.doc.paper='plain';await p.export();
+  const pixels=calls.find(args=>args.length===9);assert.deepEqual(pixels.slice(1,5),[0,0,600,400]);assert.deepEqual(pixels.slice(7),[150,400]);
+  assert.equal(p.data.selected.src,source);assert.equal(p.data.selected.iw,600);assert.equal(p.data.selected.ih,400);
+  await p.persistDraft();const stored=journal.readJournals()[0].elements.find(e=>e.id===photo.id);assert.equal(stored.photoFit,'stretch');
+  p.openDocument(journal.readJournals()[0],false);p.select(tap(photo.id));assert.equal(p.data.selected.h,400);assert.equal(p.data.selected.photoFit,'stretch');
+});
+test('crop and deformation remain separate choices; crop cancel and undo restore the stretched image',()=>{
+  const {p}=page('journal');p.sample();p.generate();p.select(tap(p.data.doc.elements.find(e=>e.type==='photo').id));
+  p.lockRatio(tap('free'));const stretched=structuredClone(p.data.doc),past=p._past.length;
+  p.openCrop();assert.equal(p.data.cropDraft.photoFit,'cover');p.cancelCrop();assert.deepEqual(p.data.doc,stretched);assert.equal(p._past.length,past);
+  p.openCrop();p.applyCrop();assert.equal(p.data.selected.photoFit,'cover');p.undo();assert.deepEqual(p.data.doc,stretched);
+  p.photoFit(tap('cover'));assert.equal(p.data.selected.ratioLock,'free');assert.equal(p.data.selected.photoFit,'cover');p.undo();
+  p.lockRatio(tap('original'));assert.equal(p.data.selected.photoFit,'cover');assert.ok(Math.abs(p.data.selected.w/p.data.selected.h-p.data.selected.iw/p.data.selected.ih)<.001);
+});
+test('legacy free frames retain their crop, while saved stretch zoom and pan stay within the original image',()=>{
+  const {photoCrop}=require('../.test-build/services/crop.js');
+  const {p}=page('journal');p.sample();p.generate();const d=structuredClone(p.data.doc),photo=d.elements.find(e=>e.type==='photo');photo.ratioLock='free';delete photo.photoFit;
+  wx.setStorageSync(journal.JOURNAL_KEY,[d]);const legacy=journal.readJournals()[0].elements.find(e=>e.id===photo.id);
+  assert.deepEqual(photoCrop(legacy),photoCrop({...legacy,photoFit:'cover'}));
+  for(const zoom of [1,1.5,3])for(const edge of [0,100]){
+    const sample=photoCrop({...legacy,w:150,h:400,photoFit:'stretch',zoom,cropX:edge,cropY:edge});
+    assert.ok(sample.sourceX>=0&&sample.sourceY>=0);assert.ok(sample.sourceX+sample.sourceW<=photo.iw+1e-8);assert.ok(sample.sourceY+sample.sourceH<=photo.ih+1e-8);
+    assert.ok(Math.abs(sample.sourceW/sample.sourceH-photo.iw/photo.ih)<1e-8);
+  }
+  photo.photoFit='contain';wx.setStorageSync(journal.JOURNAL_KEY,[d]);assert.throws(()=>journal.readJournals(),/无法读取/);
+});

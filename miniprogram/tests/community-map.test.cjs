@@ -93,3 +93,61 @@ test('native zoom and render events refresh the settled viewport and discard lat
   assert.equal(requests.length,4);
   assert.equal(instance.data.total,30);
 });
+
+function mapInstance(context,extra={}){
+  let definition;global.Component=value=>definition=value;
+  const entry=require.resolve('../.test-build/components/field-map/index.js');delete require.cache[entry];require(entry);
+  global.wx={hideKeyboard:()=>{},getWindowInfo:()=>({windowWidth:390,windowHeight:844,screenHeight:844,statusBarHeight:24,safeArea:{bottom:810}}),getMenuButtonBoundingClientRect:()=>({top:30,bottom:62}),...extra};
+  const instance={data:structuredClone(definition.data),...definition.methods,setData(changes,done){Object.assign(this.data,changes);done?.();}};
+  context.after(()=>definition.lifetimes.detached.call(instance));
+  return {instance,definition};
+}
+test('map panes fit short, phone, tablet and resized desktop windows, with credits below bounded sheets',()=>{
+  const {mapPanes}=require('../.test-build/services/map-presentation.js');
+  for(const [width,height]of [[320,330],[390,676],[768,850],[1024,260],[1440,700]]){
+    const pane=mapPanes(width,height);assert.equal(pane.toolbarHeight+pane.mapHeight,height);
+    assert.ok(pane.sheetHeight+pane.creditReserve<=pane.mapHeight);assert.ok(pane.listHeight>0);
+    assert.equal(pane.sheetHeaderHeight+pane.listHeight+12,pane.sheetHeight);assert.equal(pane.wide,width>=700);
+  }
+  assert.equal(mapPanes(1024,260).compact,true);
+});
+test('species search dismisses the keyboard and discards a late response after edit, close and page hide',async context=>{
+  const service=require('../.test-build/services/community.js'),requests=[];
+  context.mock.method(service,'api',()=>new Promise(resolve=>requests.push(resolve)));
+  let hidden=0;const {instance,definition}=mapInstance(context,{hideKeyboard:()=>hidden++});
+  instance.data.keyword='喜鹊';const first=instance.search();instance.input({detail:{value:'鸳鸯'}});requests[0]({items:[{id:'old',name:'喜鹊'}]});await first;assert.deepEqual(instance.data.matches,[]);
+  const second=instance.search();instance.closeSearch();requests[1]({items:[{id:'closed'}]});await second;assert.deepEqual(instance.data.matches,[]);assert.equal(hidden,1);
+  const third=instance.search();definition.pageLifetimes.hide.call(instance);requests[2]({items:[{id:'hidden'}]});await third;assert.deepEqual(instance.data.matches,[]);assert.equal(instance.data.searching,false);
+});
+test('a shared-location list uses its own count, ignores closed requests, then pages without duplicate records',async context=>{
+  const service=require('../.test-build/services/community.js'),pending=[];
+  context.mock.method(service,'api',(_path,_method,query)=>new Promise(resolve=>pending.push({resolve,query})));
+  const {instance}=mapInstance(context);instance.data.total=200;instance.data._zoom=20;
+  instance.data._groups=[{latitude:39.9,longitude:116.4,minLatitude:39.9,maxLatitude:39.9,minLongitude:116.4,maxLongitude:116.4,count:2}];
+  instance.marker({detail:{markerId:1}});assert.equal(instance.data.listTotal,2);assert.equal(instance.data.listTitle,'此位置观察');
+  instance.closeList();pending[0].resolve({items:[{id:'late'}],nextCursor:'late',total:2});await new Promise(resolve=>setImmediate(resolve));assert.equal(instance.data.listOpen,false);assert.deepEqual(instance.data.selected,[]);
+  instance.list();pending[1].resolve({items:[{id:'a'}],nextCursor:'next',total:200});await new Promise(resolve=>setImmediate(resolve));assert.equal(instance.data.listTotal,200);assert.equal(instance.data.listTitle,'本区域观察');
+  instance.more();instance.more();assert.equal(pending.length,3);assert.equal(pending[2].query.cursor,'next');pending[2].resolve({items:[{id:'a'},{id:'b'}],nextCursor:'',total:200});await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(instance.data.selected.map(x=>x.id),['a','b']);
+});
+test('map markers avoid persistent labels and component controls do not capture native map gestures',()=>{
+  const {clusterMarker}=require('../.test-build/services/map-presentation.js'),fs=require('node:fs');
+  const cluster=clusterMarker({latitude:39,longitude:116,count:320},0),single=clusterMarker({latitude:39,longitude:116,count:1},1);
+  assert.equal(cluster.callout.display,'BYCLICK');assert.equal(cluster.label.content,'320');assert.equal(single.label,undefined);assert.equal(single.width,26);
+  const markup=fs.readFileSync('miniprogram/components/field-map/index.wxml','utf8');
+  assert.match(markup,/<scroll-view[^>]*class="record-scroll"[^>]*height:\{\{listHeight\}\}px/);assert.doesNotMatch(markup,/catch(?:touch|:touch)/);
+  const css=fs.readFileSync('miniprogram/components/field-map/index.wxss','utf8');assert.doesNotMatch(css,/(?:^|[},])\s*(?:button|view|input|text|picker)(?:\W|$)/m);assert.doesNotMatch(css,/53vh/);
+});
+
+test('an unavailable observation image collapses its media box and a refreshed record can try again',async context=>{
+  const service=require('../.test-build/services/community.js');
+  context.mock.method(service,'api',async()=>({id:'obs_1',speciesName:'灰喜鹊',source:'iNaturalist',image:'https://example.invalid/photo.jpg',visibility:'public'}));
+  context.mock.method(service,'sessionState',()=> 'out');
+  context.mock.method(service,'imageUrl',value=>value||'');
+  let definition;global.Page=value=>definition=value;global.wx={getWindowInfo:()=>({windowWidth:390})};
+  const entry=require.resolve('../.test-build/field/hub/index.js');delete require.cache[entry];require(entry);
+  const page={...definition,data:{...structuredClone(definition.data),screen:'record',id:'obs_1'},setData(changes){Object.assign(this.data,changes);}};
+  await page.load();page.photoLoaded({detail:{width:1200,height:400}});assert.ok(page.data.photoHeight<120);
+  page.photoError();assert.equal(page.data.photoFailed,true);
+  const fs=require('node:fs'),markup=fs.readFileSync('miniprogram/field/hub/index.wxml','utf8');assert.match(markup,/wx:if="\{\{photo && !photoFailed\}\}"/);assert.match(markup,/class="photo-unavailable"/);
+  await page.load();assert.equal(page.data.photoFailed,false);assert.ok(page.data.photo);page.onUnload();
+});

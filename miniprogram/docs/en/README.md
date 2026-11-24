@@ -1,4 +1,6 @@
-# Bird Assistant native WeChat client — 0.2.9
+# Bird Assistant native WeChat client — 0.4.1
+
+2026-11-24 · **0.4.1**: [map home and true photo deformation](MAP-AND-PHOTO-0.4.1.md). Synced with team d59be67; 114 client tests and 461 backend tests passed (51 skipped). Live Qwen, full Issue #23 cards and native-device acceptance remain pending. Older handoff sections below describe their historical checkpoints; this paragraph and the new release note define current status.
 
 2026-11-24 · **0.4.0**: [手帐恢复、版式与Qwen业务接入](../JOURNAL-0.4.0.md) / [English](JOURNAL-0.4.0.md). 本轮保留c6571c2的视觉/地图/社区接入；完整Issue23观察卡、真实Qwen部署及媒体/真机验收仍待完成。
 

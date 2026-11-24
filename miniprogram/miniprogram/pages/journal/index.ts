@@ -162,7 +162,14 @@ Page({
     if(value!==null){const event={...e,detail:{value}};if(crop)this.previewCrop(event);else this.adjust(event);}else if(!crop)this.cancelAdjustment();
     this.setData({numberEditing:''});
   },
-  openCrop(){this.finishAdjustment();const a=this.data.selected;if(a?.type!=='photo')return;this.setData({cropOpen:true,cropDraft:copy(a),numberEditing:'',numberDrafts:{}});this.refresh();},
+  photoFit(e:Touch){
+    const d=this.data.doc,a=this.data.selected,mode=String(e.currentTarget.dataset.id);
+    if(!d||a?.type!=='photo'||!['cover','stretch'].includes(mode))return;
+    const before=this.before();a.photoFit=mode as 'cover'|'stretch';
+    if(mode==='stretch')setRatioLock(a,'free',d);
+    this.commit(before);
+  },
+  openCrop(){this.finishAdjustment();const a=this.data.selected;if(a?.type!=='photo')return;this.setData({cropOpen:true,cropDraft:{...copy(a),photoFit:'cover'},numberEditing:'',numberDrafts:{}});this.refresh();},
   previewCrop(e:WechatMiniprogram.CustomEvent<{value:number|string}>){
     if(e.currentTarget.dataset.control==='slider'&&this.data.numberEditing)this.setData({numberEditing:''});
     const draft=this.data.cropDraft,key=String(e.currentTarget.dataset.key),value=Number(e.detail.value);if(!draft||!Number.isFinite(value))return;
@@ -172,7 +179,7 @@ Page({
   finishCropPreview(e:WechatMiniprogram.CustomEvent<{value:number|string}>){this.previewCrop(e);this.flushPendingPreview();},
   resetCrop(){const draft=this.data.cropDraft;if(draft){this.setData({cropDraft:{...draft,zoom:1,cropX:50,cropY:50},numberEditing:'',numberDrafts:{}});this.refresh();}},
   cancelCrop(){this.setData({cropOpen:false,cropDraft:null,numberEditing:'',numberDrafts:{}});this.refresh();},
-  applyCrop(){const draft=this.data.cropDraft,d=this.data.doc;if(!draft||!d)return;const before=this.before(),a=d.elements.find(e=>e.id===draft.id);if(a)Object.assign(a,{zoom:draft.zoom,cropX:draft.cropX,cropY:draft.cropY});this.setData({cropOpen:false,cropDraft:null,numberEditing:'',numberDrafts:{}});this.commit(before);},
+  applyCrop(){const draft=this.data.cropDraft,d=this.data.doc;if(!draft||!d)return;const before=this.before(),a=d.elements.find(e=>e.id===draft.id);if(a)Object.assign(a,{zoom:draft.zoom,cropX:draft.cropX,cropY:draft.cropY,photoFit:'cover'});this.setData({cropOpen:false,cropDraft:null,numberEditing:'',numberDrafts:{}});this.commit(before);},
   dragStart(e:Touch){const d=this.data.doc,t=e.touches[0];if(!d||!t)return;const id=String(e.currentTarget.dataset.id);this.setData({selectedId:id,backgroundSelected:false});const a=d.elements.find(a=>a.id===id)!;this._drag={before:this.before(),x:t.clientX,y:t.clientY,element:copy(a),resize:e.currentTarget.dataset.resize==='yes'};this.refresh();},
   dragMove(e:Touch){const g=this._drag,t=e.touches[0],d=this.data.doc;if(!g||!t||!d)return;const a=d.elements.find(a=>a.id===g.element.id)!;if(g.resize){if(a.type==='photo'){const dx=(t.clientX-g.x)/(this.data.scale*this.data.paperScale),dy=(t.clientY-g.y)/(this.data.scale*this.data.paperScale);if(ratioLock(a)==='free'){resizePhoto(a,'w',Math.max(60,g.element.w+dx),d);resizePhoto(a,'h',Math.max(60,g.element.h+dy),d);}else{const key=Math.abs(dx/g.element.w)>=Math.abs(dy/g.element.h)?'w':'h';resizePhoto(a,key,Math.max(60,(key==='w'?g.element.w+dx:g.element.h+dy)),d);}}else{a.w=clamp(g.element.w+(t.clientX-g.x)/(this.data.scale*this.data.paperScale),60,d.width-a.x);if(a.type!=='text')a.h=clamp(g.element.h+(t.clientY-g.y)/(this.data.scale*this.data.paperScale),60,d.height-a.y);}}else{a.x=clamp(g.element.x+(t.clientX-g.x)/(this.data.scale*this.data.paperScale),0,d.width-a.w);a.y=clamp(g.element.y+(t.clientY-g.y)/(this.data.scale*this.data.paperScale),0,d.height-Math.min(a.h,45));}this.queuePreview();},
   dragEnd(){if(this._drag){const before=this._drag.before;this._drag=null;this.commit(before);}},

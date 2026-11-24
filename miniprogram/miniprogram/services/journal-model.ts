@@ -1,6 +1,6 @@
 import { clamp } from './map-model';
 import { round2, floor2 } from './numbers';
-export interface JournalElement { id:string;type:string;x:number;y:number;w:number;h:number;rotation:number;color:string;title:string;text:string;fontSize:number;font:string;src:string;photoNumber:number;ratioLock?:'current'|'original'|'free';lockedRatio?:number;photoId?:string;titleSize?:number;maxLines?:number;zoom:number;cropX:number;cropY:number;persisted:boolean;iw:number;ih:number; }
+export interface JournalElement { id:string;type:string;x:number;y:number;w:number;h:number;rotation:number;color:string;title:string;text:string;fontSize:number;font:string;src:string;photoNumber:number;photoFit?:'cover'|'stretch';ratioLock?:'current'|'original'|'free';lockedRatio?:number;photoId?:string;titleSize?:number;maxLines?:number;zoom:number;cropX:number;cropY:number;persisted:boolean;iw:number;ih:number; }
 export interface JournalDocument { version:1;id:string;title:string;ratio:string;style:string;width:number;height:number;background:string;variant:number;elements:JournalElement[];updatedAt:string;period?:string;paper?:string; }
 export interface JournalAsset {id:string;src:string;label:string;notes:string;sample:boolean;selected:boolean;persisted?:boolean;source?:string;date?:string;width?:number;height?:number;}
 export interface Snapshot { document:JournalDocument;selected:string; }
@@ -135,6 +135,7 @@ export function readJournals():JournalDocument[] {
   const valid=(d:any)=>d&&d.version===1&&typeof d.id==='string'&&typeof d.title==='string'&&typeof d.updatedAt==='string'&&typeof d.background==='string'&&
     [d.width,d.height].every(n=>typeof n==='number'&&Number.isFinite(n)&&n>0)&&Array.isArray(d.elements)&&
     d.elements.every((e:any)=>e&&typeof e.id==='string'&&typeof e.type==='string'&&typeof e.text==='string'&&typeof e.src==='string'&&(e.lockedRatio==null||(Number.isFinite(e.lockedRatio)&&e.lockedRatio>0))&&
+      (e.photoFit==null||['cover','stretch'].includes(e.photoFit))&&
       (e.ratioLock==null||['current','original','free'].includes(e.ratioLock))&&
       [e.x,e.y,e.w,e.h,e.rotation,e.fontSize,e.zoom,e.cropX,e.cropY,e.iw,e.ih].every(n=>typeof n==='number'&&Number.isFinite(n))&&e.w>0&&e.h>0)&&
     new Set(d.elements.map((e:any)=>e.id)).size===d.elements.length;

@@ -89,7 +89,7 @@ jobs:
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"
       YOLO_AUTOINSTALL: "false"
-      YOLO_CONFIG_DIR: ${{ runner.temp }}
+      YOLO_CONFIG_DIR: /tmp/bird-assistant-yolo
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
     steps:

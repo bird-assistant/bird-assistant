@@ -124,7 +124,7 @@ test('failed journal export always releases loading, keeps the editable document
   t.mock.method(console,'warn',()=>{});let broken=true,exported=0,previewed=0,source='';
   const context=new Proxy({}, {get:()=>()=>{},set:()=>true});const node={getContext:()=>context,createImage:()=>({width:600,height:400,set src(v){source=v;queueMicrotask(()=>broken?this.onerror(new Error('bad')):this.onload());}})};
   const {p}=page('journal',390,844,{createSelectorQuery:()=>{const q={in:()=>q,select:()=>q,fields:()=>q,exec:fn=>fn([{node}])};return q;},canvasToTempFilePath:o=>{assert.equal(o.canvas,node);exported++;o.success({tempFilePath:'wxfile://export.png'});},previewImage:()=>previewed++});
-  p.openDocument(journal.makeJournal([{id:'a',src:'assets/samples/field-0.png',selected:true,label:'A',notes:'',sample:true}],'Keep'),true);const before=structuredClone(p.data.doc);
+  p.openDocument(journal.makeJournal([{id:'a',src:'assets/samples/field-0.png',selected:true,label:'A',notes:'',sample:true}],'Keep'),true);p.data.doc.paper='plain';const before=structuredClone(p.data.doc);
   await p.export();assert.equal(p.data.exporting,false);assert.equal(exported,0);assert.ok(p.data.error);assert.deepEqual(p.data.doc,before);assert.equal(source,'/assets/samples/field-0.png');
   broken=false;await p.export();assert.equal(p.data.exporting,false);assert.equal(exported,1);assert.equal(previewed,1);assert.equal(p.data.exportPath,'wxfile://export.png');assert.deepEqual(p.data.doc,before);
 });
@@ -138,10 +138,10 @@ test('composition changes keep captions with photos and undo restores both; resi
   const before=structuredClone(p.data.doc.elements.find(e=>e.id===photo.id));p.dragStart({currentTarget:{dataset:{id:photo.id,resize:'yes'}},touches:[{clientX:50,clientY:50}]});p.dragMove({touches:[{clientX:70,clientY:80}]});p.dragEnd();const resized=p.data.doc.elements.find(e=>e.id===photo.id);assert.ok(resized.w>before.w&&resized.h>before.h);p.undo();assert.deepEqual(p.data.doc.elements.find(e=>e.id===photo.id),before);
 });
 test('AI writing brief includes only explicitly checked photos and sends no network request',()=>{
-  const {p}=page('journal');p.sample();p.generate();p.openAi();for(const image of p.data.aiPhotos.slice(1))p.aiPhoto(tap(image.id));p.prepareAi();assert.match(p.data.bundleSummary,/1 张关联图片/);assert.match(p.data.error,/尚未发送请求/);
+  const {p}=page('journal');p.sample();p.generate();p.openAi();for(const image of p.data.aiPhotos.slice(1))p.aiPhoto(tap(image.id));p.prepareAi();assert.match(p.data.bundleSummary,/1 张关联图片/);assert.match(p.data.error,/补充写作要求/);
 });
-test('an unsaved journal cannot be silently replaced from the library',()=>{
-  const messages=[];const {p}=page('journal',390,844,{showToast:o=>messages.push(o.title)});p.sample();p.generate();const id=p.data.doc.id;p.setData({view:'home'});p.newJournal();assert.equal(p.data.doc.id,id);assert.equal(p.data.view,'home');assert.equal(messages.length,1);
+test('a failed autosave retains the current journal instead of replacing it',async()=>{
+  const {p}=page('journal',390,844,{setStorageSync:()=>{throw Error('quota');}});p.sample();p.generate();const id=p.data.doc.id;p.setData({view:'home'});p.newJournal();await new Promise(resolve=>setImmediate(resolve));assert.equal(p.data.doc.id,id);assert.equal(p.data.view,'home');assert.match(p.data.error,/自动保存未完成/);p.onUnload();
 });
 test('canvas and layer selection identify the same element without changing the journal or undo history',()=>{
   const {p}=page('journal');p.sample();p.generate();const photo=p.data.doc.elements.find(e=>e.type==='photo');
@@ -150,14 +150,13 @@ test('canvas and layer selection identify the same element without changing the 
   const text=p.data.doc.elements.find(e=>e.type==='text');p.openLayers();p.select(tap(text.id));assert.equal(p.data.layersOpen,false);assert.equal(p.data.selected.id,text.id);assert.equal(p.data.selectedName,journal.elementLabel(text,p.data.doc));assert.deepEqual(p.data.doc,before);assert.equal(p._past.length,0);
   p.remove();assert.equal(p.data.selectedName,'');assert.ok(!p.data.labels.some(e=>e.id===text.id));p.undo();assert.equal(p.data.selectedName,journal.elementLabel(p.data.selected,p.data.doc));assert.deepEqual(p.data.doc,before);
 });
-test('resume retains current unsaved edits and history, while saved cards reopen only the latest explicit save',async()=>{
-  const storage=new Map(),extra={getStorageSync:k=>structuredClone(storage.get(k)||''),setStorageSync:(k,v)=>storage.set(k,structuredClone(v)),showToast:()=>{},showModal:o=>o.success({confirm:true})};
+test('autosaved text survives navigation and a fresh page resumes the last opened journal',async()=>{
+  const storage=new Map(),extra={getStorageSync:k=>structuredClone(storage.get(k)||''),setStorageSync:(k,v)=>storage.set(k,structuredClone(v)),showToast:()=>{}};
   const {p}=page('journal',390,844,extra);p.sample();p.generate();await p.save();const id=p.data.doc.id,text=p.data.doc.elements.find(e=>e.type==='text');p.select(tap(text.id));
-  const saved=structuredClone(p.data.doc);p.text({currentTarget:{dataset:{key:'text'}},detail:{value:'Unsaved observation'}});p.back();const current=structuredClone(p.data.doc),past=p._past.length;assert.ok(past>0);assert.equal(p.data.view,'home');assert.equal(p.data.dirty,true);
-  p.resume();assert.equal(p.data.view,'editor');assert.deepEqual(p.data.doc,current);assert.equal(p._past.length,past);assert.equal(p.data.selectedId,text.id);assert.deepEqual(storage.get(journal.JOURNAL_KEY)[0],saved);
-  const fresh=page('journal',390,844,extra).p;fresh.onShow();assert.equal(fresh.data.doc,null);fresh.openDraft(tap(id));assert.equal(fresh.data.doc.id,saved.id);assert.deepEqual(fresh.data.doc.elements,saved.elements);assert.equal(fresh._past.length,0);assert.equal(fresh.data.dirty,false);
-  p.save();await new Promise(resolve=>setImmediate(resolve));assert.equal(p.data.dirty,false);assert.equal(storage.get(journal.JOURNAL_KEY).length,1);assert.equal(storage.get(journal.JOURNAL_KEY)[0].elements.find(e=>e.id===text.id).text,'Unsaved observation');
-  const reopened=page('journal',390,844,extra).p;reopened.onShow();reopened.openDraft(tap(id));assert.equal(reopened.data.doc.elements.find(e=>e.id===text.id).text,'Unsaved observation');assert.equal(reopened._past.length,0);
+  p.text({currentTarget:{dataset:{key:'text'}},detail:{value:'Automatically durable observation'}});p.back();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(p.data.view,'home');assert.equal(p.data.dirty,false);assert.ok(p._past.length>0);assert.equal(storage.get(journal.JOURNAL_KEY).length,1);
+  const fresh=page('journal',390,844,extra).p;fresh.onShow();assert.equal(fresh.data.doc.id,id);fresh.resume();assert.equal(fresh.data.doc.elements.find(e=>e.id===text.id).text,'Automatically durable observation');assert.equal(fresh._past.length,0);assert.equal(fresh.data.dirty,false);
+  p.onUnload();fresh.onUnload();
 });
 test('background touch dismisses search and keyboard while marker targets are outside the gesture catcher',()=>{
   let hides=0;const {p}=page('home',390,844,{hideKeyboard:()=>hides++});p.searchFocus();assert.equal(p.data.searchOpen,true);p.touchStart({touches:[{clientX:180,clientY:300}]});p.touchEnd();assert.equal(p.data.searchOpen,false);assert.equal(p.data.searchFocused,false);assert.equal(hides,1);
@@ -172,10 +171,10 @@ test('slider changing previews rounded dimensions immediately and a complete dra
   for(const value of [180.12345,250.99999,333.456]){p.previewAdjust(event(value));assert.equal(p.data.selected.w,Number(value.toFixed(2)));assert.equal(p._past.length,past);}
   p.adjust(event(333.456));assert.equal(p._past.length,past+1);p.undo();assert.equal(p.data.selected.w,original);p.redo();assert.equal(p.data.selected.w,333.46);
 });
-test('typed values share slider bounds, reject third decimals, and rotation reset is undoable for every element type',()=>{
+test('pixel drafts accept integers, rotations retain precision, and reset is undoable for every element type',()=>{
   const {p}=page('journal');p.sample();p.generate();const photo=p.data.doc.elements.find(e=>e.type==='photo');p.select(tap(photo.id));
   const input=(key,value)=>({currentTarget:{dataset:{key}},detail:{value}});
-  assert.equal(p.numberInput(input('w','104.93')),'104.93');assert.equal(p.data.selected.w,104.93);assert.equal(p.numberInput(input('w','104.931')),'104.93');p.numberCommit(input('w','104.93'));assert.equal(p.data.selected.w,104.93);
+  assert.equal(p.numberInput(input('w','104')),'104');assert.equal(p.data.selected.w,104);assert.equal(p.numberInput(input('w','104.93')),'104');p.numberCommit(input('w','104'));assert.equal(p.data.pixels.w,104);p.lockRatio({currentTarget:{dataset:{id:'free'}}});
   p.numberInput(input('w','9999'));p.numberCommit(input('w','9999'));assert.equal(p.data.selected.w,p.data.maxWidth);
   for(const type of ['photo','text','leaf']){const e=p.data.doc.elements.find(e=>e.type===type);p.select(tap(e.id));p.numberInput(input('rotation','-22.35'));p.numberCommit(input('rotation','-22.35'));assert.equal(p.data.selected.rotation,-22.35);p.resetRotation();assert.equal(p.data.selected.rotation,0);p.undo();assert.equal(p.data.selected.rotation,-22.35);}
 });
@@ -205,7 +204,7 @@ test('confirmed photo crop exports the same sampled rectangle as the editor prev
   p.openDocument(journal.makeJournal([{id:'crop',src:'/assets/samples/field-0.png',selected:true,label:'Crop',notes:'',sample:true}],'Crop'),true);
   const photo=p.data.doc.elements.find(e=>e.type==='photo');Object.assign(photo,{iw:600,ih:400});p.select(tap(photo.id));p.openCrop();
   for(const [key,value]of Object.entries({zoom:2.25,cropX:81.23,cropY:12.34}))p.previewCrop({currentTarget:{dataset:{key}},detail:{value}});p.applyCrop();
-  const preview=p.data.renderElements.find(e=>e.id===photo.id);await p.export();const pixels=calls.find(args=>args.length===9);assert.ok(pixels);assert.deepEqual(pixels.slice(1,5),[preview.sourceX,preview.sourceY,preview.sourceW,preview.sourceH]);assert.equal(p.data.exportPath,'wxfile://crop.png');assert.equal(p.data.error,'');
+  p.data.doc.paper='plain';const preview=p.data.renderElements.find(e=>e.id===photo.id);await p.export();const pixels=calls.find(args=>args.length===9);assert.ok(pixels);assert.deepEqual(pixels.slice(1,5),[preview.sourceX,preview.sourceY,preview.sourceW,preview.sourceH]);assert.equal(p.data.exportPath,'wxfile://crop.png');assert.equal(p.data.error,'');
 });
 test('arbitrary avatar rotations remain covered and reset returns the preview to zero',()=>{
   const {avatarCrop}=require('../.test-build/services/crop.js');

@@ -1,5 +1,7 @@
 # Bird Assistant native WeChat client — 0.2.9
 
+2026-11-24 · **0.4.0**: [手帐恢复、版式与Qwen业务接入](../JOURNAL-0.4.0.md) / [English](JOURNAL-0.4.0.md). 本轮保留c6571c2的视觉/地图/社区接入；完整Issue23观察卡、真实Qwen部署及媒体/真机验收仍待完成。
+
 Current development version **0.3.0**: [journal layouts, preview performance and Qwen setup](JOURNAL-0.3.0.md) · [recognition delivery contract](../RECOGNITION-HANDOFF.md). Client/server adapters are implemented; real gateway/credentials and phone acceptance remain pending. The0.2.9 handoff below describes the imported baseline.
 
 [中文](../../README.md) · [Verification](../../TESTING.md) · [Integration status](../INTEGRATION-STATUS.md)

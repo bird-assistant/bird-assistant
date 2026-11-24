@@ -5,6 +5,7 @@ import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..'),require=createRequire(import.meta.url);
 const {makeJournal,textLayout,compositionName}=require(resolve(root,'.test-build/services/journal-model.js'));
+const {paperSource}=require(resolve(root,'.test-build/services/journal-paper.js'));
 const {photoCrop}=require(resolve(root,'.test-build/services/crop.js'));
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const images=new Map();
@@ -15,6 +16,7 @@ for(let n=1;n<=2;n++)for(let variant=1;variant<=3;variant++){
   for(const photo of d.elements.filter(e=>e.type==='photo')){const bytes=readFileSync(resolve(root,'miniprogram','.'+photo.src));photo.iw=bytes.readUInt32BE(16);photo.ih=bytes.readUInt32BE(20);}
   const x=60+(variant-1)*460,y=128+(n-1)*674,scale=.45;
   body+=`<text x="${x}" y="${y}" font-size="20" fill="#285b49">${n} 张 · ${esc(compositionName(d))}</text><g transform="translate(${x},${y+24}) scale(${scale})"><rect width="900" height="1200" fill="${d.background}"/>`;
+  const texture=paperSource(d.paper);if(texture)body+=`<use href="${image(texture)}" x="0" y="0" width="900" height="1200"/>`;
   for(const e of d.elements){
     if(e.type==='photo'){
       const c=photoCrop(e),id='clip-'+n+'-'+variant+'-'+e.photoNumber;

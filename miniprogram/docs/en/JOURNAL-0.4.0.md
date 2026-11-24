@@ -1,0 +1,23 @@
+# 0.4.0: durable journals and shared writing integration
+
+24 November2026, Asia/Shanghai. [中文](../JOURNAL-0.4.0.md). Based on team main `c6571c2`, preserving the newly integrated vision/map/community modules.
+
+Photos have three independent resize policies: capture the current frame ratio, use decoded original-image ratio, or edit width/height freely. Pixel fields display/accept integers while geometry retains precision; rotation/crop remain fractional. Bounds preserve the ratio and changes remain undoable.
+
+Journal changes autosave after roughly700ms of inactivity and flush when navigating. Temporary images become durable before acknowledging a save. Failed storage retains the current edits and previous copy; retry reuses already-persisted files. Last-opened identity is remembered for restart/resume. Corrupt/unknown old journals are not overwritten. This is local durability, not cloud sync, and process termination before acknowledgment may lose the final pending edit.
+
+Templates are previewed using the current images/crops before applying. Portrait pairs start with a dominant image and an offset detail rather than forced twin portrait crops. Short pages use available space and unequal scale. Real-image aesthetics still need iteration. Five paper textures plus plain/six colours and twelve original ornaments are available; SVG sources and a PNG rebuild script are included. Runtime PNGs for textures/decorations total approximately165KiB. Secondary actions are visibly filled/outlined.
+
+Recognition candidates can open the existing species page by the exact subject/candidate species ID. Missing IDs show an explicit unavailable state; browsing does not confirm a species or publish private media. The catalogue/public records are not yet a complete identification knowledge base.
+
+Journal and existing forum writing share the authenticated Python business route `POST /api/v1/journal/suggestions`. Only explicitly selected, bounded JPEG copies and text are sent. Suggestions require preview and explicit apply; cancellation/stale responses do not overwrite or publish. Autosave timestamps do not falsely invalidate unchanged content. No provider key is in the client.
+
+The active server adapter is `backend/src/bird_business/writing.py` in the team repo, using existing MobileAuth/SQLite. The older Node module is a historical prototype. Server controls include authenticated identity,6MiB streamed input, up to four1024px/1MiB pictures, metadata redraw, strict fields/output, Beijing-day per-user quota, two provider tasks per process, timeouts and safe errors without automatic retry. Cancelling the client does not guarantee cancellation of paid upstream work; accepted attempts count toward quota. Multiple workers require host-wide limiting.
+
+Deploy the updated business service and Caddy/NGINX routes, forwarding `/api/v1/journal/*` to8200. Configure only server-side `BIRD_BUSINESS_QWEN_API_KEY`, `BIRD_BUSINESS_QWEN_BASE_URL` (Beijing account endpoint), optional `BIRD_BUSINESS_QWEN_MODEL` (default`qwen3-vl-plus`) and `BIRD_BUSINESS_QWEN_DAILY_REQUESTS` (default20). **No deployment, key acquisition, spending or real Qwen call occurred here.** A missing key gives503; an older deployment may give404.
+
+PR22 is merged; newer team commits added live vision and business/map/community integration. Private development must retain these changes while keeping the owner's established checkout/origin. Liu owns vision work; this batch focuses on journals/shared writing and adds the candidate information link. Forum ownership remains a team decision; the existing implementation is preserved.
+
+Still open: complete issue23's durable post-shutter observation card, capture without forced review, per-target confirmation/restart recovery; audio gateway integration and imported-video frame analysis; sourced identification traits/similar species/reference photos; independent model evaluation and Huawei/iOS/Android lifecycle/performance acceptance. The supplied Beijing55-place/25-winter-entry deck is reference material, not field research or current sightings; no guessed coordinates were imported. SRS live/photo/private-observationP0 remains intact; journals remain an explicitly requested extension.
+
+Run `npm run verify` for the client and the backend CPU tests/Ruff checks. Automated geometry/mock-network/storage checks do not establish native usability or real model quality. See the Chinese document for acceptance and primary design/API references. Use Qwen for copy/limited design intent and a local editable layout engine for geometry; no custom model training or runtime Canva dependency is introduced.

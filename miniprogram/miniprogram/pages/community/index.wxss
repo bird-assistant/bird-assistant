@@ -6,3 +6,5 @@
 .writing-image-option{display:flex;align-items:center;justify-content:flex-start;gap:10px;width:100%;min-height:64px;margin-top:14px;padding:10px;background:#edf3e7;font-size:12px;text-align:left}
 .writing-image-option image{width:44px;height:44px;flex:none;border-radius:7px}.writing-checkbox{width:19px;height:19px;flex:none;display:flex;align-items:center;justify-content:center;border:1px solid #a8bba0;border-radius:4px;background:#fffef9;color:#285b49}
 .writing-summary{padding:14px;background:#eef2e8;border:1px solid #d6e0ce;border-radius:12px;color:#385b43;font-size:12px;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.post-ai-canvas{position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;pointer-events:none}

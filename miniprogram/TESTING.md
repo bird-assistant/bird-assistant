@@ -1,5 +1,7 @@
 # 本轮验证 / Verification
 
+2026-11-24 · **0.4.0**: [手帐恢复、版式与Qwen业务接入](docs/JOURNAL-0.4.0.md) / [English](docs/en/JOURNAL-0.4.0.md). 本轮保留c6571c2的视觉/地图/社区接入；完整Issue23观察卡、真实Qwen部署及媒体/真机验收仍待完成。
+
 日期：2026-11-18（Asia/Shanghai）；客户端版本0.2.9。
 
 ## 已执行

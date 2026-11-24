@@ -1,5 +1,7 @@
 # 羽迹原生微信小程序 · 0.2.9
 
+2026-11-24 · **0.4.0**: [手帐恢复、版式与Qwen业务接入](docs/JOURNAL-0.4.0.md) / [English](docs/en/JOURNAL-0.4.0.md). 本轮保留c6571c2的视觉/地图/社区接入；完整Issue23观察卡、真实Qwen部署及媒体/真机验收仍待完成。
+
 当前开发版本 **0.3.0**：[手帐构图/性能/Qwen设置](docs/JOURNAL-0.3.0.md) · [给识别负责人的交接合同](docs/RECOGNITION-HANDOFF.md)。一/双图优先，滑杆局部预览；Qwen客户端与服务端适配已写，真实网关/凭证和真机验收仍待配置。下面0.2.9交接说明保留其基线含义。
 
 [English](docs/en/README.md) · [验证记录](TESTING.md) · [接入与地图协作边界](docs/INTEGRATION-STATUS.md)

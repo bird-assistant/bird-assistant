@@ -196,6 +196,12 @@ Page({
       if(generation===this._analysisGeneration){this._photoJob=null;this.setData({analyzing:false});}
     }
   },
+  candidateInfo(event:WechatMiniprogram.TouchEvent){
+    const subject=this.data.analysis?.subjects.find(item=>item.rank===Number(event.currentTarget.dataset.subject));
+    const candidate=subject?.candidates.find(item=>item.rank===Number(event.currentTarget.dataset.rank));
+    if(candidate?.speciesId)hub('species',candidate.speciesId);
+    else wx.showToast({title:'该候选的鸟种资料待补充，识别结果仍保留',icon:'none'});
+  },
   confirmCandidate(event:WechatMiniprogram.TouchEvent){
     if(this.data.busy||this.data.analysis?.example)return;
     const selection=event.currentTarget.dataset;

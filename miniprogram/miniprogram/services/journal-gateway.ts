@@ -20,7 +20,7 @@ export async function prepareJournalPhotos(page:WechatMiniprogram.Page.TrivialIn
 }
 
 /** Installation is explicit in the gateway bootstrap; never put a DashScope key in the app. */
-export function journalGatewayTransport(options:{endpoint:string;session:()=>Promise<string>;prepare:(input:JournalAiInput)=>Promise<Array<{id:string;label:string;dataUrl:string}>>}):JournalAiTransport {
+export function journalGatewayTransport(options:{endpoint:string;session:()=>Promise<string>;invalidate?:()=>void;prepare:(input:JournalAiInput)=>Promise<Array<{id:string;label:string;dataUrl:string}>>}):JournalAiTransport {
   if(!/^https:\/\/[^\s@?#]+\//.test(options.endpoint)||/aliyuncs\.com|api\.openai\.com/i.test(options.endpoint))throw new Error('A team HTTPS gateway is required');
   return {generate(input){
     let cancelled=false,task:WechatMiniprogram.RequestTask|undefined;
@@ -29,7 +29,7 @@ export function journalGatewayTransport(options:{endpoint:string;session:()=>Pro
       if(cancelled)throw new Error('Cancelled');
       const images=await options.prepare(input);if(cancelled)throw new Error('Cancelled');
       if(images.length!==input.images.length||images.some((p,i)=>p.id!==input.images[i].id))throw new Error('所选照片不一致，请重新准备。');
-      return new Promise<unknown>((resolve,reject)=>{task=wx.request({url:options.endpoint,method:'POST',timeout:25000,header:{Authorization:'Bearer '+token},data:{version:1,requestId:input.requestId,prompt:input.prompt,purpose:input.purpose,maxChars:input.maxChars,images},success:r=>{if(r.statusCode===200){resolve(r.data);return;}const code=(r.data as {error?:{code?:string}})?.error?.code||'';const messages:Record<string,string>={AUTH_REQUIRED:'用户会话已过期，请重新进入。',NOT_CONFIGURED:'团队 Qwen 网关尚未完成配置，原文仍保留。',RATE_LIMITED:'AI 服务繁忙或额度已用完，请稍后重试。',TIMEOUT:'AI 请求超时，原文仍保留。',INVALID_OUTPUT:'AI 建议未通过检查，原文未修改。'};reject(new JournalAiError(code,messages[code]||'手帐服务请求未完成，原文仍保留。'));},fail:()=>reject(new Error('手帐服务请求未完成。'))});});
+      return new Promise<unknown>((resolve,reject)=>{task=wx.request({url:options.endpoint,method:'POST',timeout:25000,header:{Authorization:'Bearer '+token},data:{version:1,requestId:input.requestId,prompt:input.prompt,purpose:input.purpose,maxChars:input.maxChars,images},success:r=>{if(r.statusCode===200){resolve(r.data);return;}if(r.statusCode===401)options.invalidate?.();const code=(r.data as {error?:{code?:string}})?.error?.code||'';const messages:Record<string,string>={AUTH_REQUIRED:'用户会话已过期，请重试。',AUTH_INVALID:'用户会话已过期，请重试。',NOT_CONFIGURED:'团队 Qwen 网关尚未完成配置，原文仍保留。',RATE_LIMITED:'AI 服务繁忙或额度已用完，请稍后重试。',TIMEOUT:'AI 请求超时，原文仍保留。',INVALID_OUTPUT:'AI 建议未通过检查，原文未修改。'};reject(new JournalAiError(code,messages[code]||'手帐服务请求未完成，原文仍保留。'));},fail:()=>reject(new Error('手帐服务请求未完成。'))});});
     })();
     return {result,cancel(){cancelled=true;task?.abort();}};
   }};

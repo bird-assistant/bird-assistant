@@ -14,6 +14,11 @@ from threading import RLock
 from bird_common.errors import ServiceError
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS trip_requests(owner TEXT NOT NULL,created TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS trip_request_time ON trip_requests(created);
+CREATE TABLE IF NOT EXISTS trip_turns(owner TEXT NOT NULL, request TEXT NOT NULL, turn TEXT NOT NULL UNIQUE,
+ fingerprint TEXT NOT NULL, created TEXT NOT NULL, history TEXT, response TEXT, PRIMARY KEY(owner,request));
+CREATE INDEX IF NOT EXISTS trip_turn_time ON trip_turns(created);
 CREATE TABLE IF NOT EXISTS members(id TEXT PRIMARY KEY, subject TEXT NOT NULL UNIQUE);
 CREATE TABLE IF NOT EXISTS taxa(id TEXT PRIMARY KEY, scientific TEXT, name TEXT, english TEXT, family TEXT,
  sensitive INTEGER, version TEXT);

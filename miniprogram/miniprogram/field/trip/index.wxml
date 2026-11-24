@@ -1,0 +1,32 @@
+<view class="page trip">
+  <view class="title">这次想去哪里看鸟？</view>
+  <view class="card"><view class="heading">{{place}}</view><view class="muted" wx:if="{{point}}">约 {{point.latitude}}°, {{point.longitude}}° · 仅使用大致区域</view>
+    <view class="controls"><button bindtap="locate">使用我的位置</button><button bindtap="pick">地图选点</button></view>
+    <view class="controls"><picker mode="date" start="{{today}}" end="{{lastDay}}" value="{{date}}" data-field="date" bindchange="filters">{{date}} ▾</picker>
+      <picker range="{{times}}" value="{{hour}}" data-field="hour" bindchange="filters">{{times[hour]}} 出发 ▾</picker></view>
+    <view class="controls"><picker range="{{durations}}" value="{{hours-1}}" data-field="hours" bindchange="filters">停留 {{hours}} 小时 ▾</picker>
+      <picker range="{{ranges}}" value="{{radius===10?0:radius===30?1:2}}" data-field="radius" bindchange="filters">范围 {{radius}} 公里 ▾</picker></view>
+    <view class="muted">北京时间 · {{speciesLabel}}</view><button wx:if="{{species}}" bindtap="allBirds">改看所有鸟种</button></view>
+  <view class="controls"><button data-text="第一次观鸟，哪个区域比较近？" bindtap="prompt">第一次观鸟</button><button data-text="想拍鸟，哪里近期记录比较多？" bindtap="prompt">摄影选点</button></view>
+  <view wx:for="{{exchanges}}" wx:key="turn" class="card"><view class="heading">{{item.question}}</view><text selectable>{{item.answer}}</text></view>
+  <textarea placeholder="想看什么鸟？有多少时间？也可以继续追问。" value="{{question}}" maxlength="240" bindinput="input" disabled="{{busy}}"/>
+  <view class="muted">提交后将问题、大致区域、出行条件和必要的对话上下文发给阿里云百炼。</view>
+  <button class="ask" bindtap="ask" disabled="{{busy}}" loading="{{busy}}">{{busy?'正在查询天气和鸟讯':answer?'继续咨询':'生成出行建议'}}</button><view wx:if="{{error}}" class="error">{{error}}</view>
+  <block wx:if="{{answer}}"><view class="card"><view class="heading">{{asked}}</view>
+    <view class="muted">{{windowLabel}} · 北京时间 · {{answer.model}}</view><view wx:if="{{answer.focus}}">目标鸟种 · {{answer.focus}}</view><text selectable>{{answer.answer}}</text>
+    <view wx:for="{{answer.sources}}" wx:key="id" class="muted">[{{item.id}}] {{item.label}}</view>
+    <button wx:for="{{answer.guideCards}}" wx:key="id" data-id="{{item.id}}" bindtap="bird">{{item.name}}图鉴</button><button bindtap="restart">新咨询</button></view>
+    <view class="card" wx:for="{{answer.weatherCards}}" wx:key="id" wx:for-item="forecast"><view class="heading">{{forecast.area}}天气</view><view wx:if="{{!forecast.available}}">该时段暂无预报</view>
+      <view wx:for="{{forecast.hours}}" wx:key="hour" class="weather">{{item.hour}}　{{item.temp}} °C　风 {{item.wind}} m/s　{{item.rain===null?'降水量未知':item.rain+' mm/h'}}</view>
+      <view class="muted">{{forecast.source}}</view></view>
+    <view wx:if="{{answer.stages.length}}" class="card"><view class="heading">观鸟时段安排</view><view wx:for="{{answer.stages}}" wx:key="time"><text>{{item.time}}　</text>{{item.action}}</view></view>
+    <view wx:if="{{answer.parks.length}}" class="card"><view class="heading">可以踏查的公园</view><view class="muted">出发前请核对入口和开放时间。</view>
+      <button wx:for="{{answer.parks}}" wx:key="source" data-index="{{index}}" bindtap="park">{{item.name}} · 距起点约 {{item.km}} 公里 ›</button></view>
+    <view class="card" wx:for="{{answer.stops}}" wx:key="index" wx:for-item="stop"><view class="heading">{{index+1}} · {{stop.name}}</view>
+      <view>距起点约 {{stop.km}} 公里（直线）</view><view class="muted">近一年 {{stop.count}} 条公开记录 · 最近 {{stop.latest}} · 同月份 {{stop.seasonal}} 条</view>
+      <view wx:for="{{stop.birds}}" wx:key="id" wx:for-item="species"><view>{{species.name}} · 曾记录 {{species.count}} 次</view>
+        <view class="controls"><button data-id="{{species.id}}" bindtap="bird">鸟种图鉴</button><button data-id="{{species.record}}" bindtap="record">查看鸟讯</button></view></view>
+      <button data-index="{{index}}" bindtap="map">在地图查看此区域</button>
+      <button wx:if="{{stop.park}}" data-source="site" data-index="{{index}}" bindtap="park">附近参观点 · {{stop.park.name}} ›</button></view>
+    <view class="muted">鸟讯显示约十公里的公开区域。历史记录供选择地点时参考，实际遇见的鸟种随当天情况变化。</view></block>
+</view>

@@ -16,6 +16,7 @@ from bird_business.guide_api import router as guide_router
 from bird_business.metrics import BusinessMetrics
 from bird_business.social import router as social_router
 from bird_business.social_groups import router as groups_router
+from bird_business.trip import router as trip_router
 from bird_common.app_factory import build_service_app
 from bird_common.mobile_auth import MobileAuth
 from bird_common.mobile_auth import router as mobile_router
@@ -69,6 +70,7 @@ def create_app(settings: BusinessSettings | None = None, *, store: ObservationSt
     service.include_router(admin_router)
     service.include_router(community_router)
     service.include_router(guide_router)
+    service.include_router(trip_router)
     service.include_router(social_router)
     service.include_router(groups_router)
     return service

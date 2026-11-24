@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +29,10 @@ class BusinessSettings(BaseSettings):
     max_note_length: int = Field(default=2000, ge=0, le=20_000)
 
     api_keys: str = ""
+    trip_api_key: SecretStr = SecretStr("")
+    trip_workspace: str = Field(default="", pattern=r"^(?:|[a-z0-9][a-z0-9-]{0,61}[a-z0-9])$")
+    trip_model: str = Field(default="qwen-plus", pattern=r"^qwen[a-zA-Z0-9._-]{0,79}$")
+    trip_global_hourly: int = Field(default=100, ge=1, le=10000)
     admin_password_sha256: str = Field(default="", pattern=r"^(?:|[a-f0-9]{64})$")
     wechat_app_id: str = ""
     wechat_app_secret: str = ""

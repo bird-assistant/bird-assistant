@@ -5,7 +5,7 @@ project=$(cd "$(dirname "$0")/../.." && pwd)
 release=$(ssh "$host" 'sudo mktemp -d /opt/bird-assistant/releases/community-XXXXXXXX')
 [[ $release =~ ^/opt/bird-assistant/releases/community-[A-Za-z0-9]+$ ]]
 tar -C "$project" --exclude=__pycache__ -czf - src/bird_business src/bird_common config/catalog \
-  deploy/course/{campus-8080.caddy,community-sync.service,community-sync.timer,admin-credentials.py} |
+  deploy/course/{campus-8080.caddy,community-sync.service,community-sync.timer,admin-credentials.py,configure-trip.py} |
   ssh "$host" "sudo tar -xzf - -C '$release' && sudo chmod 755 '$release'"
 ssh "$host" "sudo bash -se -- '$release'" <<'REMOTE'
 set -euo pipefail
@@ -34,7 +34,7 @@ rollback() {
 trap rollback ERR
 ln -sfnT "$release" "$root/community-current"
 python3 "$release/deploy/course/admin-credentials.py"
-printf '[Service]\nEnvironment=PYTHONPATH=%s/src\nEnvironmentFile=/etc/bird-assistant/admin.env\n' "$release" > "$drop"
+printf '[Service]\nEnvironment=PYTHONPATH=%s/src\nEnvironmentFile=/etc/bird-assistant/admin.env\nEnvironmentFile=-/etc/bird-assistant/trip.env\n' "$release" > "$drop"
 install -m 644 "$release/deploy/course/campus-8080.caddy" "$site"
 caddy validate --config /etc/caddy/Caddyfile >/dev/null
 systemctl daemon-reload

@@ -10,6 +10,14 @@ Component({
   lifetimes:{ready(){void this.load();},detached(){this.data._seq++;}},
   pageLifetimes:{show(){const focus=takeMapFocus();if(focus){this.setData({...focus,scale:10,origin:0,period:0},()=>wx.nextTick(()=>void this.load()));}else if(this.data._ready)void this.load();}},
   methods:{
+    async planTrip(){
+      try{
+        const map=wx.createMapContext('field-map',this);
+        const center=await new Promise<WechatMiniprogram.GetCenterLocationSuccessCallbackResult>((resolve,reject)=>map.getCenterLocation({success:resolve,fail:reject}));
+        const latitude=center.latitude.toFixed(1),longitude=center.longitude.toFixed(1);
+        wx.navigateTo({url:`/field/trip/index?lat=${latitude}&lon=${longitude}&species=${encodeURIComponent(this.data.species)}&label=${encodeURIComponent(this.data.speciesLabel)}`});
+      }catch{wx.navigateTo({url:'/field/trip/index'});}
+    },
     async load(){
       this.data._ready=true;const seq=this.data._seq=(this.data._seq||0)+1;this.setData({loading:true,error:'',selected:[]});
       try{

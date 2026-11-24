@@ -29,6 +29,12 @@ class BusinessMetrics:
             "Observation rows currently stored",
             registry=self.registry,
         )
+        self.trip_runs = Counter(
+            "bird_trip_runs_total", "Cloud trip runs by outcome", ["outcome"], registry=self.registry
+        )
+        self.trip_tokens = Counter(
+            "bird_trip_success_tokens_total", "Reported tokens of completed trip runs", registry=self.registry
+        )
 
     def render(self) -> bytes:
         return generate_latest(self.registry)

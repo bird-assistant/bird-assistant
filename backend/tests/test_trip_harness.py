@@ -104,6 +104,27 @@ def test_validation_repair_and_no_fabricated_fallback(advisor, monkeypatch):
     assert client.post(ROUTE, headers=owner, json={**body, "requestId": "question-002"}).is_success
 
 
+def test_prose_then_valid_park_with_separate_evidence(advisor, monkeypatch):
+    client, (owner, _), body = advisor
+    requests = []
+
+    def chat(settings, payload, timeout):
+        requests.append(payload)
+        if len(requests) == 1:
+            return {"content": "红嘴蓝鹊的出行建议如下。"}
+        assert payload["response_format"] == {"type": "json_object"}
+        if len(requests) == 2:
+            return final(sources=["P99"])
+        return final(sources=["F0", "W0"], stages=[{"offsetMinutes": 120, "action": "结束观察"}])
+
+    monkeypatch.setattr(trip_harness, "cloud_chat", chat)
+    response = client.post(ROUTE, headers=owner, json={**body, "question": "我想看红嘴蓝鹊，应该去哪里"})
+    assert response.is_success and len(requests) == 3
+    plan = response.json()
+    assert [source["id"] for source in plan["sources"]] == ["F0", "W0", "P1"]
+    assert plan["parks"] and plan["stages"][0]["time"] == "09:00"
+
+
 def test_auth_cost_limits_and_unconfigured(advisor, monkeypatch):
     client, (owner, _), body = advisor
     assert client.post(ROUTE, json=body).status_code == 401

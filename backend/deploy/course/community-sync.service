@@ -1,5 +1,5 @@
 [Unit]
-Description=Import licensed iNaturalist bird observations through GBIF
+Description=Import licensed iNaturalist and Birda bird observations through GBIF
 After=network-online.target bird-business.service
 [Service]
 Type=oneshot

@@ -120,6 +120,32 @@ def media_candidate(record, scientific):
     return None
 
 
+def fetch_bytes(url, limit):
+    with urlopen(
+        Request(url, headers={"User-Agent": "BirdAssistant/1.0 field guide"}), timeout=6
+    ) as response:
+        content = response.read(limit + 1)
+    if len(content) > limit:
+        raise ValueError("reference too large")
+    return content
+
+
+@lru_cache(maxsize=48)
+def observation_thumbnail(url):
+    if not re.fullmatch(
+        r"https://inaturalist-open-data\.s3\.amazonaws\.com/photos/\d+/medium\.(jpg|jpeg|png)", url, re.I
+    ):
+        raise ValueError("unknown photo")
+    with Image.open(BytesIO(fetch_bytes(url, 3000000))) as image:
+        if image.width * image.height > 5000000:
+            raise ValueError("reference too large")
+        rendered = ImageOps.exif_transpose(image).convert("RGB")
+        rendered.thumbnail((720, 720))
+        output = BytesIO()
+        rendered.save(output, "JPEG", quality=82)
+        return output.getvalue()
+
+
 def fetch_reference(scientific):
     query = urlencode(
         {
@@ -132,24 +158,13 @@ def fetch_reference(scientific):
         doseq=True,
     )
 
-    def fetch(url, limit):
-        with urlopen(
-            Request(url, headers={"User-Agent": "BirdAssistant/1.0 field guide"}), timeout=6
-        ) as response:
-            content = response.read(limit + 1)
-        if len(content) > limit:
-            raise ValueError("reference too large")
-        return content
-
-    for record in json.loads(fetch("https://api.gbif.org/v1/occurrence/search?" + query, 2000000))["results"]:
+    for record in json.loads(fetch_bytes("https://api.gbif.org/v1/occurrence/search?" + query, 2000000))[
+        "results"
+    ]:
         candidate = media_candidate(record, scientific)
         if candidate:
-            with Image.open(BytesIO(fetch(candidate.pop("download"), 3000000))) as image:
-                if image.width * image.height > 5000000:
-                    continue
-                rendered = ImageOps.exif_transpose(image).convert("RGB")
-                rendered.thumbnail((720, 720))
-                output = BytesIO()
-                rendered.save(output, "JPEG", quality=82)
-            return candidate, output.getvalue()
+            try:
+                return candidate, observation_thumbnail(candidate.pop("download"))
+            except ValueError:
+                continue
     return None

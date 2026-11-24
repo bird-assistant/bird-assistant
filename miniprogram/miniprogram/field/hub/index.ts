@@ -2,7 +2,7 @@ import {api,community,Draft,getDraft,hub,imageUrl,key,openMap,Point,privatePhoto
 
 import {compareBirds,picture} from '../../services/field-guide';
 
-const names:Record<string,string>={external:'iNaturalist 公开鸟讯',library:'鸟种资料库',species:'鸟种资料',record:'观察与讨论',publish:'发布观察',
+const names:Record<string,string>={external:'外部社区鸟讯',library:'鸟种资料库',species:'鸟种资料',record:'观察与讨论',publish:'发布观察',
   feed:'鸟友讨论',mine:'我的发布',observations:'私人观察',bookmarks:'我的收藏',inbox:'私聊',chat:'与鸟友私聊',growth:'徽章与成长'};
 type Tap=WechatMiniprogram.TouchEvent;
 type Input=WechatMiniprogram.CustomEvent<{value:string}>;
@@ -11,7 +11,7 @@ function message(error:unknown){return error instanceof Error?error.message:'请
 Page({
   data:{featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
     draft:null as Draft|null,anonymous:true,shareDate:false,shareCamera:false,sharePhoto:true,map:false,post:true,
-    preview:null as any,previewLines:[] as string[],photo:'',replySpecies:'',self:'',selectedSpecies:'',matches:[] as any[]},
+    externalPage:0,externalNext:false,preview:null as any,previewLines:[] as string[],photo:'',replySpecies:'',self:'',selectedSpecies:'',matches:[] as any[]},
   _media:'',_sighting:'',_generation:0,_submitKey:'',_path:'',
   onLoad(options:Record<string,string|undefined>){
     const screen=options.screen&&names[options.screen]?options.screen:'feed';
@@ -26,6 +26,16 @@ Page({
     void this.load();
   },
   onUnload(){this._generation++;},
+  copyCredit(event:Tap){void wx.setClipboardData({data:event.currentTarget.dataset.url});},
+  onShareAppMessage(){
+    const record=this.data.record;
+    if(this.data.screen==='record' && record?.sourceUrl && record.visibility==='public'){
+      return {title:`${record.speciesName} · ${record.source}`,path:'/field/hub/index?screen=record&id='+encodeURIComponent(record.id)};
+    }
+    return {title:'羽迹 · 外部社区鸟讯',path:'/field/hub/index?screen=external'};
+  },
+  externalPage(event:Tap){const page=this.data.externalPage+Number(event.currentTarget.dataset.direction);
+    if(this.data.busy||page<0)return;this.setData({externalPage:page});void this.load();},
   async onPullDownRefresh(){try{await this.load();}finally{wx.stopPullDownRefresh();}},
   async load(){
     const {screen,id,keyword}=this.data;const generation=++this._generation;
@@ -36,10 +46,10 @@ Page({
     if(!routes[screen])return;
     this.setData({busy:true,error:''});
     try{
-      const result=await api(routes[screen]);if(generation!==this._generation)return;
+      const result=screen==='external'?await api(routes.external,'GET',{limit:40,offset:this.data.externalPage*40}):await api(routes[screen]);if(generation!==this._generation)return;
       if(screen==='library')this.setData({featured:(result.featured||[]).map((bird:{id:string;photo:object|null})=>({...bird,image:bird.photo?picture(bird.id):''}))});
       const items=result.items||result.records||[];
-      this.setData({items,record:{...result,image:imageUrl(result.image)},photo:imageUrl(result.image)});
+      this.setData({items,externalNext:result.hasMore??items.length===40,record:{...result,image:imageUrl(result.image)},photo:imageUrl(result.image)});
       if(screen==='species'){
         const responses=await Promise.all([api(routes.species+'/places'),api(community+'/posts','GET',{species:id})]);
         const places=responses[0],posts=responses[1];

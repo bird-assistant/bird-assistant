@@ -148,18 +148,19 @@ class TripEvidence:
             or not set(answer.sources) <= self.sources.keys()
         ):
             raise ValueError("unknown reference")
-        if not set(answer.destinations) <= set(answer.sources) or len(answer.destinations) != len(
-            set(answer.destinations)
-        ):
-            raise ValueError("destination citation")
+        if len(answer.destinations) != len(set(answer.destinations)):
+            raise ValueError("duplicate destination")
         offsets = [stage.offsetMinutes for stage in answer.stages]
-        if sorted(set(offsets)) != offsets or any(offset >= self.hours * 60 for offset in offsets):
+        if sorted(set(offsets)) != offsets or any(offset > self.hours * 60 for offset in offsets):
             raise ValueError("invalid itinerary")
 
     def render(self, answer):
         return {
             "answer": answer.answer,
-            "sources": [{"id": key, "label": self.sources[key]} for key in dict.fromkeys(answer.sources)],
+            "sources": [
+                {"id": key, "label": self.sources[key]}
+                for key in dict.fromkeys([*answer.sources, *answer.destinations])
+            ],
             "stops": [self.sites[key] for key in answer.destinations if key in self.sites],
             "parks": [self.parks[key] for key in answer.destinations if key in self.parks],
             "weatherCards": list(self.weather.values()),

@@ -11,6 +11,7 @@ def main():
         description="验证线上地图咨询首问、追问和重复提交。配置密钥后会调用云端模型。"
     )
     parser.add_argument("--host", default="ubuntu@49.233.81.227")
+    parser.add_argument("--question", default="带孩子在北京观鸟，明早两小时怎样安排？请核对首选地的天气。")
     args = parser.parse_args()
     issuer = """from bird_common.mobile_auth import MobileAuth
 from bird_business.config import BusinessSettings
@@ -37,7 +38,7 @@ print(MobileAuth(settings,()).issue('trip-smoke-'+uuid4().hex))"""
         "date": str(tomorrow),
         "startHour": 7,
         "species": "",
-        "question": "带孩子在北京观鸟，明早两小时怎样安排？请核对首选地的天气。",
+        "question": args.question,
         "requestId": uuid4().hex,
     }
     path = "/api/v1/map/trip-plan"

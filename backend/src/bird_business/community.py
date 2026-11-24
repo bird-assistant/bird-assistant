@@ -23,7 +23,7 @@ from bird_business.community_store import (
     relationship,
     uid,
 )
-from bird_business.field_guide import field_marks, guide
+from bird_business.field_guide import field_marks, guide, observation_thumbnail
 from bird_common.auth import Principal, require_principal
 from bird_common.errors import ServiceError
 
@@ -403,7 +403,7 @@ def public(row: sqlite3.Row) -> dict:
         "visibility": "public",
         "observedAt": None,
         "updatedAt": row["created"],
-        "image": ROOT + "/publications/" + row["id"] + "/photo" if media else "",
+        "image": ROOT + "/publications/" + row["id"] + "/photo" if media or info.get("sourcePhoto") else "",
     }
 
 
@@ -415,9 +415,21 @@ def visible(db, record):
 def photo(record: str, database: DB):
     with database.transaction() as db:
         row = visible(db, record)
-        media = json.loads(row["display"]).get("media")
-        contents = one(db, "SELECT jpeg FROM photos WHERE id=? AND owner=?", media, row["owner"])["jpeg"]
-        return Response(contents, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+        display = json.loads(row["display"])
+        external_photo = display.get("sourcePhoto") if row["owner"] == "gbif" else None
+        if not external_photo:
+            contents = one(
+                db, "SELECT jpeg FROM photos WHERE id=? AND owner=?", display.get("media"), row["owner"]
+            )["jpeg"]
+            return Response(contents, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+    try:
+        return Response(
+            observation_thumbnail(external_photo["download"]),
+            media_type="image/jpeg",
+            headers={"Cache-Control": "public,max-age=600"},
+        )
+    except (OSError, ValueError) as error:
+        raise ServiceError("PHOTO_UNAVAILABLE", "原社区照片暂不可用", 503) from error
 
 
 @router.get(ROOT + "/publications/{record}")
@@ -470,9 +482,9 @@ def external(database: DB, limit: Limit = 60, offset: Annotated[int, Query(ge=0)
         rows = db.execute(
             "SELECT * FROM publications WHERE owner='gbif' AND status='approved' "
             "ORDER BY day DESC,id LIMIT ? OFFSET ?",
-            (limit, offset),
-        )
-        return {"items": [public(row) for row in rows]}
+            (limit + 1, offset),
+        ).fetchall()
+        return {"items": [public(row) for row in rows[:limit]], "hasMore": len(rows) > limit}
 
 
 @router.get(ROOT + "/mine")
@@ -515,6 +527,7 @@ def map_records(
     endDate: str = "",
     cursor: str = "",
     limit: Limit = 60,
+    zoom: Annotated[int | None, Query(ge=3, le=20)] = None,
 ):
     if minLatitude > maxLatitude or (startDate and endDate and startDate > endDate):
         raise ServiceError("INVALID_BOUNDS", "invalid map filters", 422)
@@ -545,6 +558,38 @@ def map_records(
         limit=limit + 1,
     )
     with database.transaction() as db:
+        if zoom is not None:
+            span = (
+                (maxLongitude - minLongitude) % 360
+                if minLongitude > maxLongitude
+                else maxLongitude - minLongitude
+            )
+            step = 360 / 2 ** (zoom + 2)
+            while step * 32 < max(span, maxLatitude - minLatitude):
+                step *= 2
+            args["step"] = step
+            groups = db.execute(
+                """SELECT count(*) AS size, avg(lat) AS lat, avg(lon) AS lon,
+                min(lat) AS south, max(lat) AS north, min(lon) AS west, max(lon) AS east
+                FROM ("""
+                + source
+                + """) GROUP BY cast((lat+90)/:step AS integer),
+                cast((lon+180)/:step AS integer)""",
+                args,
+            )
+            clusters = [
+                dict(
+                    count=row["size"],
+                    latitude=row["lat"],
+                    longitude=row["lon"],
+                    minLatitude=row["south"],
+                    maxLatitude=row["north"],
+                    minLongitude=row["west"],
+                    maxLongitude=row["east"],
+                )
+                for row in groups
+            ]
+            return {"total": sum(group["count"] for group in clusters), "clusters": clusters}
         total = db.execute("SELECT count(*) FROM (" + source + ")", args).fetchone()[0]
         if cursor:
             stamp, sep, key = cursor.partition("|")

@@ -111,7 +111,6 @@ jobs:
         run: |
           python - <<'PY'
           from datetime import UTC, datetime, timedelta
-          from math import isclose
 
           import open_clip
           import torch
@@ -133,8 +132,13 @@ jobs:
               (RawDetection(Box(12, 10, 52, 50), 0.2),), now + timedelta(milliseconds=100)
           )[0]
           assert second is first and second.hits == 2
-          assert isclose(second.detection_score, 0.2, rel_tol=0, abs_tol=1e-6), second.detection_score
-          assert not tracker.update((), now + timedelta(milliseconds=200))
+          assert second.detection_score == 0.2, second.detection_score
+          missed = tracker.update((), now + timedelta(milliseconds=200))
+          assert len(missed) == 1 and missed[0] is first
+          assert first.missed_frames == 1 and first.predicted_box is not None
+          assert first.hits == 2 and first.last_seen_at == now + timedelta(milliseconds=100)
+          assert len(tracker.update((), now + timedelta(milliseconds=300))) == 1
+          assert not tracker.update((), now + timedelta(milliseconds=400))
           tracker.clear()
           print(f"CPU compatibility passed: torch={torch.__version__}, torchvision={torchvision.__version__}")
           PY

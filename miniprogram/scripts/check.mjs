@@ -17,7 +17,8 @@ for(const entry of app.tabBar.list){
   assert(app.pages.includes(entry.pagePath),'Tab route is not a page: '+entry.pagePath);
   for(const key of ['iconPath','selectedIconPath'])assert(existsSync(resolve(root,'miniprogram',entry[key])),'Missing tab asset: '+entry[key]);
 }
-for(const route of [...app.pages,'custom-tab-bar/index','components/app-header/index']){
+const subpages=(app.subpackages||app.subPackages||[]).flatMap(group=>group.pages.map(page=>group.root+'/'+page));
+for(const route of [...app.pages,...subpages,'custom-tab-bar/index','components/app-header/index','components/field-map/index']){
   const base=resolve(root,'miniprogram',route);
   for(const ext of ['ts','json','wxml','wxss'])assert(existsSync(base+'.'+ext),'Missing '+route+'.'+ext);
   JSON.parse(readFileSync(base+'.json','utf8'));

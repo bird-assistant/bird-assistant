@@ -59,7 +59,7 @@ class VisionPipeline:
             track.best_quality = max(track.best_quality, quality)
             eligible = (
                 track.hits >= self.settings.track_confirm_hits
-                and track.box.short_side >= self.settings.min_recognizable_side_px
+                and self._recognizable(track)
             )
             if (
                 self.species.backend != "disabled"
@@ -122,17 +122,26 @@ class VisionPipeline:
             ),
         )
 
+    def _recognizable(self, track: Track) -> bool:
+        return track.box.short_side >= self.settings.min_recognizable_side_px or (
+            track.box.short_side >= self.settings.live_small_subject_min_side_px
+            and track.hits >= self.settings.track_confirm_hits
+            and track.detection_score >= max(0.5, self.settings.detection_confidence)
+        )
+
     def _should_classify(self, track: Track, quality: float, now_mono: float) -> bool:
         if self.species.backend == "disabled":
             return False
         if track.hits < self.settings.track_confirm_hits:
             return False
-        if track.box.short_side < self.settings.min_recognizable_side_px:
+        if not self._recognizable(track):
             return False
         if track.last_classified_monotonic is None:
             return True
         if now_mono - track.last_classified_monotonic < self.settings.classification_cooldown_seconds:
             return False
+        if track.species_prediction is not None and not track.species_prediction.accepted:
+            return True
         if now_mono - track.last_classified_monotonic >= self.settings.classification_refresh_seconds:
             return True
         required = track.last_classified_quality * (1.0 + self.settings.classification_min_quality_gain)
@@ -364,7 +373,7 @@ class VisionPipeline:
     def _track_response(self, track: Track, width: int, height: int) -> TrackResponse:
         box = track.predicted_box or track.box
         normalized = box.normalized(width, height)
-        recognizable = track.box.short_side >= self.settings.min_recognizable_side_px
+        recognizable = self._recognizable(track)
         if self.species.backend == "disabled":
             species = SpeciesResultResponse(
                 state="unavailable",

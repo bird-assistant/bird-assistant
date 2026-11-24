@@ -100,6 +100,7 @@ class Settings(BaseSettings):
     track_max_missed_frames: int = Field(default=5, ge=0, le=120)
     track_confirm_hits: int = Field(default=3, ge=1, le=120)
     min_recognizable_side_px: int = Field(default=64, ge=8, le=4096)
+    live_small_subject_min_side_px: int = Field(default=40, ge=8, le=4096)
     species_max_crop_side_px: int = Field(default=1024, ge=64, le=4096)
     crop_padding_ratio: float = Field(default=0.15, ge=0.0, le=1.0)
     classification_cooldown_seconds: float = Field(default=5.0, ge=0.0, le=3600.0)
@@ -110,6 +111,7 @@ class Settings(BaseSettings):
 
     # One-shot photo analysis (POST /api/v1/vision/analyses).
     photo_max_subjects: int = Field(default=3, ge=1, le=10)
+    photo_min_recognizable_side_px: int = Field(default=32, ge=8, le=4096)
 
     cors_origins: str = ""
 

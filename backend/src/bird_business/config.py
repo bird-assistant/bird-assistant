@@ -23,11 +23,13 @@ class BusinessSettings(BaseSettings):
     log_level: str = "INFO"
 
     database_path: Path = Path("runtime/observations.sqlite3")
+    catalog_path: Path = Path(__file__).resolve().parents[2] / "config/catalog/avilist_v2026_global.csv"
     default_page_size: int = Field(default=20, ge=1, le=200)
     max_page_size: int = Field(default=100, ge=1, le=500)
     max_note_length: int = Field(default=2000, ge=0, le=20_000)
 
     api_keys: str = ""
+    admin_password_sha256: str = Field(default="", pattern=r"^(?:|[a-f0-9]{64})$")
     wechat_app_id: str = ""
     wechat_app_secret: str = ""
     mobile_signing_key: str = Field(default="", pattern=r"^(?:|[a-f0-9]{64})$")

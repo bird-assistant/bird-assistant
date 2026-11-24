@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "羽迹", "usingComponents": {} }
+{ "navigationBarTitleText": "羽迹", "usingComponents": {"field-map":"/components/field-map/index"} }

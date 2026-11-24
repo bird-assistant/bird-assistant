@@ -1,0 +1,68 @@
+<view class="page social">
+  <view wx:if="{{error}}" class="note error">{{error}} <button size="mini" bindtap="start">重新加载</button></view>
+  <view wx:if="{{!ready}}" class="note">正在获取账号…</view>
+  <view wx:elif="{{!active}}" class="card">
+    <view class="title">加入鸟友社区</view><view class="muted">使用当前微信账号登录，首次登录可创建鸟友号。</view>
+    <button class="primary" loading="{{working}}" bindtap="login">微信登录 / 注册</button>
+  </view>
+  <view wx:elif="{{error && !registered && !self}}" class="note">请重新加载账号资料。</view>
+  <view wx:elif="{{!registered || editing}}" class="card">
+    <view class="title">{{registered ? '编辑社区资料' : '创建鸟友账号'}}</view>
+    <view class="label">社区昵称</view><input maxlength="24" value="{{form.nickname}}" data-field="nickname" bindinput="formInput" placeholder="鸟友看到的名字" />
+    <view class="label">鸟友号</view><input maxlength="24" value="{{form.handle}}" data-field="handle" bindinput="formInput" placeholder="3–24 位字母、数字或下划线" />
+    <view class="label">个人简介</view><textarea maxlength="160" value="{{form.bio}}" data-field="bio" bindinput="formInput" placeholder="喜欢在哪里观鸟？" />
+    <view class="label">社区头像</view><view class="choices"><button wx:for="{{avatars}}" wx:key="*this" class="avatar-choice {{form.avatar === item ? 'picked' : ''}}" data-field="avatar" data-value="{{item}}" bindtap="choice"><image src="/assets/avatars/{{item}}.png" /></button></view>
+    <view class="line"><text>允许通过鸟友号或昵称搜索</text><switch checked="{{form.discoverable}}" bindchange="toggleSearch" color="#285b49" /></view>
+    <view class="label">允许谁发私信</view><view class="choices"><button class="{{form.dm === 'friends' ? 'picked' : ''}}" data-field="dm" data-value="friends" bindtap="choice">好友</button><button class="{{form.dm === 'everyone' ? 'picked' : ''}}" data-field="dm" data-value="everyone" bindtap="choice">所有鸟友</button></view>
+    <view class="label">谁能查看我收藏的公开内容</view><view class="choices"><button wx:for="{{visibilities}}" wx:key="*this" class="{{form.bookmarks === item ? 'picked' : ''}}" data-field="bookmarks" data-value="{{item}}" bindtap="choice">{{visibilityNames[index]}}</button></view>
+    <button class="primary" bindtap="save" loading="{{working}}">{{registered ? '保存修改' : '完成注册'}}</button>
+    <button wx:if="{{editing}}" bindtap="cancel">取消</button><button wx:else bindtap="logout">退出本机账号</button>
+  </view>
+  <block wx:elif="{{screen === 'account'}}">
+    <view class="card identity"><image src="/assets/avatars/{{account.avatar}}.png"/><view><view class="title">{{account.nickname}}</view><view>@{{account.handle}}</view><view class="muted">{{account.bio}}</view></view></view>
+    <button class="primary" bindtap="edit">编辑社区资料与隐私</button>
+    <view class="choices"><button data-screen="member" data-id="{{self}}" bindtap="go">我的主页</button><button data-screen="friends" bindtap="go">我的好友</button><button data-screen="inbox" bindtap="go">私信与通知</button><button data-screen="groups" bindtap="go">我的群聊</button><button data-screen="blocked" bindtap="go">屏蔽名单</button></view>
+    <button bindtap="logout">退出本机账号</button>
+  </block>
+  <block wx:elif="{{screen === 'friends'}}">
+    <view class="line"><input maxlength="64" value="{{term}}" data-field="term" bindinput="input" bindconfirm="search" placeholder="搜索昵称或完整鸟友号"/><button bindtap="search">搜索</button></view>
+    <view wx:if="{{searched}}" class="card"><view class="strong">搜索结果</view><button wx:for="{{matches}}" wx:key="id" data-screen="member" data-id="{{item.id}}" bindtap="go">{{item.nickname}} · @{{item.handle}}</button><view wx:if="{{!matches.length}}" class="muted">没有找到可搜索的鸟友。</view></view>
+    <view class="section-title">收到的申请 · {{incoming.length}}</view>
+    <view class="card" wx:for="{{incoming}}" wx:key="id"><button data-screen="member" data-id="{{item.id}}" bindtap="go">{{item.nickname}} · @{{item.handle}}</button><view class="choices"><button class="picked" data-op="accept" data-id="{{item.id}}" bindtap="mutate">接受</button><button data-op="decline" data-id="{{item.id}}" bindtap="mutate">拒绝</button></view></view>
+    <view class="section-title">我的好友 · {{accepted.length}}</view>
+    <view wx:if="{{!accepted.length}}" class="muted">搜一个鸟友号，或从讨论作者的主页发起好友申请。</view>
+    <view class="line card" wx:for="{{accepted}}" wx:key="id"><button data-screen="member" data-id="{{item.id}}" bindtap="go">{{item.nickname}} · @{{item.handle}}</button><button data-screen="chat" data-id="{{item.id}}" bindtap="go">私信</button></view>
+    <view wx:if="{{outgoing.length}}" class="section-title">等待对方确认</view><view class="line card" wx:for="{{outgoing}}" wx:key="id"><text>{{item.nickname}}</text><button data-op="cancel" data-id="{{item.id}}" bindtap="mutate">撤回申请</button></view>
+  </block>
+  <block wx:elif="{{screen === 'member' && member}}">
+    <view class="identity card"><image src="/assets/avatars/{{member.profile.avatar}}.png"/><view><view class="title">{{member.profile.nickname}}</view><view wx:if="{{member.profile.handle}}">@{{member.profile.handle}}</view><view class="muted">{{member.profile.bio}}</view></view></view>
+    <view wx:if="{{id !== self}}" class="choices">
+      <button wx:if="{{member.registered && member.relationship === 'none'}}" class="picked" data-op="request" bindtap="mutate">申请加好友</button>
+      <button wx:if="{{member.relationship === 'incoming'}}" data-op="accept" bindtap="mutate">接受申请</button><button wx:if="{{member.relationship === 'incoming'}}" data-op="decline" bindtap="mutate">拒绝</button>
+      <button wx:if="{{member.relationship === 'outgoing'}}" data-op="cancel" bindtap="mutate">等待确认 · 撤回</button><button wx:if="{{member.canMessage}}" data-screen="chat" data-id="{{id}}" bindtap="go">发私信</button>
+      <button wx:if="{{member.relationship === 'friends'}}" data-op="remove" bindtap="mutate">移除好友</button><button data-op="block" bindtap="mutate">屏蔽</button>
+    </view>
+    <view class="section-title">署名发布</view><button wx:for="{{member.posts}}" wx:key="id" data-screen="record" data-id="{{item.id}}" bindtap="go">{{item.title}}</button><view wx:if="{{!member.posts.length}}" class="muted">还没有公开的署名帖子。</view>
+    <block wx:if="{{member.showBookmarks}}"><view class="section-title">社区书签</view><button wx:for="{{member.bookmarks}}" wx:key="id" data-screen="record" data-id="{{item.id}}" bindtap="go">{{item.title}}</button><view wx:if="{{!member.bookmarks.length}}" class="muted">还没有收藏的公开内容。</view></block>
+  </block>
+  <block wx:elif="{{screen === 'inbox'}}">
+    <view class="choices"><button data-screen="friends" bindtap="go">好友申请 {{incoming.length}}</button><button data-screen="groups" bindtap="go">群聊邀请 {{invites.length}}</button></view>
+    <view class="section-title">最近私信</view><button class="conversation" wx:for="{{inbox}}" wx:key="peer" data-screen="chat" data-id="{{item.peer}}" bindtap="go"><text>{{item.profile.nickname}} <text wx:if="{{item.unread}}" class="unread">{{item.unread}} 条未读</text></text><text class="excerpt">{{item.body}}</text></button>
+    <view wx:if="{{!inbox.length}}" class="muted">还没有私信。</view><view class="section-title">帖子收到的回复</view><button class="conversation" wx:for="{{activity}}" wx:key="id" data-screen="record" data-id="{{item.post}}" bindtap="go">{{item.nickname}}<text class="excerpt">{{item.body}}</text></button><view wx:if="{{!activity.length}}" class="muted">还没有公开回复。</view>
+  </block>
+  <block wx:elif="{{screen === 'groups'}}">
+    <view class="line"><input value="{{groupName}}" data-field="groupName" bindinput="input" placeholder="新群聊名称" maxlength="40"/><button bindtap="createGroup" loading="{{working}}">建群</button></view>
+    <view wx:if="{{invites.length}}" class="section-title">群聊邀请</view><view wx:for="{{invites}}" wx:key="id" class="card">{{item.name}}<view class="choices"><button data-id="{{item.id}}" data-op="join" bindtap="mutate">加入</button><button data-id="{{item.id}}" data-op="reject" bindtap="mutate">拒绝</button></view></view>
+    <view class="section-title">已加入的群聊</view><button wx:for="{{groups}}" wx:key="id" data-screen="group" data-id="{{item.id}}" bindtap="go">{{item.name}} <text wx:if="{{item.unread}}" class="unread">{{item.unread}} 条未读</text></button><view wx:if="{{!groups.length}}" class="muted">创建一个群聊，再邀请鸟友加入。</view>
+  </block>
+  <block wx:elif="{{screen === 'chat' || screen === 'group'}}">
+    <button wx:if="{{screen === 'chat'}}" data-screen="member" data-id="{{id}}" bindtap="go">查看鸟友主页</button>
+    <block wx:if="{{group}}"><view class="strong">群成员 · {{group.members.length}}</view><view class="choices"><button wx:for="{{group.members}}" wx:key="id" data-screen="member" data-id="{{item.id}}" bindtap="go">{{item.nickname}}</button></view>
+      <block wx:if="{{group.owner === self}}"><view class="label">邀请好友</view><view wx:if="{{!invitees.length}}" class="muted">暂无可邀请的好友。</view><view class="choices"><button wx:for="{{invitees}}" wx:key="id" data-id="{{item.id}}" data-op="invite" bindtap="mutate">邀请 {{item.nickname}}</button></view></block></block>
+    <button wx:if="{{earlier}}" bindtap="older">加载更早的消息</button><view wx:if="{{!lines.length}}" class="muted">还没有聊天记录。</view>
+    <view wx:for="{{lines}}" wx:key="id" class="bubble {{item.sender === self ? 'own' : ''}}"><view class="tiny">{{item.sender === self ? '我' : item.nickname || member.profile.nickname}} · {{item.timeLabel}}</view><text selectable="true">{{item.body}}</text><button wx:if="{{item.sender !== self}}" size="mini" data-op="report" data-id="{{item.id}}" bindtap="mutate">举报</button></view>
+    <view class="composer" wx:if="{{group || member.canMessage}}"><textarea maxlength="2000" data-field="text" value="{{text}}" bindinput="input" placeholder="写消息…"/><button class="primary" bindtap="send" disabled="{{!text || working}}">发送</button></view>
+    <button wx:if="{{group}}" data-op="{{group.owner === self ? 'disband' : 'leave'}}" bindtap="mutate">{{group.owner === self ? '解散群聊' : '退出群聊'}}</button>
+  </block>
+  <block wx:elif="{{screen === 'blocked'}}"><view wx:if="{{!blocked.length}}" class="muted">屏蔽名单为空。</view><view class="line card" wx:for="{{blocked}}" wx:key="id"><text>{{item.nickname}}</text><button data-op="unblock" data-id="{{item.id}}" bindtap="mutate">解除屏蔽</button></view></block>
+</view>

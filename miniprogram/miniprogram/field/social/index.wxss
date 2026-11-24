@@ -1,0 +1,14 @@
+.social {padding-bottom:calc(48rpx + env(safe-area-inset-bottom));overflow-wrap:anywhere}
+.social .card,.social .section-title,.social>.primary {margin:28rpx 0 16rpx}
+.social .label {margin:24rpx 0 10rpx;font-weight:600}
+.social button {margin:10rpx 0;padding:8rpx 20rpx;font-size:28rpx}
+.social .line,.social .choices,.identity {display:flex;gap:14rpx;align-items:center}
+.social .line {justify-content:space-between}.social .line input {flex:1;min-width:0}
+.choices {flex-wrap:wrap}.social .picked,.unread {background:#285b49;color:white;border-radius:12rpx}
+.unread {padding:2rpx 10rpx;font-size:22rpx}.identity image {width:108rpx;height:108rpx;flex:none;border-radius:50%}
+.avatar-choice image {width:56rpx;height:56rpx;display:block}.social .avatar-choice {padding:8rpx}
+.social textarea {box-sizing:border-box;width:100%;height:130rpx;background:#fff;padding:14rpx}
+.social .conversation {text-align:left}.excerpt {display:block;color:#536b5f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bubble {background:white;padding:18rpx 24rpx;margin:14rpx 10% 14rpx 0;border-radius:24rpx;white-space:pre-wrap}
+.bubble.own {background:#dcebdd;margin:14rpx 0 14rpx 10%}.bubble button {display:block;margin:4rpx 0 0 auto;font-size:21rpx}
+.composer {position:sticky;bottom:0;background:#fafbf5;padding:12rpx 0}.social .composer textarea {height:86rpx}

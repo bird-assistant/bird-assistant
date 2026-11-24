@@ -1,0 +1,8 @@
+[Unit]
+Description=Refresh the public bird observation window every day
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=20m
+[Install]
+WantedBy=timers.target

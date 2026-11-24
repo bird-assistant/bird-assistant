@@ -1,0 +1,8 @@
+@readyUpstream path /readyz
+rewrite @readyUpstream /api/v1/vision/readyz
+reverse_proxy https://39.103.59.117 {
+	header_up Host api.auroraliu.cn
+	transport http {
+		tls_server_name api.auroraliu.cn
+	}
+}

@@ -1,0 +1,1 @@
+<view class="page"><map id="picker" class="picker" latitude="{{latitude}}" longitude="{{longitude}}" scale="13" markers="{{markers}}" bindtap="pick"/><view class="note">点击地图标记观察地点。</view><button bindtap="locate">使用当前位置</button><button class="primary wide" disabled="{{!point}}" bindtap="done">使用所选地点</button><view>{{error}}</view></view>

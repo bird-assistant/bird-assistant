@@ -10,6 +10,19 @@ function page(){
   return instance;
 }
 
+test('only an explicit shutter during live identification analyzes the full camera photo',()=>{
+  for(const live of [false,true]){
+    const p=page(),calls=[];
+    p.setData({cameraReady:true,paused:false,liveActive:live,demo:false});
+    p._camera={takePhoto:options=>{assert.equal(options.quality,'high');options.success({tempImagePath:'full.jpg'});}};
+    p.saveAlbum=()=>{};
+    p.review=()=>calls.push('review');
+    p.analyse=()=>calls.push(p.data.imagePath);
+    p.shutterPhoto();
+    assert.deepEqual(calls,live?['review','full.jpg']:[]);
+  }
+});
+
 test('a storage failure after file persistence retains the durable photo and notes, then retries without moving the vanished temp path again',async(t)=>{
   const warnings=[];t.mock.method(console,'warn',(...args)=>warnings.push(args));
   const data=new Map(),toasts=[];let fail=true,copies=0;

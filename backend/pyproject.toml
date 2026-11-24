@@ -49,6 +49,9 @@ bird-business = "bird_business.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+bird_business = ["admin_web/*.html", "admin_web/*.css", "admin_web/*.js"]
+
 [tool.pytest.ini_options]
 addopts = "-q --cov=bird_vision --cov=bird_business --cov=bird_common --cov-report=term-missing --cov-fail-under=80"
 testpaths = ["tests"]

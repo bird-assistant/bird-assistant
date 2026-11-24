@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>羽迹 · 社区管理</title>
+  <link rel="stylesheet" href="/admin/assets/console.css"><script defer src="/admin/assets/console.js"></script>
+</head>
+<body>
+  <header><div class="wrap top"><strong>羽迹</strong><span>社区管理</span><button id="logout" hidden>退出登录</button></div></header>
+  <main class="wrap">
+    <p id="notice" role="status" hidden></p>
+    <section id="login" hidden>
+      <h1>管理员登录</h1>
+      <form id="credentials"><label>账号<input name="username" autocomplete="username" value="admin" required></label>
+        <label>密码<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary" type="submit">登录管理平台</button></form>
+    </section>
+    <section id="dashboard" hidden>
+      <div class="heading"><h1>社区审核</h1><button id="reload">刷新</button></div>
+      <nav id="tabs" aria-label="审核队列"></nav>
+      <h2 id="queue-title"></h2><div id="list" aria-live="polite"></div>
+      <footer hidden id="pages"><button id="prev">上一页</button><span id="page"></span><button id="next">下一页</button></footer>
+    </section>
+    <noscript>请启用 JavaScript 以使用审核工作台。</noscript>
+  </main>
+</body></html>

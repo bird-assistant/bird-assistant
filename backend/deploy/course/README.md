@@ -1,4 +1,18 @@
-# 阿里云与 GPU 容器部署
+# 课程服务器 8080 迁移
+
+地图、社区和真机联调的现行步骤见 [羽迹社区联调与审核](COMMUNITY.md)。
+
+当前小程序使用 `https://api.auroraliu.cn:8080` 和 `wss://api.auroraliu.cn:8080`。目标业务机为 `ubuntu@49.233.81.227`，Caddy 和 `bird-business` 由 systemd 管理。课程机在迁移期间通过旧机的 HTTPS 入口连接 GPU。旧机的登录和观察记录请求已经转到新业务库。
+
+1. 在 WSL 的项目根目录运行 `bash backend/deploy/course/connect-campus-gpu.sh`。看到 `bird-gpu-new` 的密码提示时输入 GPU 平台密码。脚本新增 Supervisor 隧道，验证课程机 `127.0.0.1:18000/readyz` 后切换 Caddy。可重复执行，输出应含 `"status":"ready"`。
+2. 在微信公众平台「开发管理 → 开发设置 → 服务器域名」添加 request 合法域名 `https://api.auroraliu.cn:8080`，socket 合法域名填写 `wss://api.auroraliu.cn`。客户端的 WSS 请求显式使用 8080。保留已有 request 域名供旧版过渡。
+3. 把 `auroraliu.cn` DNS 中 `api` 的 A 记录改到 `49.233.81.227`。如果已有使用默认 443 的正式用户，先安排兼容切换或请管理员放行课程机 443。迁移时从公网测试该端口超时。8080 已实测能访问，80 已有 Caddy 监听，域名切换后应保持 HTTP-01 验证路径可达以便证书续期。
+4. 用 Windows 微信开发者工具打开原项目并重新编译。手机浏览器打开 `https://api.auroraliu.cn:8080/api/v1/vision/readyz`，随后用真机测试微信登录、照片和实时识别，再上传需要发布的版本。
+
+DNS 生效前可在 WSL 用 `curl --noproxy '*' --resolve api.auroraliu.cn:8080:49.233.81.227 https://api.auroraliu.cn:8080/api/v1/vision/readyz` 对新入口做带证书校验的检查。新库在 `/var/lib/bird-business/observations.sqlite3`，迁移前课程机备份在 `/root/bird-migration/pre-8080.VvFI7V`。GPU 直连和真机验收完成前保持旧服务在线。下面是旧阿里云部署记录，重跑旧机安装会覆盖过渡路由。
+
+
+## 历史部署 · 阿里云与 GPU 容器
 
 小程序使用 `https://api.auroraliu.cn`。在阿里云 DNS 把主机记录 `api` 的 A 记录改为 `39.103.59.117`。宝塔 Nginx 为该子域名运行独立站点。微信登录和观察记录转到本机 8200，识别请求经本机 18000 转到 GPU。
 

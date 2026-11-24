@@ -1,0 +1,37 @@
+api.auroraliu.cn:8080, api.auroraliu.cn {
+	redir /admin /admin/ 308
+	handle /admin/* {
+		request_body {
+			max_size 8KiB
+		}
+		header Cache-Control no-store
+		reverse_proxy 127.0.0.1:8200
+	}
+	@media path /api/v1/community/media
+	request_body @media {
+		max_size 25MiB
+	}
+	@other not path /api/v1/community/media
+	request_body @other {
+		max_size 7MB
+	}
+	@moderation path /api/v1/community/moderation /api/v1/community/moderation/*
+	handle @moderation {
+		respond 404
+	}
+	@business path /api/v1/vision/auth/wechat /api/v1/observations /api/v1/observations/* /api/v1/community/* /api/v1/species /api/v1/species/* /api/v1/map/* /api/v2/observations /api/v2/observations/*
+	handle @business {
+		reverse_proxy 127.0.0.1:8200
+	}
+	@ready path /readyz /api/v1/vision/readyz
+	handle @ready {
+		import /etc/caddy/bird-gpu-upstream.caddy
+	}
+	@vision path /api/v1/vision/analyses /api/v1/vision/sessions /api/v1/vision/sessions/*
+	handle @vision {
+		import /etc/caddy/bird-gpu-upstream.caddy
+	}
+	handle {
+		respond 404
+	}
+}

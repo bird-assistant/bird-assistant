@@ -1,6 +1,6 @@
 import { RecognitionResponse, RecognitionTransport, recognitionFailure } from './recognition';
 
-export const VISION_ORIGIN = 'https://api.auroraliu.cn';
+export const VISION_ORIGIN = 'https://api.auroraliu.cn:8080';
 const LOOPBACK = 'http://127.0.0.1:18000';
 export interface VisionConnection {origin:string; header:Record<string,string>;}
 let cached: {connection:VisionConnection; expires:number}|undefined;
@@ -45,13 +45,28 @@ export async function connectVision():Promise<VisionConnection> {
   return authenticating;
 }
 
+let businessLogin:Promise<VisionConnection>|undefined;
+export function forgetConnection(){cached=undefined;}
+export async function connectBusiness(refresh=false):Promise<VisionConnection>{
+  const origin=businessOrigin();
+  if(!refresh && cached?.connection.origin===origin && Date.now()<cached.expires)return cached.connection;
+  if(!businessLogin)businessLogin=login(origin).finally(()=>{businessLogin=undefined;});
+  return businessLogin;
+}
+
+export function businessOrigin():string{
+  const origin=wx.getExtConfigSync?.()?.visionOrigin || VISION_ORIGIN;
+  if(typeof origin!=='string'||!/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(origin))throw new Error('业务服务地址无效');
+  return origin;
+}
+
 export function sessionRequest(connection:VisionConnection,path:string,method:'POST'|'DELETE',data?:object){
   return requestJson(connection.origin+path,method,connection.header,data);
 }
 
 function ascii(value:string):Uint8Array {return Uint8Array.from(value,letter=>letter.charCodeAt(0));}
 
-export function sendImage(connection:VisionConnection,path:string,field:'frame'|'image',image:ArrayBuffer,fields:Record<string,string>,success:(response:RecognitionResponse)=>void,fail:()=>void){
+export function sendImage(connection:VisionConnection,path:string,field:'frame'|'image'|'file',image:ArrayBuffer,fields:Record<string,string>,success:(response:RecognitionResponse)=>void,fail:(error:WechatMiniprogram.GeneralCallbackResult)=>void){
   const bytes=new Uint8Array(image);
   const boundary='BirdForm'+Math.random().toString(36).slice(2)+Date.now();
   const format=bytes[0]===137?'png':bytes[0]===82?'webp':'jpeg';
@@ -62,7 +77,7 @@ export function sendImage(connection:VisionConnection,path:string,field:'frame'|
   const body=new Uint8Array(head.length+bytes.length+tail.length);
   body.set(head);body.set(bytes,head.length);body.set(tail,head.length+bytes.length);
   return wx.request({url:connection.origin+path,method:'POST',header:{...connection.header,'Content-Type':'multipart/form-data; boundary='+boundary},
-    data:body.buffer,timeout:45000,dataType:'text',success:res=>{
+    data:body.buffer,timeout:field==='file'?60000:45000,dataType:'text',success:res=>{
       if(res.statusCode===401) cached=undefined;
       success({statusCode:res.statusCode,data:String(res.data),header:res.header});
     },fail});
@@ -70,11 +85,18 @@ export function sendImage(connection:VisionConnection,path:string,field:'frame'|
 
 export async function photoBytes(path:string):Promise<ArrayBuffer> {
   const info=await wx.getImageInfo({src:path});
-  const scale=Math.min(1,2048/Math.max(info.width,info.height));
-  const compressed=await wx.compressImage({src:path,quality:88,compressedWidth:Math.max(1,Math.round(info.width*scale))});
-  return new Promise((resolve,reject)=>wx.getFileSystemManager().readFile({filePath:compressed.tempFilePath,
-    success:res=>typeof res.data!=='string'&&res.data.byteLength<=6*1024*1024?resolve(res.data):reject(new Error('图片过大，请裁剪后重试。')),
-    fail:()=>reject(new Error('图片读取失败，请重新选择。'))}));
+  const scale=Math.min(1,Math.sqrt(3840*2160/(info.width*info.height)));
+  for(const quality of [92,75]){
+    const compressed=await wx.compressImage({src:path,quality,
+      compressedWidth:Math.max(1,Math.floor(info.width*scale)),
+      compressedHeight:Math.max(1,Math.floor(info.height*scale))});
+    const image=await new Promise<ArrayBuffer>((resolve,reject)=>wx.getFileSystemManager().readFile({
+      filePath:compressed.tempFilePath,
+      success:res=>typeof res.data==='string'?reject(new Error('图片读取失败，请重新选择。')):resolve(res.data),
+      fail:()=>reject(new Error('图片读取失败，请重新选择。'))}));
+    if(image.byteLength<=6*1024*1024)return image;
+  }
+  throw new Error('图片过大，请裁剪后重试。');
 }
 
 export function photoTransport(connection:VisionConnection,image:ArrayBuffer,fields:Record<string,string>):RecognitionTransport {

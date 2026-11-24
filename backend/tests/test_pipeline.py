@@ -21,6 +21,21 @@ from bird_vision.inference.pipeline import VisionPipeline
 from bird_vision.inference.species import MockSpeciesProvider
 
 
+def test_small_live_subject_requires_stability_size_and_detector_confidence(test_settings) -> None:
+    settings = test_settings.model_copy(update={"min_recognizable_side_px": 64, "track_confirm_hits": 3})
+    pipeline = VisionPipeline(settings, MockDetector(), MockSpeciesProvider())
+    now = datetime.now(UTC)
+    track = Track(1, Box(0, 0, 50, 100), 0.9, now, now, hits=2)
+    assert not pipeline._should_classify(track, 0.1, 10)
+    track.hits = 3
+    assert pipeline._should_classify(track, 0.1, 10)
+    track.detection_score = 0.3
+    assert not pipeline._should_classify(track, 0.1, 10)
+    track.detection_score = 0.9
+    track.box = Box(0, 0, 26, 65)
+    assert not pipeline._should_classify(track, 0.1, 10)
+
+
 def test_pipeline_confirms_track_and_emits_species_candidate(test_settings) -> None:
     detector = MockDetector()
     detector.load()

@@ -1,5 +1,5 @@
 <app-header title="{{sheet ? (detail ? '观察详情' : regionName) : '羽迹'}}" back="{{sheet || searchOpen}}" bindback="back" />
-<view class="map-screen {{mapMoving ? 'map-moving' : ''}}" style="height:{{height}}px" bindtap="closeSearch">
+<field-map wx:if="{{!demoMap}}"/><view wx:else class="map-screen {{mapMoving ? 'map-moving' : ''}}" style="height:{{height}}px" bindtap="closeSearch">
   <view class="map-gesture" catchtap="closeSearch" catchtouchstart="touchStart" catchtouchmove="touchMove" catchtouchend="touchEnd" catchtouchcancel="touchCancel"><view class="map-world" style="width:{{worldW}}px;height:{{worldH}}px;margin-left:-{{worldW/2}}px;margin-top:-{{worldH/2}}px;transform:translate({{x}}px,{{y}}px) scale({{zoom}})">
     <image wx:for="{{tiles}}" wx:key="id" src="/assets/map-preview.png" class="map-tile" mode="scaleToFill" style="left:{{item.x}}%;top:{{item.y}}%" /><text class="map-label lake">湖畔公园</text><text class="map-label wood">林间小径</text><text class="map-label water">湖面</text><view class="user-dot" style="left:50.75%;top:72.65625%;transform:translate(-50%,-50%) scale({{invZoom}})" />
   </view></view>

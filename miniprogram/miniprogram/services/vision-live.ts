@@ -27,10 +27,11 @@ function readTrack(raw:any):LiveTrack {
   const appearance=raw.visibility==='temporarily_lost'?'lost':raw.state;
   const candidates=appearance==='confirmed' && (state==='candidate'||state==='unknown')?trackCandidates(species.candidates):[];
   if(state==='candidate' && appearance==='confirmed' && !candidates.length) throw new Error('候选缺失');
-  let label='发现鸟，请靠近或保持稳定';
+  let label=raw.recognizable?'已发现鸟，正在等待清晰画面':'鸟体细节不足，可按快门拍照识别';
   if(appearance==='lost') label='暂时丢失 · 预测位置';
   else if(appearance==='tentative') label='正在确认目标';
-  else if(state==='unknown') label='暂时无法可靠识别';
+  else if(state==='unknown') label=species.decision?.reason==='ambiguous_candidates'
+    ?'几种鸟外观接近，可展开看候选':'已发现鸟，鸟种待确认';
   else if(state==='unavailable') label='鸟种模型暂不可用';
   else if(state==='candidate') label=(candidates[0].scoreType==='mock'?'示例候选 · ':'候选 · ')+candidates[0].name;
   const scope=species.decision?.candidate_scope;
@@ -76,7 +77,7 @@ export class LiveVision {
   private ready=false;
   private revision='';
   constructor(private camera:WechatMiniprogram.CameraContext,private canvas:WechatMiniprogram.Canvas,
-    private mode:()=>string,private status:(message:string)=>void,private result:(frame:LiveFrame)=>void,
+    private mode:()=>string,private status:(message:string,keepLastFrame?:boolean)=>void,private result:(frame:LiveFrame)=>void,
     private failed:(message:string)=>void) {}
 
   async start(){
@@ -122,7 +123,7 @@ export class LiveVision {
         }else if(msg.type==='vision.session.closed') this.fail('视觉会话已结束，可重新开启。');
         else if(this.pending && msg.frame_id===this.pending.id){
           const pending=this.pending;this.clearFrame();
-          if(msg.type==='vision.frame.dropped'){this.status('已跳过过期帧，等待新画面');return;}
+          if(msg.type==='vision.frame.dropped'){this.status('已跳过过期帧，等待新画面',true);return;}
           if(msg.type==='vision.frame.error'){this.fail('云端处理此帧失败，可重新开启。');return;}
           if(msg.type!=='vision.frame.result'||!Array.isArray(msg.tracks)||msg.tracks.length>1000||!(msg.image_width>0&&msg.image_height>0))throw new Error();
           this.retries=0;
@@ -142,7 +143,7 @@ export class LiveVision {
       if(this.canvas.height!==frame.height)this.canvas.height=frame.height;
       const context=this.canvas.getContext('2d'),pixels=context.createImageData(frame.width,frame.height);
       pixels.data.set(new Uint8ClampedArray(frame.data));context.putImageData(pixels,0,0);
-      const data=this.canvas.toDataURL('image/jpeg',0.82);
+      const data=this.canvas.toDataURL('image/jpeg',0.90);
       if(!/^data:image\/(jpeg|png);base64,/.test(data))throw new Error();
       const image=wx.base64ToArrayBuffer(data.slice(data.indexOf(',')+1));
       const id='frame-'+(++this.sequence),capturedAt=new Date().toISOString();
@@ -151,8 +152,14 @@ export class LiveVision {
       this.upload=sendImage(this.connection,this.path+'/frames','frame',image,{frame_id:id,captured_at:capturedAt,capture_time_precision:'exact'},res=>{
         this.upload=undefined;
         if(this.stopped)return;
-        if(res.statusCode===429){this.clearFrame();this.next=Date.now()+1000;this.status('服务繁忙，已降低取帧频率');}
-        else if(res.statusCode!==202)this.fail(recognitionFailure(res).message);
+        if(res.statusCode===202){
+          this.next=Math.max(this.next,Date.now()+this.interval+80);
+        }else if(res.statusCode===429){
+          const error=recognitionFailure(res);
+          this.clearFrame();
+          this.next=Date.now()+Math.max(this.interval+80,(error.retryAfterSeconds??1)*1000);
+          this.status('正在调整取帧间隔',true);
+        }else this.fail(recognitionFailure(res).message);
       },()=>{this.upload=undefined;if(this.ready)this.fail('画面上传失败，请检查网络后重新开启。');});
     }catch{this.fail('此设备无法编码取景画面，可拍照后分析。');}
   }

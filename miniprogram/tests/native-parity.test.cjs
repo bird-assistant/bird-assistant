@@ -112,8 +112,8 @@ test('journal subpages reclaim navigation space; editor stage and controls fit w
     assert.equal(p.data.editorHeight,h-68);p.back();assert.equal(bar.hidden,false);
   }
 });
-test('opening a post resets retained feed scroll and returning restores main navigation',()=>{
-  const {p,bar,scroll}=page('community');p.open(tap(p.data.posts[0].id));assert.equal(bar.hidden,true);assert.deepEqual(scroll.at(-1),{scrollTop:0,duration:0});p.back();assert.equal(bar.hidden,false);assert.equal(p.data.view,'feed');
+test('opening the composer resets retained feed scroll and returning restores main navigation',()=>{
+  const {p,bar,scroll}=page('community');p.compose();assert.equal(bar.hidden,true);assert.deepEqual(scroll.at(-1),{scrollTop:0,duration:0});p.back();assert.equal(bar.hidden,false);assert.equal(p.data.view,'feed');
 });
 test('Canvas packaged image paths stay rooted; a decoded image failure rejects instead of hanging',async t=>{
   t.mock.method(console,'warn',()=>{});assert.equal(canvas.canvasImagePath('assets/samples/field-0.png'),'/assets/samples/field-0.png');assert.equal(canvas.canvasImagePath('./assets/a.png'),'/assets/a.png');assert.equal(canvas.canvasImagePath('wxfile://saved/a.png'),'wxfile://saved/a.png');

@@ -17,7 +17,7 @@ python3 miniprogram/scripts/vision-dev.py
 
 ## 手机与体验版
 
-1. 按[阿里云与 GPU 部署说明](../../backend/deploy/course/README.md)启动公网入口、业务和推理服务。阿里云保存微信 AppSecret 并签发登录凭证，GPU 验证短期凭证并推理。
-2. 在微信公众平台将 `https://api.auroraliu.cn` 加入 request 合法域名，将 `wss://api.auroraliu.cn` 加入 socket 合法域名。根据实际使用的相机和位置能力完善小程序隐私设置。
-3. 真机默认连接 `https://api.auroraliu.cn`。开发者工具默认连接本机联调服务。使用第三方平台的项目可以通过 `extConfig.visionOrigin` 指定自己的 HTTPS 源地址。
+1. 按[课程机 8080 部署说明](../../backend/deploy/course/README.md)启动公网入口、业务和推理服务。课程机保存微信 AppSecret 并签发登录凭证，GPU 验证短期凭证并推理。
+2. 在微信公众平台将 `https://api.auroraliu.cn:8080` 加入 request 合法域名，将 `wss://api.auroraliu.cn` 加入 socket 合法域名。根据实际使用的相机和位置能力完善小程序隐私设置。
+3. 真机默认连接 `https://api.auroraliu.cn:8080`。开发者工具默认连接本机联调服务。使用第三方平台的项目可以通过 `extConfig.visionOrigin` 指定自己的 HTTPS 源地址。
 4. 在手机上验证相机授权、横竖屏检测框、网络重连、切后台再返回，以及拒绝定位时的识别。开发者工具的摄像头不可用时，可以先验证照片链路。

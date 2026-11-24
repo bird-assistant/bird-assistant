@@ -1,0 +1,16 @@
+[Unit]
+Description=Import licensed iNaturalist bird observations through GBIF
+After=network-online.target bird-business.service
+[Service]
+Type=oneshot
+User=bird-business
+Group=bird-business
+EnvironmentFile=/etc/bird-assistant/business.env
+Environment=PYTHONPATH=/opt/bird-assistant/community-current/src
+ExecStart=/opt/bird-assistant/venv/bin/python -m bird_business.import_community
+StateDirectory=bird-business
+UMask=0077
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+NoNewPrivileges=yes

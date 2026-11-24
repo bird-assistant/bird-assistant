@@ -1,0 +1,224 @@
+[
+  {
+    "kind": "camera",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 431.25,
+        "width": 296.0,
+        "height": 276.75
+      }
+    ]
+  },
+  {
+    "kind": "cameraZoom",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 372.45,
+        "width": 296.0,
+        "height": 335.55
+      }
+    ]
+  },
+  {
+    "kind": "map",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "mapMoving",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "menu",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "forum-menu",
+        "x": 0,
+        "y": 420.7,
+        "width": 284.0,
+        "height": 391.3
+      }
+    ]
+  },
+  {
+    "kind": "photo",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-info-card",
+        "x": 16.0,
+        "y": 612.02,
+        "width": 258.0,
+        "height": 132.89
+      }
+    ]
+  },
+  {
+    "kind": "feed",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "camera",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 431.25,
+        "width": 366.0,
+        "height": 276.75
+      }
+    ]
+  },
+  {
+    "kind": "cameraZoom",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 372.45,
+        "width": 366.0,
+        "height": 335.55
+      }
+    ]
+  },
+  {
+    "kind": "map",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "mapMoving",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "menu",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "forum-menu",
+        "x": 0,
+        "y": 420.7,
+        "width": 354.0,
+        "height": 391.3
+      }
+    ]
+  },
+  {
+    "kind": "photo",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-info-card",
+        "x": 16.0,
+        "y": 575.47,
+        "width": 328.0,
+        "height": 95.89
+      }
+    ]
+  },
+  {
+    "kind": "feed",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "camera",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 431.25,
+        "width": 626.0,
+        "height": 276.75
+      }
+    ]
+  },
+  {
+    "kind": "cameraZoom",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 372.45,
+        "width": 626.0,
+        "height": 335.55
+      }
+    ]
+  },
+  {
+    "kind": "map",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "mapMoving",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "menu",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "forum-menu",
+        "x": 0,
+        "y": 420.7,
+        "width": 584.0,
+        "height": 391.3
+      }
+    ]
+  },
+  {
+    "kind": "photo",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-info-card",
+        "x": 90.0,
+        "y": 543.07,
+        "width": 558.0,
+        "height": 95.89
+      }
+    ]
+  },
+  {
+    "kind": "feed",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  }
+]

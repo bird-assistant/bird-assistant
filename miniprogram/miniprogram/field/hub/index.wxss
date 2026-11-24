@@ -180,3 +180,8 @@
 .species-post-footer{font-size:11px;color:#829178;margin-top:10px}
 
 .topic-banner{padding:12px 14px;border:1px solid #dce5d7;border-radius:12px;background:#fffef9;font-size:13px;margin-bottom:14px}
+
+.record-context{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px}.context-detail{display:flex;align-items:center;gap:5px;min-width:0}.context-icon{width:14px;height:14px;flex:none;opacity:.65}
+.photo-info-card{margin:14px 0 22px;padding:14px;border:1px solid #dce5d7;border-radius:14px;background:#f3f6ee;box-sizing:border-box}.photo-info-heading{display:flex;align-items:center;gap:11px}.photo-info-icon{display:flex;align-items:center;justify-content:center;width:38px;height:38px;background:#e5eddd;border-radius:12px;flex:none}.photo-info-icon image{width:23px;height:23px}.photo-info-copy{display:flex;flex-direction:column;gap:3px;min-width:0}.photo-info-label{font-size:10px;letter-spacing:1px;color:#8b987f}.photo-info-device{font-size:14px;line-height:1.5;font-weight:600;color:#385444;overflow-wrap:anywhere}.photo-info-model{font-size:11px;color:#7b8974}.photo-settings{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;padding-top:12px;border-top:1px solid #dde6d6}.photo-setting{display:flex;align-items:baseline;gap:6px;max-width:100%;padding:5px 8px;border-radius:7px;border:1px solid #e1e8da;background:#fffef9;box-sizing:border-box}.photo-setting-label{font-size:10px;color:#8a9680}.photo-setting-value{font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;color:#526b48;overflow-wrap:anywhere}
+
+.photo-setting-value{white-space:nowrap}.photo-setting-label{white-space:nowrap}.context-detail>text{white-space:nowrap}

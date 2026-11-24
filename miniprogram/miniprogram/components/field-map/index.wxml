@@ -11,7 +11,7 @@
       <picker class="filter-picker" range="{{origins}}" value="{{origin}}" data-field="origin" bindchange="filter"><view class="filter-button"><text class="filter-text">{{origins[origin]}}</text><view class="filter-arrow"/></view></picker>
     </view>
   </view>
-  <view class="map-canvas" style="top:{{toolbarHeight}}px;height:{{wide || !listOpen ? mapHeight : mapHeight-sheetHeight}}px;left:{{wide && listOpen ? drawerWidth : 0}}px">
+  <view class="map-canvas" style="top:{{toolbarHeight}}px;height:{{mapHeight}}px">
     <map id="field-map" latitude="{{latitude}}" longitude="{{longitude}}" scale="{{scale}}" markers="{{markers}}" bindregionchange="moved" bindupdated="mapUpdated" bindtap="closeSearch" bindmarkertap="marker" bindcallouttap="marker" class="native"/>
     <view wx:if="{{!listOpen && !compact}}" class="map-actions"><button class="map-action" bindtap="position" aria-label="定位到我的位置"><image class="action-icon" src="/assets/icons/locate.png"/></button><button class="map-action" bindtap="load" loading="{{loading}}" disabled="{{loading}}" aria-label="刷新当前地图区域"><image class="action-icon" src="/assets/icons/redo.png"/></button></view>
     <view wx:if="{{!listOpen}}" class="map-dock" style="bottom:{{creditReserve}}px">
@@ -21,14 +21,15 @@
       <button wx:if="{{!compact}}" class="trip-entry" bindtap="planTrip"><view class="trip-copy"><image class="trip-icon" src="/assets/icons/leaf.png"/><text>观鸟出行顾问</text></view><text class="trip-chevron">›</text></button>
     </view>
   </view>
-    <view wx:if="{{listOpen}}" class="record-sheet" style="height:{{sheetHeight}}px;bottom:0;width:{{wide ? drawerWidth : '100%'}}{{wide ? 'px' : ''}}">
-      <view class="sheet-header" style="height:{{sheetHeaderHeight}}px"><view class="sheet-header-copy"><text class="sheet-title">{{listTitle}}</text><text class="sheet-count">{{listTotal}} 条{{period === 0 ? ' · 含历史记录' : ''}}</text></view><button class="sheet-close" bindtap="closeList" aria-label="关闭观察列表">×</button></view>
-      <scroll-view scroll-y class="record-scroll" style="height:{{listHeight}}px" bindscrolltolower="more">
-        <view wx:if="{{error}}" class="list-message"><text>{{error}}</text><button class="retry-button" bindtap="retryRecords">重试加载</button></view>
-        <view wx:elif="{{!selected.length}}" class="list-message">{{loading ? '正在加载观察记录…' : '没有符合筛选条件的记录'}}</view>
+    <view wx:if="{{listOpen}}" class="record-sheet {{sheetCollapsed ? 'sheet-collapsed' : ''}}" style="height:{{sheetCollapsed ? sheetHeaderHeight : sheetHeight}}px;bottom:{{creditReserve}}px;width:{{drawerWidth}}px">
+      <view class="sheet-header" style="height:{{sheetHeaderHeight}}px"><button class="sheet-header-copy" bindtap="expandList" aria-label="{{sheetCollapsed ? '展开观察列表' : '收起观察列表'}}"><text class="sheet-title">{{listTitle}}<text class="sheet-toggle">{{sheetCollapsed ? '⌃' : '⌄'}}</text></text><text class="sheet-count">{{mapMoving || recordsLoading ? '正在更新当前视野…' : listTotal+' 条'+(sheetCollapsed ? ' · 轻触展开' : period === 0 ? ' · 含历史记录' : '')}}</text></button><button class="sheet-close" bindtap="closeList" aria-label="关闭观察列表">×</button></view>
+      <scroll-view wx:if="{{!sheetCollapsed}}" scroll-y class="record-scroll" style="height:{{listHeight}}px" bindscrolltolower="more">
+        <view wx:if="{{recordsError}}" class="list-message"><text>{{recordsError}}</text><button class="retry-button" bindtap="retryRecords">重试加载</button></view>
+        <view wx:elif="{{!selected.length}}" class="list-message">{{recordsLoading ? '正在加载观察记录…' : '没有符合筛选条件的记录'}}</view>
         <view wx:for="{{selected}}" wx:key="id" class="record-row"><button class="record-main" data-id="{{item.id}}" bindtap="go"><view class="record-heading"><text class="record-name">{{item.speciesName || '待鉴定'}}</text><text class="record-date">{{item.date || '日期未知'}}</text></view><text class="record-meta">{{item.placeName || '地点未注明'}}{{item.source ? ' · '+item.source : ''}}</text></button><button wx:if="{{item.speciesId}}" class="record-guide" data-id="{{item.speciesId}}" bindtap="guide" aria-label="查看{{item.speciesName}}图鉴">图鉴</button></view>
-        <button wx:if="{{cursor}}" class="more-button" disabled="{{loading}}" bindtap="more">{{loading ? '加载中…' : '加载更多记录'}}</button><view wx:elif="{{selected.length}}" class="list-end">已显示本次查询的全部记录</view>
+        <button wx:if="{{cursor}}" class="more-button" disabled="{{recordsLoading}}" bindtap="more">{{recordsLoading ? '加载中…' : '加载更多记录'}}</button><view wx:elif="{{selected.length}}" class="list-end">已显示本次查询的全部记录</view>
       </scroll-view>
+      <view wx:if="{{!sheetCollapsed}}" class="sheet-fade"/>
     </view>
   <view wx:if="{{matches.length || searchError || searching}}" class="search-results" style="top:{{toolbarHeight - 4}}px"><view class="results-heading"><text>{{searchError || '选择要查看的鸟种'}}</text><button class="results-close" bindtap="closeSearch" aria-label="关闭鸟种搜索">×</button></view><scroll-view scroll-y class="results-scroll" style="height:{{searchHeight}}px" bindscrolltolower="moreSpecies"><button wx:for="{{matches}}" wx:key="id" class="species-result" data-id="{{item.id}}" data-name="{{item.name || item.english || item.scientific}}" bindtap="species"><text>{{item.name || item.english || item.scientific}}</text><text class="species-latin">{{item.scientific || ''}}</text></button><button wx:if="{{searchMore}}" class="species-result" bindtap="moreSpecies" disabled="{{searching}}">{{searching ? '加载中…' : '加载更多鸟种'}}</button></scroll-view></view>
 </view>

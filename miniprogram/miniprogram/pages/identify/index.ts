@@ -3,7 +3,7 @@ import { localRepository } from '../../services/repository';
 import { selectTab } from '../../services/tabs';
 import { layout } from '../../services/layout';
 import { resetPageScroll } from '../../services/navigation';
-import { cameraZoom, cameraZoomMax, zoomFromDrag, zoomShortcuts, zoomTicks, DEMO_MAX_ZOOM } from '../../services/camera-zoom';
+import { cameraZoom, cameraZoomMax, cameraZoomProfile, zoomFromDrag, zoomShortcuts, zoomTicks, DEMO_MAX_ZOOM } from '../../services/camera-zoom';
 import { ContextInput, beijingDate, observationContext } from '../../services/observation-context';
 
 import { RecognitionResult, RecognitionError, startRecognition } from '../../services/recognition';
@@ -16,7 +16,7 @@ import { Draft, hub, setDraft } from '../../services/community';
 interface Evidence extends ContextInput {id:string;path:string;kind:'photo'|'video'|'audio';source:'album'|'camera';sample:boolean;persisted:boolean;album:string;birdName:string;notes:string;latitude?:string;longitude?:string;analysis?:RecognitionResult;confirmed?:{rank:number;species:string|null;name:string;analysis:string|null};}
 
 Page({
-  data: {zoomOpen:false,savedDraft:null as Draft|null,latitude:'',longitude:'',liveActive:false,liveText:'实时识别未开启',liveTracks:[] as LiveTrack[],analysis:null as RecognitionResult|null,analyzing:false,isSample:false,contextOpen:false,observedDate:'',observedTime:'',placeName:'',today:beijingDate(),zoomText:'1.0',zoomEnabled:false,zoomWidth:320,zoomTicks:zoomTicks(1,1,320),zoomShortcuts:zoomShortcuts(1),zoomRange:'相机准备中',imagePath:'',source:'album' as 'album'|'camera',birdName:'',notes:'',error:'',busy:false,picking:false,persisted:false,view:'live',height:600,mode:'quick',help:false,paused:false,demo:false,cameraReady:false,cameraError:'',zoom:1,maxZoom:1,focus:'visual',expanded:false,audio:true,recording:false,recordSeconds:0,assets:[] as Evidence[],importKind:'gallery',currentId:'',mediaKind:'photo' as 'photo'|'video'|'audio',albumStatus:'',audioRecording:false },
+  data: {cameraShort:false,zoomProfile:'default',zoomOpen:false,savedDraft:null as Draft|null,latitude:'',longitude:'',liveActive:false,liveText:'实时识别未开启',liveTracks:[] as LiveTrack[],analysis:null as RecognitionResult|null,analyzing:false,isSample:false,contextOpen:false,observedDate:'',observedTime:'',placeName:'',today:beijingDate(),zoomText:'1.0',zoomEnabled:false,zoomWidth:320,zoomTicks:zoomTicks(1,1,320),zoomShortcuts:zoomShortcuts(1),zoomRange:'相机准备中',imagePath:'',source:'album' as 'album'|'camera',birdName:'',notes:'',error:'',busy:false,picking:false,persisted:false,view:'live',height:600,mode:'quick',help:false,paused:false,demo:false,cameraReady:false,cameraError:'',zoom:1,maxZoom:1,focus:'visual',expanded:false,audio:true,recording:false,recordSeconds:0,assets:[] as Evidence[],importKind:'gallery',currentId:'',mediaKind:'photo' as 'photo'|'video'|'audio',albumStatus:'',audioRecording:false },
   _zoomSession:0,
   _live:null as LiveVision|null,
   _liveGeneration:0,
@@ -28,7 +28,8 @@ Page({
   _zoomPending:null as number|null,
   _zoomInFlight:false,
   _zoomConfirmed:1,
-  _zoomDrag:null as {x:number;zoom:number}|null,
+  _zoomDrag:null as {x:number;y:number;zoom:number;axis:''|'horizontal'|'vertical'}|null,
+  _zoomSuppressTap:false,
   _pickToken: 0,
   _camera:null as WechatMiniprogram.CameraContext|null,
   _holdTimer:0 as ReturnType<typeof setTimeout>,
@@ -36,8 +37,8 @@ Page({
   _suppressTap:false,
   _holding:false,
   _recorder:null as WechatMiniprogram.RecorderManager|null,
-  onLoad(){const box=layout();this.setData({height:box.height,zoomWidth:Math.max(180,box.width-24)});this._camera=wx.createCameraContext();this.updateZoomView(1);},
-  onResize(){this.clearTracks();if(this.data.liveActive)wx.createSelectorQuery().in(this).select('.viewfinder').boundingClientRect(result=>{if(result&& !Array.isArray(result))this._viewport=result;}).exec();const box=layout();this.setData({height:box.height,zoomWidth:Math.max(180,box.width-24)});this.updateZoomView(this.data.zoom);},
+  onLoad(){const box=layout();let zoomProfile='default';try{zoomProfile=cameraZoomProfile(wx.getDeviceInfo?.());}catch{/* Some simulator versions do not expose device info. */}this.setData({height:box.height,cameraShort:box.height<520,zoomProfile,zoomWidth:Math.max(180,box.width-24)});this._camera=wx.createCameraContext();this.updateZoomView(1);},
+  onResize(){this.clearTracks();if(this.data.liveActive)wx.createSelectorQuery().in(this).select('.viewfinder').boundingClientRect(result=>{if(result&& !Array.isArray(result))this._viewport=result;}).exec();const box=layout();this.setData({height:box.height,cameraShort:box.height<520,zoomWidth:Math.max(180,box.width-24)});this.updateZoomView(this.data.zoom);},
   onShow() { this.setData({today:beijingDate()});selectTab(this, 2);if(this.data.view==='live'){this.setData({paused:false});this.updateZoomView(this.data.zoom);} },
   onHide(){this.stopVision();this.cancelAnalysis();this.resetZoomRequests();this.setData({cameraReady:false});this._holding=false;clearTimeout(this._holdTimer);if(this.data.recording)this.stopVideo();if(this.data.audioRecording)this._recorder?.stop();this.setData({paused:true});this.updateZoomView(this.data.zoom);},
   onUnload() { this.stopVision();this.cancelAnalysis();this.resetZoomRequests();this._pickToken++;this._holding=false;clearTimeout(this._holdTimer);clearInterval(this._recordTimer); },
@@ -101,7 +102,7 @@ Page({
     const limit=this.zoomLimit(),value=cameraZoom(raw,limit),available=this.data.demo||(this.data.cameraReady&&typeof this._camera?.setZoom==='function');
     const enabled=available&&!this.data.paused&&limit>1;
     const range=this.data.demo?'示例变焦 1.0–5.0×':this.data.cameraError?'相机不可用':this.data.paused?'取景已暂停':!this.data.cameraReady?'相机准备中':!available?'当前环境不提供变焦':limit<=1?'当前相机仅支持 1.0×':'当前相机 1.0–'+limit.toFixed(1)+'×';
-    this.setData({zoom:value,zoomText:value.toFixed(1),zoomEnabled:enabled,zoomRange:range,zoomTicks:zoomTicks(value,limit,this.data.zoomWidth),zoomShortcuts:zoomShortcuts(limit)});
+    this.setData({zoom:value,zoomText:value.toFixed(1),zoomEnabled:enabled,zoomRange:range,zoomTicks:zoomTicks(value,limit,this.data.zoomWidth),zoomShortcuts:zoomShortcuts(limit,this.data.zoomProfile)});
   },
   pause(){this.stopVision();if(this.data.recording)this.stopVideo();this.resetZoomRequests();this.setData({paused:!this.data.paused,cameraReady:false});this.updateZoomView(this.data.zoom);},
   demo(){if(this.data.busy||this.data.recording)return;this.stopVision();this.resetZoomRequests();this._zoomConfirmed=1;this.setData({demo:!this.data.demo,cameraError:'',paused:false,cameraReady:false,maxZoom:1});this.updateZoomView(1);},
@@ -113,8 +114,15 @@ Page({
   cameraStopped(){this.stopVision();this.resetZoomRequests();this.setData({cameraReady:false,paused:true});this.updateZoomView(this.data.zoom);},
   zoom(e:WechatMiniprogram.TouchEvent){this.setZoom(Number(e.currentTarget.dataset.zoom));},
   zoomNudge(e:WechatMiniprogram.TouchEvent){this.setZoom(this.data.zoom+Number(e.currentTarget.dataset.delta));},
-  zoomStart(e:WechatMiniprogram.TouchEvent){const touch=e.touches[0];if(this.data.zoomEnabled&&touch)this._zoomDrag={x:touch.clientX,zoom:this.data.zoom};},
-  zoomMove(e:WechatMiniprogram.TouchEvent){const drag=this._zoomDrag,touch=e.touches[0];if(drag&&touch)this.setZoom(zoomFromDrag(drag.zoom,touch.clientX-drag.x,this.zoomLimit()));},
+  zoomStart(e:WechatMiniprogram.TouchEvent){const touch=e.touches[0];this._zoomSuppressTap=false;if(touch)this._zoomDrag={x:touch.clientX,y:touch.clientY||0,zoom:this.data.zoom,axis:''};},
+  zoomMove(e:WechatMiniprogram.TouchEvent){
+    const drag=this._zoomDrag,touch=e.touches[0];if(!drag||!touch)return;
+    const dx=touch.clientX-drag.x,dy=(touch.clientY||0)-drag.y;
+    if(!drag.axis&&Math.max(Math.abs(dx),Math.abs(dy))>10)drag.axis=Math.abs(dy)>Math.abs(dx)*1.2?'vertical':'horizontal';
+    if(drag.axis==='vertical'){
+      if(Math.abs(dy)>28){this.setData({zoomOpen:dy<0});this._zoomSuppressTap=true;}
+    }else if(drag.axis==='horizontal'){this._zoomSuppressTap=true;this.setZoom(zoomFromDrag(drag.zoom,dx,this.zoomLimit()));}
+  },
   zoomEnd(){this._zoomDrag=null;},
   setZoom(raw:number){
     if(!Number.isFinite(raw)||!this.data.zoomEnabled)return;
@@ -229,7 +237,7 @@ Page({
   },
   shareObservation(){const draft=this.draftObservation();if(draft){setDraft(draft);hub('publish');}},
   shareSaved(){if(this.data.savedDraft){setDraft(this.data.savedDraft);hub('publish');}},
-  toggleZoom(){this.setData({zoomOpen:!this.data.zoomOpen});},
+  toggleZoom(){if(this._zoomSuppressTap){this._zoomSuppressTap=false;return;}this.setData({zoomOpen:!this.data.zoomOpen});},
   compareTarget(event:WechatMiniprogram.TouchEvent){
     const rank=Number(event.currentTarget.dataset.rank), original=this.data.currentId;
     const analysisId=this.data.analysis?.analysisId;

@@ -64,3 +64,19 @@
 .publish-post{flex:1.65;min-height:46px;background:#285b49;color:white;font-size:14px}
 .compose-note{display:block;font-size:12px;line-height:1.8;color:#829178}
 .forum-page.focused-page{padding-bottom:calc(28px + env(safe-area-inset-bottom))}
+
+/* Three small silhouettes cross the refresh control in a staggered flight. */
+.flight-loader{position:relative;width:42px;height:26px;overflow:hidden}
+.flight-bird{position:absolute;left:-12px;top:10px;width:14px;height:7px;animation:bird-flight 1.5s ease-in-out infinite;opacity:0}
+.flight-bird::before,.flight-bird::after{content:"";position:absolute;top:1px;width:8px;height:5px;border-top:2px solid #285b49;border-radius:50%}
+.flight-bird::before{left:0;transform:rotate(22deg)}.flight-bird::after{right:0;transform:rotate(-22deg)}
+.bird-two{animation-delay:.2s;top:6px}.bird-three{animation-delay:.4s;top:12px}
+@keyframes bird-flight{0%{transform:translate(0,3px);opacity:0}20%{opacity:1}55%{transform:translate(28px,-2px);opacity:1}100%{transform:translate(60px,1px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.flight-bird{animation:none;opacity:1;left:0}.bird-two{left:14px}.bird-three{left:28px}}
+.forum-menu-backdrop{position:fixed;inset:0;z-index:170;background:#17352b65}
+.forum-menu{position:fixed;z-index:171;bottom:0;left:0;right:0;margin:auto;max-width:620px;padding:10px 18px calc(22px + env(safe-area-inset-bottom));border-radius:24px 24px 0 0;background:#fafbf5;box-sizing:border-box;box-shadow:0 -8px 32px #17352b20}
+.menu-handle{height:3px;width:32px;margin:0 auto 15px;border-radius:3px;background:#cbd7c3}
+.menu-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.menu-title{display:block;font-size:20px;font-weight:600;color:#285b49}.menu-subtitle{display:block;font-size:12px;line-height:1.7;color:#819076;margin-top:4px}
+.menu-close{width:38px;height:38px;min-height:38px;padding:0;margin:0;line-height:36px;border-radius:50%;background:#edf3e7;color:#597652;font-size:24px;flex:none}
+.menu-grid{display:flex;flex-wrap:wrap;gap:10px}.menu-item{width:calc(50% - 5px);height:78px;min-height:78px;display:flex;align-items:center;gap:10px;margin:0;padding:12px 10px;border:1px solid #dce5d7;background:#fffef9;border-radius:14px;text-align:left;box-sizing:border-box;line-height:1.5}
+.menu-icon-wrap{width:32px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#edf3e7;flex:none}.menu-icon{width:20px;height:20px}.menu-copy{min-width:0;display:flex;flex-direction:column;gap:3px}.menu-label{font-size:13px;font-weight:600;color:#385444}.menu-hint{font-size:10px;color:#829178;white-space:nowrap}.menu-dismiss{margin:16px 0 0;width:100%;min-height:42px;background:#edf3e7;color:#597652;font-size:13px}

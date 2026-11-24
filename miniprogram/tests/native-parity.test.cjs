@@ -251,7 +251,7 @@ test('camera capabilities determine shortcuts and a finite one-decimal range, wi
   const z=require('../.test-build/services/camera-zoom.js');
   for(const invalid of [undefined,'bad',NaN,Infinity,-4,0,1e308])assert.equal(z.cameraZoomMax(invalid),1);
   assert.equal(z.cameraZoomMax('4.99'),4.9);assert.equal(z.cameraZoom(4.99,4.99),4.9);assert.equal(z.cameraZoom(.5,100),1);assert.equal(z.cameraZoom(1000,100),100);
-  assert.deepEqual(z.zoomShortcuts(1).map(s=>s.value),[1]);assert.deepEqual(z.zoomShortcuts(1.89).map(s=>s.value),[1,1.8]);assert.deepEqual(z.zoomShortcuts(2.9).map(s=>s.value),[1,2]);assert.deepEqual(z.zoomShortcuts(100).map(s=>s.value),[1,2,3,5,10]);
+  assert.deepEqual(z.zoomShortcuts(1).map(s=>s.value),[1]);assert.deepEqual(z.zoomShortcuts(1.89).map(s=>s.value),[1,1.8]);assert.deepEqual(z.zoomShortcuts(2.9).map(s=>s.value),[1,2]);assert.deepEqual(z.zoomShortcuts(100).map(s=>s.value),[1,2,3,3.5,5,10]);
   for(const max of [1,1.8,3,5,10,100])for(const value of [1,1.3,2,5,10,100]){const zoom=z.cameraZoom(value,max),ticks=z.zoomTicks(zoom,max,366);assert.ok(ticks.length<60);assert.ok(ticks.every(t=>Number.isFinite(t.offset)&&Math.abs(t.offset)<=195));assert.equal(new Set(ticks.map(t=>t.id)).size,ticks.length);}
   assert.equal(z.zoomFromDrag(1,-z.ZOOM_OCTAVE_PX,100),2);assert.equal(z.zoomFromDrag(2,z.ZOOM_OCTAVE_PX,100),1);assert.equal(z.zoomFromDrag(1,-100000,100),100);
 });

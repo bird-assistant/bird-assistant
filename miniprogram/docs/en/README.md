@@ -1,4 +1,6 @@
-# Bird Assistant native WeChat client — 0.4.2
+# Bird Assistant native WeChat client — 0.4.3
+
+25 November 2026 · **Current0.4.3**: [map, forum and camera interaction](NATIVE-INTERACTION-0.4.3.md). Single records remain circles until close zoom; clusters update throughout gestures; loading does not block marker taps. A smaller floating drawer compacts during pan and follows the new region, with a lower fade and native attribution clearance. Adds a three-bird refresh indicator, styled forum tools and photo metadata card. Recognition restores translucent clue tabs, swipe expansion of the zoom ruler and a bounded3.5× shortcut while retaining real vision. Client140 tests pass. Backend/dependency versions are unchanged. Journal refinement, Qwen, live posting/reply checks and profile review are deferred; native/SDK acceptance remains pending. Older checkpoint sections below are historical.
 
 2026-11-25 · Current0.4.2: [map memory, live search and forum threads](FORUM-AND-SEARCH-0.4.2.md). Client132passed; local backend469passed/51skipped,86.60%coverage. Deployment, live Qwen and native acceptance remain pending. Older records below are historical.
 

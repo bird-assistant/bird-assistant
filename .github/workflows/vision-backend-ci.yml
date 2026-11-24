@@ -89,7 +89,7 @@ jobs:
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"
       YOLO_AUTOINSTALL: "false"
-      YOLO_CONFIG_DIR: /tmp/bird-assistant-yolo
+      YOLO_CONFIG_DIR: /tmp
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
     steps:
@@ -111,6 +111,7 @@ jobs:
         run: |
           python - <<'PY'
           from datetime import UTC, datetime, timedelta
+          from math import isclose
 
           import open_clip
           import torch
@@ -131,7 +132,8 @@ jobs:
           second = tracker.update(
               (RawDetection(Box(12, 10, 52, 50), 0.2),), now + timedelta(milliseconds=100)
           )[0]
-          assert second is first and second.hits == 2 and second.detection_score == 0.2
+          assert second is first and second.hits == 2
+          assert isclose(second.detection_score, 0.2, rel_tol=0, abs_tol=1e-6), second.detection_score
           assert not tracker.update((), now + timedelta(milliseconds=200))
           tracker.clear()
           print(f"CPU compatibility passed: torch={torch.__version__}, torchvision={torchvision.__version__}")

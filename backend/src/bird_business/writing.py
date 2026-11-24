@@ -142,7 +142,7 @@ def generate(settings, brief: Brief, images: list[str]) -> dict:
     ]
     content += [{"type": "image_url", "image_url": {"url": image}} for image in images]
     payload = {
-        "model": settings.qwen_model,
+        "model": settings.qwen_model if images else settings.qwen_text_model,
         "enable_thinking": False,
         "response_format": {"type": "json_object"},
         "max_tokens": 1200,

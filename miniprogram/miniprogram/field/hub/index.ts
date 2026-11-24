@@ -1,5 +1,6 @@
 import {api,community,Draft,getDraft,hub,imageUrl,key,openMap,Point,privatePhoto,sessionState,setCompose,setDraft,takeCompose,uploadPhoto} from '../../services/community';
 
+import {forumPost,forumThreads,ReplyView} from '../../services/forum';
 import {compareBirds,picture} from '../../services/field-guide';
 
 const names:Record<string,string>={external:'外部社区鸟讯',library:'鸟种资料库',species:'鸟种资料',record:'观察与讨论',publish:'发布观察',
@@ -9,10 +10,10 @@ type Input=WechatMiniprogram.CustomEvent<{value:string}>;
 function message(error:unknown){return error instanceof Error?error.message:'请求失败，请重试。';}
 
 Page({
-  data:{photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
+  data:{postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
     draft:null as Draft|null,anonymous:true,shareDate:false,shareCamera:false,sharePhoto:true,map:false,post:true,
     externalPage:0,externalNext:false,preview:null as any,previewLines:[] as string[],photo:'',replySpecies:'',self:'',selectedSpecies:'',matches:[] as any[]},
-  _media:'',_sighting:'',_generation:0,_submitKey:'',_path:'',
+  _media:'',_sighting:'',_generation:0,_submitKey:'',_replySignature:'',_path:'',_closed:false,_replyOffset:0,_replyLoading:false,
   onLoad(options:Record<string,string|undefined>){
     const screen=options.screen&&names[options.screen]?options.screen:'feed';
     this._submitKey=key();
@@ -21,11 +22,11 @@ Page({
       const draft=options.id==='compose'?null:getDraft();
       this._media=draft?.storedMedia||'';this._path=draft?.path||'';
       const compose=options.id==='compose'?takeCompose():null;
-      this.setData({draft,sourceId:compose?.sourceId||'',title:compose?.title||'',photo:draft?.path||compose?.photo||'',body:draft?.note||compose?.body||'',sharePhoto:!!(draft?.path||compose?.photo)});
+      this.setData({draft,sourceId:compose?.sourceId||'',title:compose?.title||'',photo:draft?.path||compose?.photo||'',body:draft?.note||compose?.body||'',sharePhoto:!!(draft?.path||compose?.photo),postSpecies:compose?.speciesId||'',postSpeciesName:compose?.speciesName||'',speciesSupported:compose?.speciesSupported===true});
     }
     void this.load();
   },
-  onUnload(){this._generation++;},
+  onUnload(){this._closed=true;this._generation++;},
   copyCredit(event:Tap){void wx.setClipboardData({data:event.currentTarget.dataset.url});},
   onShareAppMessage(){
     const record=this.data.record;
@@ -50,6 +51,12 @@ Page({
       if(screen==='library')this.setData({featured:(result.featured||[]).map((bird:{id:string;photo:object|null})=>({...bird,image:bird.photo?picture(bird.id):''}))});
       const items=result.items||result.records||[];
       this.setData({items,externalNext:result.hasMore??items.length===40,record:{...result,image:imageUrl(result.image)},photo:imageUrl(result.image)});
+      if(screen==='record'){
+        this._replyOffset=(result.replies||[]).length;
+        const pending=result.features?.threadedReplies?[]:this.data.pendingReplies;
+        const replies=(result.replies||[]).concat(pending),record={...forumPost(result),...result,image:imageUrl(result.image),replies,replyCount:result.replyCount??(result.replies||[]).length};
+        this.setData({record,replyThreads:forumThreads(replies)});wx.setNavigationBarTitle({title:result.channel==='post'?'帖子详情':'观察详情'});
+      }
       if(screen==='species'){
         const responses=await Promise.all([api(routes.species+'/places'),api(community+'/posts','GET',{species:id})]);
         const places=responses[0],posts=responses[1];
@@ -63,7 +70,7 @@ Page({
   },
   photoError(){this.setData({photoFailed:true});},
   photoLoaded(event:WechatMiniprogram.CustomEvent<{width:number;height:number}>){
-    const {width,height}=event.detail;if(width>0&&height>0)this.setData({photoHeight:Math.max(80,Math.min(320,(Math.min(620,wx.getWindowInfo().windowWidth)-38)*height/width))});
+    const {width,height}=event.detail;if(width>0&&height>0)this.setData({photoHeight:Math.max(60,Math.min(420,(Math.min(620,wx.getWindowInfo().windowWidth)-32)*height/width)),photoWidth:Math.min(Math.min(620,wx.getWindowInfo().windowWidth)-32,420*width/height)});
   },
   field(event:Input){const field=String(event.currentTarget.dataset.field);if(['keyword','title','body','replySpecies'].includes(field))this.setData({[field]:event.detail.value,preview:null});},
   flag(event:Tap){const field=event.currentTarget.dataset.field as 'post'|'map'|'anonymous'|'shareDate'|'shareCamera'|'sharePhoto';this.setData({[field]:!this.data[field],preview:null});},
@@ -71,6 +78,29 @@ Page({
   sparrowPair(){compareBirds(['avibase-C22FBF8D','avibase-240E3390']);},
   compareSpecies(){compareBirds(this.data.screen==='species'?[this.data.id]:[]);},
   changeTab(event:Tap){this.setData({tab:event.currentTarget.dataset.tab});},
+  async morePlaces(){if(this.data.placeLoading||this.data.places.length>=this.data.placeCount)return;const id=this.data.id,generation=this._generation;this.setData({placeLoading:true});
+    try{const result=await api('/api/v1/species/'+id+'/places','GET',{limit:50,offset:this.data.places.length});if(generation===this._generation){const unique=new Map(this.data.places.concat(result.items).map((row:any)=>[row.id,row]));this.setData({places:Array.from(unique.values())});}}
+    catch(error){if(generation===this._generation)this.setData({error:message(error)});}finally{if(generation===this._generation)this.setData({placeLoading:false});}},
+  startSpeciesDiscussion(){const row=this.data.record;if(!row)return;setCompose({title:'关于'+(row.name||row.english)+'的讨论',body:'',photo:'',speciesId:this.data.id,speciesName:row.name||row.english,speciesSupported:row.features?.speciesPosts===true});hub('publish','compose');},
+  chooseReplySpecies(event:WechatMiniprogram.CustomEvent<{id:string;name:string}>){this.setData({replySpecies:event.detail.id,selectedSpecies:event.detail.name,replySuggestOpen:false});},
+  clearReplySpecies(){this.setData({replySpecies:'',selectedSpecies:''});},
+  toggleReplySpecies(){this.setData({replySuggestOpen:!this.data.replySuggestOpen});},
+  replyTo(event:Tap){const id=String(event.currentTarget.dataset.id),row=this.data.record?.replies?.find((item:any)=>item.id===id);if(!row||row.status==='pending')return;
+    if(!this.data.record.features?.threadedReplies){this.setData({notice:'当前服务需更新后才能回复指定楼层，你仍可发表普通回复。'});this.focusReplies();return;}
+    this.setData({replyTarget:{id,name:row.publicName||'鸟友'},replyFocused:true});wx.pageScrollTo({selector:'#reply-composer',duration:160});},
+  cancelReply(){this.setData({replyTarget:null,replyFocused:false});},
+  blurReply(){this.setData({replyFocused:false});},
+  async moreReplies(){
+    if(this._replyLoading||!this.data.record?.replyHasMore)return;
+    const generation=this._generation;this._replyLoading=true;
+    try{const result=await api(community+'/publications/'+this.data.id,'GET',{replyOffset:this._replyOffset});
+      if(generation!==this._generation||this._closed)return;
+      this._replyOffset+=(result.replies||[]).length;
+      const replies=Array.from(new Map(this.data.record.replies.concat(result.replies||[]).map((row:any)=>[row.id,row])).values());
+      this.setData({record:{...this.data.record,replies,replyHasMore:result.replyHasMore===true&&(result.replies||[]).length>0},replyThreads:forumThreads(replies)});
+    }catch(error){if(generation===this._generation&&!this._closed)this.setData({error:message(error)});}finally{this._replyLoading=false;}
+  },
+  focusReplies(){this.setData({replyFocused:true});wx.pageScrollTo({selector:'#reply-composer',duration:160});},
   speciesMap(event:Tap){const place=this.data.places.find(row=>row.id===event.currentTarget.dataset.id);if(place)openMap(place.displayLocation,this.data.id,this.data.record.name||this.data.record.english,1);},
   viewMap(){if(this.data.record?.displayLocation)openMap(this.data.record.displayLocation);},
   choosePoint(){wx.navigateTo({url:'/field/picker/index',events:{point:(point:Point)=>{if(this.data.draft){this._sighting='';this.setData({draft:{...this.data.draft,point},preview:null});}}}});},
@@ -112,6 +142,7 @@ Page({
       }
       if(privateOnly){this.setData({screen:'record',id:this._sighting,notice:'已保存到云端私人观察。'});await this.load();return;}
       const preview=await api(community+'/previews','POST',{sighting:this._sighting||null,media:this._media||null,
+        ...(d.postSpecies&&d.speciesSupported?{species:d.postSpecies}:{}),
         external:d.sourceId||null,title:d.title,body:d.body,anonymous:d.anonymous,share_camera:d.shareCamera,share_photo:d.sharePhoto,share_date:d.shareDate,
         channels:[...(d.post?['post']:[]),...(d.map?['map']:[])]});
       const previewLines=Object.keys(preview.display).map(channel=>{const row=preview.display[channel];
@@ -126,15 +157,20 @@ Page({
       wx.setNavigationBarTitle({title:names[screen]});await this.load();}
     catch(error){this.setData({error:message(error)});}finally{this.setData({busy:false});}},
   async action(event:Tap){
-    if(this.data.busy)return;const {op,id}=event.currentTarget.dataset;this.setData({busy:true,error:'',notice:''});
+    if(this.data.busy||this._closed)return;const {op,id}=event.currentTarget.dataset;this.setData({busy:true,error:'',notice:''});
     try{
       if(op==='withdraw'){if(!(await wx.showModal({title:'撤回发布？',content:'此渠道的内容和照片将从公开页面移除。'})).confirm)return;
         await api(community+'/publications/'+id,'DELETE');}
       if(op==='reply'||op==='send'){
         if(!this.data.body.trim())throw new Error('请输入内容。');
-        await api(op==='reply'?community+'/publications/'+this.data.id+'/replies':community+'/messages/'+this.data.id,'POST',
-          {body:this.data.body,reference:this._submitKey,...(op==='reply'?{species:this.data.replySpecies||null}:{})});
-        this._submitKey=key();this.setData({body:'',notice:op==='reply'?'回复已提交审核。':'已发送。'});
+        const text=this.data.body.trim(),parent=this.data.replyTarget;
+        const signature=JSON.stringify([this.data.id,text,this.data.replySpecies,parent?.id||'']);
+        if(this._replySignature&&this._replySignature!==signature)this._submitKey=key();this._replySignature=signature;
+        const result=await api(op==='reply'?community+'/publications/'+this.data.id+'/replies':community+'/messages/'+this.data.id,'POST',
+          {body:text,reference:this._submitKey,...(op==='reply'?{species:this.data.replySpecies||null,...(parent?{parentId:parent.id}:{})}:{})});
+        if(this._closed)return;
+        if(op==='reply'&&result.id)this.setData({pendingReplies:this.data.pendingReplies.concat({id:result.id,body:text,publicName:'我',memberId:this.data.self,species:this.data.replySpecies||'',parentId:parent?.id||'',replyToName:parent?.name||'',status:'pending',created:new Date().toISOString()})});
+        this._submitKey=key();this._replySignature='';this.setData({body:'',replyTarget:null,replyFocused:false,replySuggestOpen:false,replySpecies:'',selectedSpecies:'',notice:op==='reply'?'回复已提交，审核通过后公开显示。':'已发送。'});wx.hideKeyboard?.();
       }
       if(op==='like'||op==='bookmark'){const base=community+'/publications/'+this.data.id;const active=this.data.record.reactions?.includes(op);await api(base+(active?'/reactions/':'/')+op,active?'DELETE':'PUT');}
       if(op==='adopt'){await api('/api/v2/observations/'+this.data.record.ownedSighting+'/adopt','POST',{reply:id});this.setData({notice:'已更新私人观察的鸟种。'});}
@@ -144,6 +180,6 @@ Page({
         await api(community+'/reports/'+id,'POST',{reason:res.content});this.setData({notice:'举报已受理'});}
       if(op==='source'&&this.data.record?.sourceUrl)await wx.setClipboardData({data:this.data.record.sourceUrl});
       await this.load();
-    }catch(error){this.setData({error:message(error)});}finally{this.setData({busy:false});}
+    }catch(error){if(!this._closed)this.setData({error:message(error)});}finally{if(!this._closed)this.setData({busy:false});}
   }
 });

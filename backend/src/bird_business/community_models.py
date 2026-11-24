@@ -43,6 +43,7 @@ class Sighting(Input):
 
 
 class Preview(Input):
+    species: Key | None = None
     external: Key | None = None
     sighting: Key | None = None
     media: Key | None = None
@@ -56,6 +57,8 @@ class Preview(Input):
 
     @model_validator(mode="after")
     def validate_content(self):
+        if self.species and (self.sighting or self.external or self.channels != {"post"}):
+            raise ValueError("topic species applies only to standalone discussion posts")
         if not self.sighting and not self.body:
             raise ValueError("a sighting or message is required")
         return self
@@ -69,6 +72,7 @@ class Reply(Input):
     body: Text
     reference: Key
     species: Key | None = None
+    parentId: Key | None = None
 
 
 class Message(Input):

@@ -75,16 +75,37 @@ def species_name(row):
 
 @router.get("/api/v1/species")
 def search_species(
-    database: DB, q: Annotated[str, Query(max_length=128)] = "", limit: Limit = 30, featured: bool = False
+    database: DB,
+    q: Annotated[str, Query(max_length=128)] = "",
+    limit: Limit = 30,
+    featured: bool = False,
+    offset: Annotated[int, Query(ge=0, le=100000)] = 0,
 ):
     with database.transaction() as db:
-        query = "%" + q + "%"
-        rows = db.execute(
-            "SELECT * FROM taxa WHERE name LIKE ? OR scientific LIKE ? OR english LIKE ? "
-            'ORDER BY (name=?) DESC,(name!="") DESC,name,scientific LIMIT ?',
-            (query, query, query, q, limit),
+        q = q.strip()
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        args = dict(q=q, contains="%" + escaped + "%", prefix=escaped + "%", limit=limit, offset=offset)
+        where = (
+            " WHERE name LIKE :contains ESCAPE '\\' OR scientific LIKE :contains ESCAPE '\\' "
+            "OR english LIKE :contains ESCAPE '\\'"
         )
-        result = {"items": [dict(row) for row in rows], "source": "AviList v2026 · CC BY 4.0"}
+        total = db.execute("SELECT count(*) FROM taxa" + where, args).fetchone()[0]
+        rows = db.execute(
+            "SELECT * FROM taxa"
+            + where
+            + " ORDER BY (:q!='' AND name=:q COLLATE NOCASE) DESC,(name LIKE :prefix ESCAPE '\\') DESC,"
+            "(english LIKE :prefix ESCAPE '\\') DESC,(name!='') DESC,name COLLATE NOCASE,"
+            "english COLLATE NOCASE,scientific COLLATE NOCASE,id LIMIT :limit OFFSET :offset",
+            args,
+        )
+        items = [dict(row) for row in rows]
+        result = {
+            "items": items,
+            "total": total,
+            "offset": offset,
+            "hasMore": offset + len(items) < total,
+            "source": "AviList v2026 · CC BY 4.0",
+        }
         if featured and not q:
             examples = db.execute(
                 "SELECT id,name,english FROM taxa WHERE scientific IN (?,?,?,?) ORDER BY name",
@@ -102,6 +123,7 @@ def species_detail(species: str, database: DB):
         return {
             **guide_record(db, database, species),
             "source": "AviList v2026 · CC BY 4.0",
+            "features": {"speciesPosts": True},
             "records": [
                 public(row)
                 for row in db.execute(
@@ -300,7 +322,7 @@ def preview(body: Preview, database: DB, owner: Member):
             if body.sighting
             else {}
         )
-        species = taxon(db, sighting.get("species"))
+        species = taxon(db, sighting.get("species") or body.species)
         citation = None
         if body.external:
             source = one(
@@ -432,48 +454,92 @@ def photo(record: str, database: DB):
         raise ServiceError("PHOTO_UNAVAILABLE", "原社区照片暂不可用", 503) from error
 
 
+def discussion_summary(db, record, owner):
+    reactions = [
+        row[0] for row in db.execute("SELECT kind FROM reactions WHERE post=? AND owner=?", (record, owner))
+    ]
+    return {
+        "reactions": reactions,
+        "bookmarked": "bookmark" in reactions,
+        "likes": db.execute(
+            "SELECT count(*) FROM reactions WHERE post=? AND kind='like'", (record,)
+        ).fetchone()[0],
+        "replyCount": db.execute(
+            "SELECT count(*) FROM replies WHERE post=? AND status='approved'", (record,)
+        ).fetchone()[0],
+    }
+
+
+def discussion_reply(db, row):
+    result = dict(row)
+    result["publicName"] = member_card(db, result["memberId"])["nickname"]
+    parent = db.execute("SELECT owner,status FROM replies WHERE id=?", (result["parentId"],)).fetchone()
+    result["replyToName"] = (
+        member_card(db, parent["owner"])["nickname"] if parent and parent["status"] == "approved" else ""
+    )
+    return result
+
+
 @router.get(ROOT + "/publications/{record}")
-def detail(record: str, database: DB, owner: Annotated[str | None, Depends(public_reader)]):
+def detail(
+    record: str,
+    database: DB,
+    owner: Annotated[str | None, Depends(public_reader)],
+    replyOffset: Annotated[int, Query(ge=0)] = 0,
+):
     with database.transaction() as db:
         row = visible(db, record)
-        reactions = [
-            item[0]
-            for item in db.execute("SELECT kind FROM reactions WHERE post=? AND owner=?", (record, owner))
-        ]
         related = db.execute(
             "SELECT id,channel FROM publications WHERE preview=? AND id!=? AND status='approved'",
             (row["preview"], record),
         ).fetchone()
+        reply_total = db.execute(
+            "SELECT count(*) FROM replies WHERE post=? "
+            "AND (status='approved' OR (owner=? AND status='pending'))",
+            (record, owner),
+        ).fetchone()[0]
         return {
             **public(row),
+            **discussion_summary(db, record, owner),
+            "features": {"threadedReplies": True},
             "related": dict(related) if related else None,
             "ownedSighting": row["sighting"] if row["owner"] == owner else None,
-            "reactions": reactions,
-            "bookmarked": "bookmark" in reactions,
-            "likes": db.execute(
-                "SELECT count(*) FROM reactions WHERE post=? AND kind='like'", (record,)
-            ).fetchone()[0],
+            "replyHasMore": replyOffset + 100 < reply_total,
+            "replyOffset": replyOffset,
             "replies": [
-                {**dict(reply), "publicName": member_card(db, reply["memberId"])["nickname"]}
+                discussion_reply(db, reply)
                 for reply in db.execute(
-                    "SELECT id,owner memberId,body,species,created FROM replies WHERE post=? "
-                    "AND status='approved' "
-                    "ORDER BY created DESC LIMIT 100",
-                    (record,),
+                    "SELECT id,owner memberId,body,species,created,status,parent parentId "
+                    "FROM replies WHERE post=? AND (status='approved' OR (owner=? AND status='pending')) "
+                    "ORDER BY created DESC,id DESC LIMIT 100 OFFSET ?",
+                    (record, owner, replyOffset),
                 )
             ],
         }
 
 
 @router.get(ROOT + "/posts")
-def feed(database: DB, species: str = "", limit: Limit = 40, offset: Annotated[int, Query(ge=0)] = 0):
+def feed(
+    database: DB,
+    owner: Annotated[str | None, Depends(public_reader)],
+    species: str = "",
+    limit: Limit = 40,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
     with database.transaction() as db:
+        where = " FROM publications WHERE status='approved' AND channel='post' AND (?='' OR species=?)"
+        total = db.execute("SELECT count(*)" + where, (species, species)).fetchone()[0]
         rows = db.execute(
-            "SELECT * FROM publications WHERE status='approved' AND channel='post' AND (?='' OR species=?) "
-            "ORDER BY created DESC,id LIMIT ? OFFSET ?",
+            "SELECT *" + where + " ORDER BY created DESC,id LIMIT ? OFFSET ?",
             (species, species, limit, offset),
         )
-        return {"items": [public(row) for row in rows]}
+        items = [{**public(row), **discussion_summary(db, row["id"], owner)} for row in rows]
+        return {
+            "items": items,
+            "total": total,
+            "hasMore": offset + len(items) < total,
+            "features": {"threadedReplies": True},
+        }
 
 
 @router.get(ROOT + "/external")
@@ -655,16 +721,30 @@ def reply(record: str, body: Reply, database: DB, owner: Member):
             "SELECT * FROM replies WHERE owner=? AND ref=?", (owner, body.reference)
         ).fetchone()
         if existing:
-            if (existing["post"], existing["body"], existing["species"]) != (record, body.body, body.species):
+            if (existing["post"], existing["body"], existing["species"], existing["parent"]) != (
+                record,
+                body.body,
+                body.species,
+                body.parentId,
+            ):
                 raise conflict()
-            return {"id": existing["id"], "status": existing["status"]}
+            return {"id": existing["id"], "status": existing["status"], "parentId": existing["parent"]}
+        if body.parentId:
+            # A reply cannot attach to another post or disclose an unapproved parent.
+            one(
+                db,
+                "SELECT id FROM replies WHERE id=? AND post=? AND status='approved'",
+                body.parentId,
+                record,
+            )
         limited(db, "replies", "owner", owner, 40)
         key = uid("reply")
         db.execute(
-            "INSERT INTO replies VALUES(?,?,?,?,?,?,?,?)",
-            (key, record, owner, body.body, body.species, "pending", now(), body.reference),
+            "INSERT INTO replies(id,post,owner,body,species,status,created,ref,parent) "
+            "VALUES(?,?,?,?,?,?,?,?,?)",
+            (key, record, owner, body.body, body.species, "pending", now(), body.reference, body.parentId),
         )
-        return {"id": key, "status": "pending"}
+        return {"id": key, "status": "pending", "parentId": body.parentId}
 
 
 @router.post("/api/v2/observations/{record}/adopt")
@@ -701,7 +781,7 @@ def react(record: str, kind: Literal["like", "bookmark"], request: Request, data
             db.execute("INSERT OR IGNORE INTO reactions VALUES(?,?,?)", (owner, record, kind))
         else:
             db.execute("DELETE FROM reactions WHERE owner=? AND post=? AND kind=?", (owner, record, kind))
-        return {"active": request.method == "PUT"}
+        return {"active": request.method == "PUT", **discussion_summary(db, record, owner)}
 
 
 @router.get(ROOT + "/bookmarks")

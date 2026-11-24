@@ -43,6 +43,7 @@ class BusinessSettings(BaseSettings):
         pattern=r"^https://(?:dashscope\.aliyuncs\.com|[a-zA-Z0-9-]+\.cn-beijing\.maas\.aliyuncs\.com)/compatible-mode/v1$",
     )
     qwen_model: str = Field(default="qwen3-vl-plus", pattern=r"^[a-zA-Z0-9_.-]{1,80}$")
+    qwen_text_model: str = Field(default="qwen-plus", pattern=r"^[a-zA-Z0-9_.-]{1,80}$")
     qwen_daily_requests: int = Field(default=20, ge=1, le=100)
     allow_anonymous: bool = True
     cors_origins: str = ""

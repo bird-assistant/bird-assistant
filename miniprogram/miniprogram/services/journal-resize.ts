@@ -25,3 +25,10 @@ export function resizePhoto(photo:JournalElement,key:'w'|'h',value:number,d:Jour
   photo.w=round2(w);photo.h=round2(w/ratio);
 }
 export const pixelValues=(e:JournalElement|null)=>e?{w:Math.round(e.w),h:Math.round(e.h),fontSize:Math.round(e.fontSize)}:{w:0,h:0,fontSize:0};
+
+export function isOrnament(e:JournalElement){return !['photo','text'].includes(e.type);}
+export function resizeOrnament(e:JournalElement,key:'w'|'h',value:number,d:JournalDocument){
+  if(!e.ornamentRatioLocked){e[key]=round2(Math.max(1,Math.min(value,key==='w'?d.width-e.x:d.height-e.y)));return;}
+  const ratio=e.ornamentOriginalRatio||1,w=Math.max(1,Math.min(key==='w'?value:value*ratio,d.width-e.x,(d.height-e.y)*ratio));
+  e.w=round2(w);e.h=round2(w/ratio);
+}

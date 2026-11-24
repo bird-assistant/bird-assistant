@@ -190,7 +190,7 @@ def test_provider_http_payload_output_bound_and_no_retry(monkeypatch, mode):
         def open(self, request, timeout):
             calls.append(request)
             payload = json.loads(request.data)
-            assert payload["model"] == "qwen3-vl-plus"
+            assert payload["model"] == "qwen-plus"
             assert payload["enable_thinking"] is False
             assert payload["response_format"] == {"type": "json_object"}
             assert timeout == 20 and request.get_header("Authorization") == "Bearer server-only-test"
@@ -204,4 +204,40 @@ def test_provider_http_payload_output_bound_and_no_retry(monkeypatch, mode):
         with pytest.raises(ServiceError) as error:
             writing.generate(settings, writing.Brief.model_validate(brief()), [])
         assert error.value.code == "INVALID_OUTPUT"
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("with_image", [False, True])
+def test_workspace_writing_uses_text_or_vision_model_without_redirect_or_retry(monkeypatch, with_image):
+    import json
+
+    from bird_business import writing
+
+    calls = []
+    expected = {"title": "一刻", "body": "来自原稿的观察。", "design": {"style": "nature", "variant": 1}}
+    images = ["data:image/jpeg;base64,offline-fixture"] if with_image else []
+
+    class Transport:
+        def open(self, request, timeout):
+            calls.append(request.full_url)
+            assert (
+                request.full_url
+                == "https://example-workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions"
+            )
+            payload = json.loads(request.data)
+            assert payload["model"] == ("qwen3-vl-plus" if with_image else "qwen-plus")
+            content = payload["messages"][1]["content"]
+            assert [part["type"] for part in content] == (["text", "image_url"] if with_image else ["text"])
+            return BytesIO(
+                json.dumps(
+                    {"choices": [{"finish_reason": "stop", "message": {"content": json.dumps(expected)}}]}
+                ).encode()
+            )
+
+    monkeypatch.setattr(writing, "build_opener", lambda *_: Transport())
+    settings = BusinessSettings(
+        qwen_api_key="offline-fixture",
+        qwen_base_url="https://example-workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+    )
+    assert writing.generate(settings, writing.Brief.model_validate(brief()), images) == expected
     assert len(calls) == 1

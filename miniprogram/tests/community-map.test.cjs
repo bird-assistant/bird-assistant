@@ -83,8 +83,9 @@ test('native zoom and render events refresh the settled viewport and discard lat
   assert.equal(requests.length,3);
   assert.equal(instance.data.listOpen,true);
   west=116.4;
-  instance.mapUpdated();
+  instance.moved({type:'end',detail:{causedBy:'drag'}});
   await settle();
+  assert.equal(instance.data.listOpen,false);
   assert.equal(requests[3].query.minLongitude,116.4);
   instance.moved({type:'end'});
   component.lifetimes.detached.call(instance);
@@ -102,11 +103,13 @@ function mapInstance(context,extra={}){
   context.after(()=>definition.lifetimes.detached.call(instance));
   return {instance,definition};
 }
-test('map panes fit short, phone, tablet and resized desktop windows, with credits below bounded sheets',()=>{
+test('map panes fit short, phone, tablet and desktop with an attribution-bearing map beside or above the sheet',()=>{
   const {mapPanes}=require('../.test-build/services/map-presentation.js');
   for(const [width,height]of [[320,330],[390,676],[768,850],[1024,260],[1440,700]]){
     const pane=mapPanes(width,height);assert.equal(pane.toolbarHeight+pane.mapHeight,height);
-    assert.ok(pane.sheetHeight+pane.creditReserve<=pane.mapHeight);assert.ok(pane.listHeight>0);
+    if(pane.wide){assert.equal(pane.sheetHeight,pane.mapHeight);assert.ok(pane.drawerWidth<width);}
+    else assert.ok(pane.mapHeight-pane.sheetHeight>=120);
+    assert.ok(pane.listHeight>0);
     assert.equal(pane.sheetHeaderHeight+pane.listHeight+12,pane.sheetHeight);assert.equal(pane.wide,width>=700);
   }
   assert.equal(mapPanes(1024,260).compact,true);

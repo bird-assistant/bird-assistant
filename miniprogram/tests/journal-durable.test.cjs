@@ -74,3 +74,24 @@ test('mixed portrait and landscape photos fit all ratios and templates without c
     assert.equal(overlap(photos[0],photos[1]),false);
   }
 });
+
+test('ornament ratio lock is undoable, survives saving and constrains width and corner drags',async()=>{
+  const {p,storage}=page();p.openDocument(journal.makeJournal(assets(),'Ornament'),true);p.addDecoration(tap('leaf'));
+  const id=p.data.selectedId;assert.equal(p.data.selected.ornamentRatioLocked,false);
+  p.adjust({currentTarget:{dataset:{key:'w'}},detail:{value:160}});assert.equal(p.data.selected.h,80);
+  p.toggleOrnamentRatio();assert.equal(p.data.selected.h,160);assert.equal(p.data.selected.ornamentRatioLocked,true);
+  p.undo();assert.equal(p.data.selected.w,160);assert.equal(p.data.selected.h,80);assert.equal(p.data.selected.ornamentRatioLocked,false);p.redo();
+  p.adjust({currentTarget:{dataset:{key:'w'}},detail:{value:190}});assert.equal(p.data.selected.w,p.data.selected.h);
+  const touch=(x,y)=>({currentTarget:{dataset:{id,resize:'yes'}},touches:[{clientX:x,clientY:y}]});
+  p.dragStart(touch(0,0));p.dragMove(touch(90,10));p.dragEnd();assert.equal(p.data.selected.w,p.data.selected.h);
+  const element=p.data.selected;element.x=p.data.doc.width-100;element.y=p.data.doc.height-70;
+  resize.resizeOrnament(element,'w',9999,p.data.doc);assert.equal(element.w,70);assert.equal(element.h,70);
+  await p.persistDraft();const saved=journal.readJournals().find(d=>d.id===p.data.doc.id).elements.find(e=>e.id===id);assert.equal(saved.ornamentRatioLocked,true);
+  p.toggleOrnamentRatio();p.adjust({currentTarget:{dataset:{key:'w'}},detail:{value:80}});assert.equal(p.data.selected.w,80);assert.equal(p.data.selected.h,70);
+  assert.equal(storage.get(journal.JOURNAL_KEY)[0].elements.find(e=>e.id===id).ornamentRatioLocked,true);p.onUnload();
+});
+test('older ornaments remain freely resizable until the user explicitly locks their original ratio',()=>{
+  const d=journal.makeJournal(assets(),'Legacy'),e=journal.element('leaf',{x:0,y:0,w:100,h:70});d.elements.push(e);
+  resize.resizeOrnament(e,'w',200,d);assert.equal(e.h,70);assert.equal(e.ornamentRatioLocked,undefined);
+  e.ornamentOriginalRatio=2;e.ornamentRatioLocked=true;resize.resizeOrnament(e,'h',100,d);assert.equal(e.w,200);assert.equal(e.h,100);
+});

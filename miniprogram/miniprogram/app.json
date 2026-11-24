@@ -6,7 +6,18 @@
     "pages/community/index",
     "pages/profile/index"
   ],
-  "subpackages": [{"root":"field","pages":["hub/index","picker/index","social/index","compare/index","trip/index"]}],
+  "subpackages": [
+    {
+      "root": "field",
+      "pages": [
+        "hub/index",
+        "picker/index",
+        "social/index",
+        "compare/index",
+        "trip/index"
+      ]
+    }
+  ],
   "window": {
     "navigationBarTitleText": "羽迹",
     "navigationBarBackgroundColor": "#fafbf5",
@@ -54,10 +65,14 @@
     ]
   },
   "lazyCodeLoading": "requiredComponents",
-  "permission": {"scope.userLocation": {"desc":"已授权时，使用观测位置筛选当地鸟种候选"}},
-  "requiredPrivateInfos": ["getLocation","chooseLocation"],
-  "sitemapLocation": "sitemap.json",
-  "usingComponents": {
-    "app-header": "/components/app-header/index"
-  }
+  "permission": {
+    "scope.userLocation": {
+      "desc": "已授权时，使用观测位置筛选当地鸟种候选"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation"
+  ],
+  "sitemapLocation": "sitemap.json"
 }

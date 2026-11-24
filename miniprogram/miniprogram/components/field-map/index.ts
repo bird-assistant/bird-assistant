@@ -1,6 +1,8 @@
 import {api,hub,takeMapFocus} from '../../services/community';
 import {beijingDate} from '../../services/observation-context';
 import {layout} from '../../services/layout';
+import {readMapView,saveMapView} from '../../services/map-view';
+import {speciesSearch} from '../../services/species-search';
 import {mapPanes,clusterMarker} from '../../services/map-presentation';
 
 interface Pin {id:string;speciesId:string;speciesName:string;source:string;placeName:string;date:string;displayLocation:{latitude:number;longitude:number};}
@@ -8,15 +10,18 @@ type Input=WechatMiniprogram.CustomEvent<{value:string}>;
 type Bounds={minLatitude:number;maxLatitude:number;minLongitude:number;maxLongitude:number};
 type Cluster=Bounds & {latitude:number;longitude:number;count:number};
 const observations='/api/v1/map/observations';
+const searches=new WeakMap<object,ReturnType<typeof speciesSearch>>();
 Component({
-  data:{headerHeight:88,fieldHeight:600,toolbarHeight:112,mapHeight:488,sheetHeight:325,sheetHeaderHeight:64,creditReserve:36,compact:false,listHeight:249,listTotal:0,listTitle:'本区域观察',wide:false,searching:false,searchError:'',_searchSeq:0,_visible:true,_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:4,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
+  data:{searchHeight:176,drawerWidth:390,searchMore:false,headerHeight:88,fieldHeight:600,toolbarHeight:112,mapHeight:488,sheetHeight:325,sheetHeaderHeight:64,creditReserve:36,compact:false,listHeight:249,listTotal:0,listTitle:'本区域观察',wide:false,searching:false,searchError:'',_searchSeq:0,_visible:true,_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:4,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
     origin:0,origins:['全部来源','羽迹鸟友','外部鸟讯'],period:0,periods:['所有日期','今天','近七天','近三十天'],keyword:'',species:'',speciesLabel:'所有鸟种',matches:[] as any[],
     markers:[] as Array<{id:number;latitude:number;longitude:number;iconPath:string;width:number;height:number}>,selected:[] as Pin[],total:0,error:'',loading:false,dirty:false},
-  lifetimes:{ready(){this.resizeMap();void this.load();},detached(){this.data._visible=false;this.data._searchSeq++;this.data._ready=false;this.data._viewRead++;this.data._seq++;clearTimeout(this.data._timer);}},
-  pageLifetimes:{resize(){this.resizeMap();this.queueLoad();},hide(){this.data._visible=false;this.data._viewRead++;this.data._seq++;this.data._searchSeq++;clearTimeout(this.data._timer);this.setData({loading:false,searching:false});},show(){this.data._visible=true;const focus=takeMapFocus();if(focus){this.setData({...focus,scale:10,origin:0,period:0},()=>wx.nextTick(()=>void this.load()));}else if(this.data._ready)void this.load();}},
+  lifetimes:{attached(){const view=readMapView();if(view)this.setData(view);},ready(){this.resizeMap();if(wx.nextTick)wx.nextTick(()=>void this.load());else void this.load();},detached(){this.data._visible=false;searches.get(this)?.close();searches.delete(this);this.data._searchSeq++;this.data._ready=false;this.data._viewRead++;this.data._seq++;clearTimeout(this.data._timer);}},
+  pageLifetimes:{resize(){this.resizeMap();this.queueLoad();},hide(){this.data._visible=false;searches.get(this)?.close();this.data._viewRead++;this.data._seq++;this.data._searchSeq++;clearTimeout(this.data._timer);this.setData({loading:false,searching:false,matches:[],searchError:''});},show(){this.data._visible=true;const focus=takeMapFocus();if(focus){this.setData({...focus,scale:10,origin:0,period:0},()=>wx.nextTick(()=>void this.load()));}else if(this.data._ready)void this.load();}},
   methods:{
     resizeMap(){const box=layout();this.setData({headerHeight:box.headerHeight,...mapPanes(box.width,box.height)});},
-    closeSearch(){this.data._searchSeq++;this.setData({matches:[],searching:false,searchError:''});wx.hideKeyboard?.();},
+    query(){let query=searches.get(this);if(!query){query=speciesSearch(state=>{if(this.data._visible)this.setData(state);});searches.set(this,query);}return query;},
+    moreSpecies(){void this.query().more();},
+    closeSearch(){searches.get(this)?.close();this.data._searchSeq++;this.setData({matches:[],searching:false,searchError:''});wx.hideKeyboard?.();},
     clearSpecies(){this.closeSearch();this.setData({species:'',keyword:'',speciesLabel:'所有鸟种'});void this.load();},
     closeList(){this.data._seq++;this.setData({listOpen:false,selected:[],cursor:'',loading:false,error:''});},
     retryRecords(){void this.showRecords(false);},
@@ -30,20 +35,24 @@ Component({
     },
     load(){
       this.data._ready=true;
+      if(this.data.listOpen){this.closeList();return new Promise<void>(done=>{const run=()=>void this.updateViewport(true).then(()=>done());if(wx.nextTick)wx.nextTick(run);else run();});}
       clearTimeout(this.data._timer);
       return this.updateViewport(true);
     },
     async updateViewport(force:boolean){
+      if(this.data.listOpen)return;
       const read=++this.data._viewRead;
       let seq=0;
       try{
         const map=wx.createMapContext('field-map',this);
         const viewport=await Promise.all([
           new Promise<WechatMiniprogram.GetRegionSuccessCallbackResult>((resolve,reject)=>map.getRegion({success:resolve,fail:reject})),
-          new Promise<number>((resolve,reject)=>map.getScale({success:value=>resolve(value.scale),fail:reject}))
+          new Promise<number>((resolve,reject)=>map.getScale({success:value=>resolve(value.scale),fail:reject})),
+          new Promise<{latitude:number;longitude:number}|null>(resolve=>{if(typeof map.getCenterLocation==='function')map.getCenterLocation({success:resolve,fail:()=>resolve(null)});else resolve(null);})
         ]);
         if(read!==this.data._viewRead)return;
-        const region=viewport[0],scale=viewport[1];
+        const region=viewport[0],scale=viewport[1],center=viewport[2];
+        if(center)saveMapView({...center,scale});
         const days=[0,1,7,30][this.data.period];const data={minLatitude:region.southwest.latitude,minLongitude:region.southwest.longitude,
           maxLatitude:region.northeast.latitude,maxLongitude:region.northeast.longitude,coordinateSystem:'GCJ-02',scope:['all','public','mine'][this.data.scope],
           origin:['all','local','external'][this.data.origin],speciesId:this.data.species,startDate:days?beijingDate(new Date(Date.now()-(days-1)*86400000).toISOString()):'',endDate:days?beijingDate():''};
@@ -73,21 +82,14 @@ Component({
     },
     moved(event:WechatMiniprogram.CustomEvent){
       if(event.type==='begin'||event.detail?.type==='begin')this.closeSearch();
-      if(this.data._ready && (event.type==='end'||event.detail?.type==='end'))this.queueLoad();
+      if(this.data._ready && (event.type==='end'||event.detail?.type==='end')){const cause=event.detail?.causedBy||(event as unknown as {causedBy:string}).causedBy;if(this.data.listOpen){if(cause==='drag'||cause==='scale')this.closeList();else return;}this.queueLoad();}
     },
     mapUpdated(){
-      if(this.data._ready&&!this.data.error)this.queueLoad();
+      if(this.data._ready&&!this.data.error&&!this.data.listOpen)this.queueLoad();
     },
     filter(event:Input){const key=event.currentTarget.dataset.field;this.setData({[key]:Number(event.detail.value)});void this.load();},
-    input(event:Input){this.data._searchSeq++;this.setData({keyword:event.detail.value,matches:[],searching:false,searchError:''});},
-    async search(){
-      const seq=++this.data._searchSeq,keyword=this.data.keyword.trim();
-      if(!keyword){this.clearSpecies();return;}
-      this.setData({searching:true,searchError:''});
-      try{const res=await api('/api/v1/species','GET',{q:keyword,limit:12});
-        if(seq===this.data._searchSeq)this.setData({matches:[{id:'',name:'所有鸟种'},...res.items],searchError:res.items.length?'':'未找到鸟种，可修改关键词或查看所有鸟种。'});
-      }catch{if(seq===this.data._searchSeq)this.setData({searchError:'鸟种搜索未完成，请重试。'});}finally{if(seq===this.data._searchSeq)this.setData({searching:false});}
-    },
+    input(event:Input){this.setData({keyword:event.detail.value});this.query().input(event.detail.value);},
+    search(){if(!this.data.keyword.trim()){this.clearSpecies();return;}return this.query().search(this.data.keyword);},
     species(event:WechatMiniprogram.TouchEvent){this.closeSearch();this.setData({species:event.currentTarget.dataset.id,speciesLabel:event.currentTarget.dataset.name,keyword:event.currentTarget.dataset.id?event.currentTarget.dataset.name:''});void this.load();},
     marker(event:WechatMiniprogram.CustomEvent<{markerId:number}>){
       const group=this.data._groups[event.detail.markerId-1];if(!group||this.data.dirty)return;

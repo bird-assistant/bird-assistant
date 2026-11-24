@@ -5,7 +5,7 @@ export type Method='GET'|'POST'|'PUT'|'DELETE';
 export interface Point {latitude:number;longitude:number;system:'GCJ-02'|'WGS84'}
 export interface Draft {reference:string;path:string;storedMedia?:string;species:string|null;speciesName:string;analysis:string|null;target:number|null;
   date:string;time:string;note:string;place:string;point:Point|null;device:string;}
-type Compose={title:string;body:string;photo:string;sourceId?:string};
+type Compose={title:string;body:string;photo:string;sourceId?:string;speciesId?:string;speciesName?:string;speciesSupported?:boolean};
 let compose:Compose|null=null;
 export function setCompose(value:Compose){compose=value;}
 export function takeCompose(){const result=compose;compose=null;return result;}

@@ -113,8 +113,10 @@ test('journal subpages reclaim navigation space; editor stage and controls fit w
     assert.equal(p.data.editorHeight,h-68);p.back();assert.equal(bar.hidden,false);
   }
 });
-test('opening the composer resets retained feed scroll and returning restores main navigation',()=>{
+test('opening the composer resets retained feed scroll and returning restores main navigation',async t=>{
+  const community=require('../.test-build/services/community.js');let loads=0;t.mock.method(community,'api',async()=>{loads++;return {items:[],hasMore:false};});
   const {p,bar,scroll}=page('community');p.compose();assert.equal(bar.hidden,true);assert.deepEqual(scroll.at(-1),{scrollTop:0,duration:0});p.back();assert.equal(bar.hidden,false);assert.equal(p.data.view,'feed');
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(loads,1);p.onUnload();
 });
 test('Canvas packaged image paths stay rooted; a decoded image failure rejects instead of hanging',async t=>{
   t.mock.method(console,'warn',()=>{});assert.equal(canvas.canvasImagePath('assets/samples/field-0.png'),'/assets/samples/field-0.png');assert.equal(canvas.canvasImagePath('./assets/a.png'),'/assets/a.png');assert.equal(canvas.canvasImagePath('wxfile://saved/a.png'),'wxfile://saved/a.png');
@@ -301,7 +303,8 @@ test('crop and deformation remain separate choices; crop cancel and undo restore
   p.photoFit(tap('cover'));assert.equal(p.data.selected.ratioLock,'free');assert.equal(p.data.selected.photoFit,'cover');p.undo();
   p.lockRatio(tap('original'));assert.equal(p.data.selected.photoFit,'cover');assert.ok(Math.abs(p.data.selected.w/p.data.selected.h-p.data.selected.iw/p.data.selected.ih)<.001);
 });
-test('legacy free frames retain their crop, while saved stretch zoom and pan stay within the original image',()=>{
+test('legacy free frames retain their crop, while saved stretch zoom and pan stay within the original image',async t=>{
+  const warnings=[];t.mock.method(console,'warn',(_message,error)=>warnings.push(error));
   const {photoCrop}=require('../.test-build/services/crop.js');
   const {p}=page('journal');p.sample();p.generate();const d=structuredClone(p.data.doc),photo=d.elements.find(e=>e.type==='photo');photo.ratioLock='free';delete photo.photoFit;
   wx.setStorageSync(journal.JOURNAL_KEY,[d]);const legacy=journal.readJournals()[0].elements.find(e=>e.id===photo.id);
@@ -312,4 +315,5 @@ test('legacy free frames retain their crop, while saved stretch zoom and pan sta
     assert.ok(Math.abs(sample.sourceW/sample.sourceH-photo.iw/photo.ih)<1e-8);
   }
   photo.photoFit='contain';wx.setStorageSync(journal.JOURNAL_KEY,[d]);assert.throws(()=>journal.readJournals(),/无法读取/);
+  p.onUnload();await p._saveJob;assert.ok(warnings.some(e=>/已有草稿未覆盖/.test(e.message)));assert.deepEqual(wx.getStorageSync(journal.JOURNAL_KEY),[d]);
 });

@@ -361,3 +361,187 @@ def test_incomplete_external_snapshot_is_rejected(monkeypatch):
     monkeypatch.setattr(import_community, "fetch_page", lambda *_: next(pages))
     with pytest.raises(ValueError, match="incomplete"):
         import_community.collect_rows(DATASET)
+
+
+def publish_forum(field, owner=None, *, species=None, approved=True):
+    client, users, staff, _ = field
+    owner = owner or users[0]
+    payload = {"title": "一次观察", "body": "树下看到了一只鸟。", "channels": ["post"]}
+    if species:
+        payload["species"] = species
+    preview = client.post(ROOT + "/previews", headers=owner, json=payload)
+    assert preview.status_code == 200, preview.text
+    response = client.post(ROOT + "/publications", headers=owner, json={"preview": preview.json()["id"]})
+    assert response.status_code == 201, response.text
+    post = response.json()["items"][0]["id"]
+    if approved:
+        assert client.post(
+            ROOT + "/moderation/" + post, headers=staff, json={"status": "approved"}
+        ).is_success
+    return post
+
+
+def test_live_species_search_is_stable_paginated_and_treats_wildcards_as_text(field):
+    client, _, _, _ = field
+    endpoint = "/api/v1/species"
+    pages = [client.get(endpoint, params={"q": "鹤", "limit": 2, "offset": n}).json() for n in (0, 2)]
+    assert pages[0]["hasMore"] and pages[0]["offset"] == 0
+    ids = [row["id"] for page in pages for row in page["items"]]
+    assert len(ids) == len(set(ids)) == 4
+    assert client.get(endpoint, params={"q": "鹤", "limit": 4}).json()["items"] == sum(
+        [p["items"] for p in pages], []
+    )
+    exact = client.get(endpoint, params={"q": "喜鹊"}).json()["items"]
+    assert exact[0]["name"] == "喜鹊"
+    for keyword in ("%", "_", "\\"):
+        assert client.get(endpoint, params={"q": keyword}).json()["total"] == 0
+    assert client.get(endpoint, params={"q": "  喜鹊  "}).json()["items"] == exact
+    assert client.get(endpoint, params={"offset": -1}).status_code == 422
+
+
+def test_feed_interactions_are_per_viewer_and_only_approved_replies_are_counted(field):
+    client, (author, reader, other), staff, _ = field
+    post = publish_forum(field)
+    hidden = publish_forum(field, approved=False)
+    path = ROOT + "/publications/" + post
+    for user in (author, reader):
+        assert client.put(path + "/like", headers=user).json()["active"]
+        assert client.put(path + "/like", headers=user).json()["likes"] == (1 if user == author else 2)
+    assert client.put(path + "/bookmark", headers=reader).json()["bookmarked"]
+    pending = client.post(
+        path + "/replies", headers=reader, json={"body": "待审核回复", "reference": "pending"}
+    ).json()["id"]
+    approved = client.post(
+        path + "/replies", headers=author, json={"body": "公开回复", "reference": "approved"}
+    ).json()["id"]
+    client.post(ROOT + "/moderation/" + approved, headers=staff, json={"status": "approved"})
+    for viewer in (None, author, reader, other):
+        listing = client.get(ROOT + "/posts", headers=viewer or {}).json()
+        assert listing["total"] == 1 and not listing["hasMore"]
+        row = listing["items"][0]
+        assert row["id"] == post and row["id"] != hidden
+        assert (row["likes"], row["replyCount"]) == (2, 1)
+        assert row["bookmarked"] == (viewer == reader)
+        assert ("like" in row["reactions"]) == (viewer in (author, reader))
+        assert "bookmarks" not in row
+        replies = client.get(path, headers=viewer or {}).json()["replies"]
+        assert (pending in {r["id"] for r in replies}) == (viewer == reader)
+    assert client.delete(path + "/reactions/like", headers=reader).json()["likes"] == 1
+    assert client.delete(path + "/reactions/bookmark", headers=reader).json()["bookmarked"] is False
+
+
+def test_nested_replies_validate_parent_visibility_and_retain_idempotency(field):
+    client, (author, reader, other), staff, _ = field
+    first = publish_forum(field)
+    second = publish_forum(field)
+    path = ROOT + "/publications/" + first + "/replies"
+
+    def send(who, body, code=201):
+        response = client.post(path, headers=who, json=body)
+        assert response.status_code == code, response.text
+        return response.json()
+
+    root = send(author, {"body": "第一层", "reference": "root"})["id"]
+    child_body = {"body": "第二层", "reference": "child", "parentId": root}
+    send(reader, child_body, 404)
+    client.post(ROOT + "/moderation/" + root, headers=staff, json={"status": "approved"})
+    child = send(reader, child_body)["id"]
+    assert send(reader, child_body)["id"] == child
+    send(reader, {**child_body, "body": "复用键修改内容"}, 409)
+    send(reader, {**child_body, "parentId": None}, 409)
+    client.post(ROOT + "/moderation/" + child, headers=staff, json={"status": "approved"})
+    grandchild = send(other, {"body": "第三层", "reference": "grandchild", "parentId": child})["id"]
+    client.post(ROOT + "/moderation/" + grandchild, headers=staff, json={"status": "approved"})
+    crossed = client.post(
+        ROOT + "/publications/" + second + "/replies",
+        headers=reader,
+        json={"body": "不能跨帖引用", "reference": "crossed", "parentId": root},
+    )
+    assert crossed.status_code == 404
+    replies = client.get(path.removesuffix("/replies"), headers=author).json()["replies"]
+    indexed = {row["id"]: row for row in replies}
+    assert indexed[root]["parentId"] is None
+    assert indexed[child]["parentId"] == root and indexed[grandchild]["parentId"] == child
+    assert indexed[child]["replyToName"] and indexed[grandchild]["publicName"]
+    client.post(ROOT + "/moderation/" + root, headers=staff, json={"status": "rejected"})
+    replies = client.get(path.removesuffix("/replies")).json()["replies"]
+    assert root not in {row["id"] for row in replies}
+    assert next(row for row in replies if row["id"] == child)["replyToName"] == ""
+    send(other, {"body": "不可回复已隐藏楼层", "reference": "hidden", "parentId": root}, 404)
+
+
+def test_species_discussion_topic_is_explicit_and_cannot_override_observations_or_sources(field):
+    client, (author, _, _), _, _ = field
+    species = client.get("/api/v1/species", params={"q": "树麻雀"}).json()["items"][0]["id"]
+    post = publish_forum(field, species=species)
+    assert client.get(ROOT + "/posts", params={"species": species}).json()["items"][0]["id"] == post
+    assert client.get("/api/v1/species/" + species).json()["features"]["speciesPosts"]
+    for overrides in ({"channels": ["map"]}, {"external": "gbif_1"}, {"sighting": "obs_unknown"}):
+        response = client.post(
+            ROOT + "/previews",
+            headers=author,
+            json={"body": "话题", "channels": ["post"], "species": species, **overrides},
+        )
+        assert response.status_code == 422
+    assert (
+        client.post(
+            ROOT + "/previews",
+            headers=author,
+            json={"body": "无效鸟种", "channels": ["post"], "species": "missing"},
+        ).status_code
+        == 404
+    )
+
+
+def test_reply_parent_migration_preserves_the_old_database_and_reopens_idempotently(tmp_path):
+    import sqlite3
+
+    from bird_business.community_store import CommunityStore
+
+    database = tmp_path / "old.sqlite"
+    with sqlite3.connect(database) as db:
+        db.execute(
+            "CREATE TABLE replies(id TEXT PRIMARY KEY,post TEXT NOT NULL,owner TEXT NOT NULL,body TEXT,"
+            "species TEXT,status TEXT NOT NULL,created TEXT NOT NULL,ref TEXT NOT NULL,UNIQUE(owner,ref))"
+        )
+        db.execute(
+            "INSERT INTO replies VALUES(?,?,?,?,?,?,?,?)",
+            ("old", "post", "owner", "原回复", None, "approved", "2026-11-01", "retry"),
+        )
+    catalog = BusinessSettings().catalog_path
+    for _ in range(2):
+        store = CommunityStore(database, catalog)
+        with store.transaction() as db:
+            row = dict(db.execute("SELECT * FROM replies WHERE id='old'").fetchone())
+            assert row["body"] == "原回复" and row["status"] == "approved" and row["parent"] is None
+            assert len(list(db.execute("PRAGMA table_info(replies)"))) == 9
+        store.db.close()
+
+
+def test_reply_pagination_is_bounded_without_leaking_another_readers_pending_reply(field):
+    client, (author, reader, other), _, store = field
+    post = publish_forum(field)
+    owner = client.get(ROOT + "/me", headers=author).json()["id"]
+    with store.transaction() as db:
+        db.executemany(
+            "INSERT INTO replies(id,post,owner,body,status,created,ref,parent) VALUES(?,?,?,?,?,?,?,?)",
+            [
+                (f"page_{i:03}", post, owner, "公开回复", "approved", "2026-11-25", f"page_{i}", None)
+                for i in range(102)
+            ],
+        )
+    pending = client.post(
+        ROOT + "/publications/" + post + "/replies",
+        headers=reader,
+        json={"body": "仅作者可见", "reference": "private-pending"},
+    ).json()["id"]
+    path = ROOT + "/publications/" + post
+    for user, expected in ((reader, 103), (other, 102)):
+        first = client.get(path, headers=user).json()
+        second = client.get(path, headers=user, params={"replyOffset": 100}).json()
+        assert first["replyHasMore"] and not second["replyHasMore"]
+        rows = first["replies"] + second["replies"]
+        assert len({row["id"] for row in rows}) == expected
+        assert (pending in {row["id"] for row in rows}) == (user == reader)
+        assert first["replyCount"] == second["replyCount"] == 102
+    assert client.get(path, params={"replyOffset": -1}).status_code == 422

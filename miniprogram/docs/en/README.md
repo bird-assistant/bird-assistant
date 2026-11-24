@@ -1,4 +1,6 @@
-# Bird Assistant native WeChat client — 0.4.1
+# Bird Assistant native WeChat client — 0.4.2
+
+2026-11-25 · Current0.4.2: [map memory, live search and forum threads](FORUM-AND-SEARCH-0.4.2.md). Client132passed; local backend469passed/51skipped,86.60%coverage. Deployment, live Qwen and native acceptance remain pending. Older records below are historical.
 
 2026-11-24 · **0.4.1**: [map home and true photo deformation](MAP-AND-PHOTO-0.4.1.md). Synced with team d59be67; 114 client tests and 461 backend tests passed (51 skipped). Live Qwen, full Issue #23 cards and native-device acceptance remain pending. Older handoff sections below describe their historical checkpoints; this paragraph and the new release note define current status.
 

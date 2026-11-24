@@ -6,7 +6,7 @@ import { photoCrop } from '../../services/crop';
 import { previewQueue } from '../../services/journal-preview';
 import { JournalAiSuggestion, JournalAiInput, startJournalAi, journalAiAvailable } from '../../services/journal-ai';
 import { teamWritingTransport } from '../../services/writing-network';
-import { ratioLocks, ratioLock, setRatioLock, resizePhoto, pixelValues, RatioLock } from '../../services/journal-resize';
+import { ratioLocks, ratioLock, setRatioLock, resizePhoto, resizeOrnament, isOrnament, pixelValues, RatioLock } from '../../services/journal-resize';
 import { papers, paperColors, paperSource } from '../../services/journal-paper';
 import { round2, floor2, numberDraft, parseNumberDraft } from '../../services/numbers';
 import { clamp } from '../../services/map-model';
@@ -142,7 +142,7 @@ Page({
     // Avoid DevTools' missing SWC array-destructuring runtime helper.
     const range=bounds[key],bounded=clamp(raw,range[0],range[1]),value=key==='fontSize'?Math.round(bounded):round2(bounded);
     if(key==='fontSize'&&a.titleSize)a.titleSize=Math.round(a.titleSize*value/a.fontSize);
-    if(a.type==='photo'&&(key==='w'||key==='h'))resizePhoto(a,key,value,d);else (a as unknown as Record<string,unknown>)[key]=value;
+    if(a.type==='photo'&&(key==='w'||key==='h'))resizePhoto(a,key,value,d);else if(isOrnament(a)&&(key==='w'||key==='h'))resizeOrnament(a,key,value,d);else (a as unknown as Record<string,unknown>)[key]=value;
     this.data.dirty=true;this.data.exportPath='';this.queuePreview();
   },
   adjust(e:WechatMiniprogram.CustomEvent<{value:number|string}>){this.previewAdjust(e);this.finishAdjustment();},
@@ -181,12 +181,13 @@ Page({
   cancelCrop(){this.setData({cropOpen:false,cropDraft:null,numberEditing:'',numberDrafts:{}});this.refresh();},
   applyCrop(){const draft=this.data.cropDraft,d=this.data.doc;if(!draft||!d)return;const before=this.before(),a=d.elements.find(e=>e.id===draft.id);if(a)Object.assign(a,{zoom:draft.zoom,cropX:draft.cropX,cropY:draft.cropY,photoFit:'cover'});this.setData({cropOpen:false,cropDraft:null,numberEditing:'',numberDrafts:{}});this.commit(before);},
   dragStart(e:Touch){const d=this.data.doc,t=e.touches[0];if(!d||!t)return;const id=String(e.currentTarget.dataset.id);this.setData({selectedId:id,backgroundSelected:false});const a=d.elements.find(a=>a.id===id)!;this._drag={before:this.before(),x:t.clientX,y:t.clientY,element:copy(a),resize:e.currentTarget.dataset.resize==='yes'};this.refresh();},
-  dragMove(e:Touch){const g=this._drag,t=e.touches[0],d=this.data.doc;if(!g||!t||!d)return;const a=d.elements.find(a=>a.id===g.element.id)!;if(g.resize){if(a.type==='photo'){const dx=(t.clientX-g.x)/(this.data.scale*this.data.paperScale),dy=(t.clientY-g.y)/(this.data.scale*this.data.paperScale);if(ratioLock(a)==='free'){resizePhoto(a,'w',Math.max(60,g.element.w+dx),d);resizePhoto(a,'h',Math.max(60,g.element.h+dy),d);}else{const key=Math.abs(dx/g.element.w)>=Math.abs(dy/g.element.h)?'w':'h';resizePhoto(a,key,Math.max(60,(key==='w'?g.element.w+dx:g.element.h+dy)),d);}}else{a.w=clamp(g.element.w+(t.clientX-g.x)/(this.data.scale*this.data.paperScale),60,d.width-a.x);if(a.type!=='text')a.h=clamp(g.element.h+(t.clientY-g.y)/(this.data.scale*this.data.paperScale),60,d.height-a.y);}}else{a.x=clamp(g.element.x+(t.clientX-g.x)/(this.data.scale*this.data.paperScale),0,d.width-a.w);a.y=clamp(g.element.y+(t.clientY-g.y)/(this.data.scale*this.data.paperScale),0,d.height-Math.min(a.h,45));}this.queuePreview();},
+  dragMove(e:Touch){const g=this._drag,t=e.touches[0],d=this.data.doc;if(!g||!t||!d)return;const a=d.elements.find(a=>a.id===g.element.id)!;if(g.resize){if(a.type==='photo'||isOrnament(a)){const resize=a.type==='photo'?resizePhoto:resizeOrnament;const dx=(t.clientX-g.x)/(this.data.scale*this.data.paperScale),dy=(t.clientY-g.y)/(this.data.scale*this.data.paperScale);if(a.type==='photo'?ratioLock(a)==='free':!a.ornamentRatioLocked){resize(a,'w',Math.max(60,g.element.w+dx),d);resize(a,'h',Math.max(60,g.element.h+dy),d);}else{const key=Math.abs(dx/g.element.w)>=Math.abs(dy/g.element.h)?'w':'h';resize(a,key,Math.max(60,(key==='w'?g.element.w+dx:g.element.h+dy)),d);}}else{a.w=clamp(g.element.w+(t.clientX-g.x)/(this.data.scale*this.data.paperScale),60,d.width-a.x);if(a.type!=='text')a.h=clamp(g.element.h+(t.clientY-g.y)/(this.data.scale*this.data.paperScale),60,d.height-a.y);}}else{a.x=clamp(g.element.x+(t.clientX-g.x)/(this.data.scale*this.data.paperScale),0,d.width-a.w);a.y=clamp(g.element.y+(t.clientY-g.y)/(this.data.scale*this.data.paperScale),0,d.height-Math.min(a.h,45));}this.queuePreview();},
   dragEnd(){if(this._drag){const before=this._drag.before;this._drag=null;this.commit(before);}},
   undo(){this.finishAdjustment();this.endTextEdit();const entry=this._past.pop();if(!entry)return;this._future.push(snapshot(this.data.doc!,this.data.selectedId));this.setData({doc:copy(entry.document),selectedId:entry.selected,dirty:true,exportPath:''});this.scheduleSave();this.refresh();},
   redo(){this.finishAdjustment();this.endTextEdit();const entry=this._future.pop();if(!entry)return;this._past.push(snapshot(this.data.doc!,this.data.selectedId));this.setData({doc:copy(entry.document),selectedId:entry.selected,dirty:true,exportPath:''});this.scheduleSave();this.refresh();},
   background(){this.finishAdjustment();this.endTextEdit();this.setData({selectedId:'',backgroundSelected:true,layersOpen:false,numberEditing:'',numberDrafts:{}});this.refresh();},
   backgroundColor(e:Touch){const color=String(e.currentTarget.dataset.color);if(!this.data.doc||!paperColors.includes(color))return;const before=this.before();this.data.doc.background=color;this.commit(before);},
+  toggleOrnamentRatio(){const a=this.data.selected,d=this.data.doc;if(!a||!isOrnament(a)||!d)return;const before=this.before();a.ornamentRatioLocked=!a.ornamentRatioLocked;a.ornamentOriginalRatio=a.ornamentOriginalRatio||1;if(a.ornamentRatioLocked)resizeOrnament(a,'w',a.w,d);this.commit(before);},
   lockRatio(e:Touch){const a=this.data.selected,d=this.data.doc,mode=String(e.currentTarget.dataset.id) as RatioLock;if(!a||a.type!=='photo'||!d||!['current','original','free'].includes(mode))return;const before=this.before();setRatioLock(a,mode,d);this.commit(before);},
   paper(e:Touch){const id=String(e.currentTarget.dataset.id);if(!this.data.doc||!papers.some(p=>p.id===id))return;const before=this.before();this.data.doc.paper=id;this.commit(before);},
   chooseTemplate(){
@@ -210,7 +211,7 @@ Page({
     wx.showActionSheet({itemList:this.data.styles.map(s=>s.name),success:r=>{if(this.data.doc?.id!==id||!this.data.styles[r.tapIndex])return;const before=this.before(),d=this.data.doc;d.style=this.data.styles[r.tapIndex].id;d.background=d.style==='minimal'?'#ffffff':d.style==='magazine'?'#eee8da':'#f5efdf';reflowJournalPhotos(d);this.setData({selectedId:'',overview:true});this.commit(before);}});
   },
   addText(){const before=this.before(),d=this.data.doc!,a=element('text',{x:90,y:d.height*.45,w:600,h:60,title:'',text:'写下这一刻的感想',fontSize:28});d.elements.push(a);this.setData({selectedId:a.id});this.commit(before);},
-  addDecoration(e:Touch){const before=this.before(),d=this.data.doc!,a=element(String(e.currentTarget.dataset.id),{x:700,y:d.height*.48,w:80,h:80,color:'#839771'});d.elements.push(a);this.setData({selectedId:a.id});this.commit(before);},
+  addDecoration(e:Touch){const before=this.before(),d=this.data.doc!,a=element(String(e.currentTarget.dataset.id),{x:700,y:d.height*.48,w:80,h:80,color:'#839771',ornamentOriginalRatio:1,ornamentRatioLocked:false});d.elements.push(a);this.setData({selectedId:a.id});this.commit(before);},
   addPhoto(){wx.chooseImage({count:1,sourceType:['album'],sizeType:['original'],success:r=>{const before=this.before(),d=this.data.doc!,number=Math.max(0,...d.elements.map(e=>e.photoNumber))+1,a=element('photo',{x:100,y:d.height*.3,w:360,h:270,src:r.tempFilePaths[0],photoNumber:number});d.elements.push(a);this.setData({selectedId:a.id});this.commit(before);}});},
   imageLoaded(e:WechatMiniprogram.CustomEvent<{width:number;height:number}>){
     const id=e.currentTarget.dataset.id,a=this.data.doc?.elements.find(a=>a.id===id);let changed=false;

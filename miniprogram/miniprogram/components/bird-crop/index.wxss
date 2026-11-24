@@ -1,1 +1,1 @@
-.crop{position:relative;overflow:hidden;background:#e9eee3;border-radius:18rpx}.crop image{position:absolute;inset:0;width:100%;height:100%}
+.crop{position:relative;overflow:hidden;background:transparent;border-radius:18rpx}.crop-image{position:absolute;inset:0;width:100%;height:100%}

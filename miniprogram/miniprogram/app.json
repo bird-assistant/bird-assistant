@@ -6,7 +6,7 @@
     "pages/community/index",
     "pages/profile/index"
   ],
-  "subpackages": [{"root":"field","pages":["hub/index","picker/index","social/index"]}],
+  "subpackages": [{"root":"field","pages":["hub/index","picker/index","social/index","compare/index","trip/index"]}],
   "window": {
     "navigationBarTitleText": "羽迹",
     "navigationBarBackgroundColor": "#fafbf5",

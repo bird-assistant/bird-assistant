@@ -1,0 +1,1 @@
+.own{width:48%;margin:0 auto 14rpx}.own text{font-size:25rpx;font-weight:600}.columns{display:flex;align-items:flex-start;gap:12rpx;padding-top:16rpx}.column{width:44vw;flex:none;min-width:275rpx}.column button{font-size:24rpx;margin:10rpx 0}.row input{flex:1}

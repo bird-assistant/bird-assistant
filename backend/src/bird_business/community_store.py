@@ -14,6 +14,11 @@ from threading import RLock
 from bird_common.errors import ServiceError
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS trip_requests(owner TEXT NOT NULL,created TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS trip_request_time ON trip_requests(created);
+CREATE TABLE IF NOT EXISTS trip_turns(owner TEXT NOT NULL, request TEXT NOT NULL, turn TEXT NOT NULL UNIQUE,
+ fingerprint TEXT NOT NULL, created TEXT NOT NULL, history TEXT, response TEXT, PRIMARY KEY(owner,request));
+CREATE INDEX IF NOT EXISTS trip_turn_time ON trip_turns(created);
 CREATE TABLE IF NOT EXISTS members(id TEXT PRIMARY KEY, subject TEXT NOT NULL UNIQUE);
 CREATE TABLE IF NOT EXISTS taxa(id TEXT PRIMARY KEY, scientific TEXT, name TEXT, english TEXT, family TEXT,
  sensitive INTEGER, version TEXT);
@@ -40,6 +45,9 @@ CREATE INDEX IF NOT EXISTS message_recipient ON messages(recipient,created);
 CREATE TABLE IF NOT EXISTS blocks(owner TEXT,member TEXT,PRIMARY KEY(owner,member));
 CREATE TABLE IF NOT EXISTS reports(owner TEXT,target TEXT,reason TEXT,created TEXT,PRIMARY KEY(owner,target));
 CREATE TABLE IF NOT EXISTS decisions(id TEXT PRIMARY KEY,target TEXT,reviewer TEXT,status TEXT,created TEXT);
+CREATE TABLE IF NOT EXISTS review_feedback(target TEXT PRIMARY KEY, reason TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS field_photos(species TEXT PRIMARY KEY, metadata TEXT, jpeg BLOB, checked REAL);
+CREATE INDEX IF NOT EXISTS published_observation ON publications(owner,sighting,created);
 CREATE TABLE IF NOT EXISTS identifications(id TEXT PRIMARY KEY,sighting TEXT,reply TEXT UNIQUE,
  species TEXT,created TEXT);
 CREATE TABLE IF NOT EXISTS profiles(member TEXT PRIMARY KEY, handle TEXT UNIQUE COLLATE NOCASE NOT NULL,
@@ -116,6 +124,7 @@ def one(db: sqlite3.Connection, sql: str, *args: object) -> sqlite3.Row:
 
 class CommunityStore:
     def __init__(self, database: Path, catalog: Path):
+        self.catalog_dir = catalog.parent
         self.lock = RLock()
         self.db = sqlite3.connect(str(database), timeout=10, check_same_thread=False)
         self.db.row_factory = sqlite3.Row

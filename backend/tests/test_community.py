@@ -31,6 +31,27 @@ MAP = "/api/v1/map/observations"
 OBS = "/api/v2/observations"
 
 
+def test_field_guide_matches_photo_traits_and_caches_misses(field, monkeypatch):
+    client, _, _, store = field
+    species = "/api/v1/species/avibase-C22FBF8D"
+    guide = client.get(species + "/guide").json()["guide"]
+    assert "栗色" in guide["mark"] and len(guide["fields"]) == 7
+    assert guide["photo"]["credit"] and guide["photo"]["license"] in {"CC BY 4.0", "CC0 1.0"}
+    assert client.get(species + "/reference").json()["photo"] == guide["photo"]
+    assert Image.open(BytesIO(client.get(species + "/photo").content)).format == "JPEG"
+    assert client.get("/api/v1/species/unlisted/guide").status_code == 404
+    from bird_business.field_guide import read_data
+
+    seed = read_data(store.catalog_dir / "guide_photos.json")
+    with store.transaction() as database:
+        unseeded = next(row[0] for row in database.execute("SELECT id FROM taxa") if row[0] not in seed)
+    calls = []
+    monkeypatch.setattr("bird_business.guide_api.fetch_reference", lambda name: calls.append(name))
+    for _ in range(2):
+        assert client.get("/api/v1/species/" + unseeded + "/reference").json() == {"photo": None}
+    assert len(calls) == 1
+
+
 def test_registered_friends_inbox_and_privacy(field):
     client, (author, reader, outsider), staff, _store = field
 
@@ -293,5 +314,50 @@ def test_external_rights_and_withdrawal(field):
         == 1
     )
     item = client.get(ROOT + "/external").json()["items"][0]
-    assert item["id"] == "gbif_123" and item["displayLocation"]["latitude"] == 39.9
+    assert item["id"] == "gbif_123" and item["precisionLabel"] == "约一公里公开网格"
     assert snapshot(store, []) == 0 and not client.get(ROOT + "/external").json()["items"]
+
+
+def test_external_clusters_split_without_losing_records_or_exposing_private_points(field):
+    client, (owner, _, _), _, store = field
+    record = dict(
+        datasetKey="6ff8b3b0-ef0f-4f79-a310-5a5615c6aa0b",
+        occurrenceStatus="DETECTED",
+        species="Passer montanus",
+        eventDate="2026-11-01",
+        decimalLatitude=39.9,
+        decimalLongitude=116.4,
+        license="http://creativecommons.org/licenses/by/4.0/legalcode",
+        coordinateUncertaintyInMeters=15,
+        recordedBy="Contributor",
+    )
+    rows = [{**record, "key": key, "decimalLongitude": 116.4 if key < 305 else 116.44} for key in range(310)]
+    assert snapshot(store, rows) == 310
+    bounds = dict(
+        minLatitude=39.7, maxLatitude=40.2, minLongitude=116.1, maxLongitude=116.8, origin="external"
+    )
+
+    def clusters(zoom, **filters):
+        return client.get(MAP, params={**bounds, "zoom": zoom, **filters}, headers=owner).json()
+
+    broad, fine = clusters(4), clusters(12)
+    assert broad["total"] == fine["total"] == 310 and len(broad["clusters"]) == 1
+    assert sorted(group["count"] for group in fine["clusters"]) == [5, 305]
+    assert clusters(12, scope="mine")["total"] == 0
+    page = client.get(ROOT + "/external", params={"limit": 1}).json()
+    assert page["hasMore"] and page["items"][0]["source"] == "Birda · GBIF"
+    assert page["items"][0]["attribution"] == "Contributor"
+
+
+def test_incomplete_external_snapshot_is_rejected(monkeypatch):
+    from bird_business import import_community
+
+    pages = iter(
+        [
+            dict(offset=0, count=2, results=[{"key": 1}], endOfRecords=False),
+            dict(offset=1, count=2, results=[{"key": 1}], endOfRecords=True),
+        ]
+    )
+    monkeypatch.setattr(import_community, "fetch_page", lambda *_: next(pages))
+    with pytest.raises(ValueError, match="incomplete"):
+        import_community.collect_rows(DATASET)

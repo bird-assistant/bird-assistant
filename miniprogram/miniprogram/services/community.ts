@@ -32,18 +32,23 @@ function ensureSession(){if(sessionState()==='out')throw new Error('已退出本
 
 function failure(status:number,body:any){
   const code=body?.error?.code;
-  const reasons:Record<string,string>={MAP_LOCATION_RESTRICTED:'地图发布需要有位置、已确认且允许公开位置的鸟种。可单独发布讨论。',
+  const reasons:Record<string,string>={TRIP_TIME:'请选择未来七天内尚未结束的出发时段。',
+    TRIP_NOT_CONFIGURED:'云端出行顾问尚待管理员配置 API 密钥。',TRIP_PROVIDER_AUTH:'管理员需要检查云端模型密钥与权限。',
+    TRIP_PROVIDER_BUSY:'云端模型额度或并发已满，请稍后重试。',TRIP_OUTPUT:'本次建议未通过证据校验，请重试。',
+    TRIP_PROVIDER:'云端模型暂时无法回答，请稍后重试。',TRIP_TIMEOUT:'云端响应超时，可以重新提交。',
+    TRIP_EXPIRED:'对话已过期，点击「新咨询」重新提问。',TRIP_IN_PROGRESS:'上次提问仍在处理，请稍后重试。',
+    TRIP_QUOTA:'本小时出行咨询额度已用完，请稍后再试。',MAP_LOCATION_RESTRICTED:'地图发布需要有位置、已确认且允许公开位置的鸟种。可单独发布讨论。',
     HANDLE_TAKEN:'鸟友号已被使用，请换一个。',FRIENDS_ONLY:'请先成为好友。',REGISTRATION_REQUIRED:'请先完善社区账号资料。',
     INVALID_IMAGE:'请选择 JPEG、PNG 或 WebP 照片。',MESSAGE_UNAVAILABLE:'当前无法向该用户发送消息。'};
   return new Error(reasons[code]||({401:'微信登录已失效。',403:'当前账号没有此权限。',404:'内容已撤回或不可见。',409:'内容已变化，请刷新后重试。',413:'照片超过上传大小限制。',422:'请检查必填项和坐标。',429:'操作频繁，请稍后重试。'} as Record<number,string>)[status]||'业务服务连接失败，请重试。');
 }
 export async function api(path:string,method:Method='GET',data?:object):Promise<any>{
-  const guest=sessionState()==='out' && method==='GET' && (path===community+'/posts'||path===community+'/external'||path.startsWith(community+'/publications/')||path.startsWith('/api/v1/species'));
+  const guest=method==='GET' && (path.startsWith('/api/v1/species') || (path===community+'/posts' && data && 'species' in data) || (sessionState()==='out' && (path===community+'/posts'||path===community+'/external'||path.startsWith(community+'/publications/'))));
   if(!guest)ensureSession();
   for(const refresh of [false,true]){
     const connection=guest?{origin:businessOrigin(),header:{}}:await connectBusiness(refresh);
     const reply=await new Promise<{statusCode:number;data:any}>((resolve,reject)=>wx.request({url:connection.origin+path,
-      method,data,header:connection.header,timeout:15000,success:resolve,fail:()=>reject(new Error('网络连接失败，请重试。'))}));
+      method,data,header:connection.header,timeout:path==='/api/v1/map/trip-plan'?60000:15000,success:resolve,fail:()=>reject(new Error('网络连接失败，请重试。'))}));
     if(reply.statusCode>=200&&reply.statusCode<300)return reply.data;
     if(reply.statusCode!==401||refresh)throw failure(reply.statusCode,reply.data);
   }

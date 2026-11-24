@@ -60,3 +60,4 @@
 .review-targets{position:relative;width:100%;overflow:hidden;border-radius:12px}.review-targets image{width:100%;display:block}
 
 .candidate-actions{display:flex;gap:8px;align-items:stretch}.candidate-actions .vision-choice{flex:1;min-width:0}.candidate-info{flex:none;font-size:12px;background:#e0eadd;border:1px solid #aac2a5;color:#285b49;padding:9px;min-height:44px}
+.zoom-chip{width:auto;min-width:110rpx;margin:0 auto;padding:4rpx 22rpx;border-radius:32rpx;background:#173c31d9;color:#fff;font-size:24rpx;line-height:1.7}

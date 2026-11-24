@@ -31,7 +31,7 @@ function readTrack(raw:any):LiveTrack {
   if(appearance==='lost') label='暂时丢失 · 预测位置';
   else if(appearance==='tentative') label='正在确认目标';
   else if(state==='unknown') label=species.decision?.reason==='ambiguous_candidates'
-    ?'几种鸟外观接近，可展开看候选':'已发现鸟，鸟种待确认';
+    ?'几种鸟外观接近，可展开看候选':'发现鸟形，拍照后可放大查看';
   else if(state==='unavailable') label='鸟种模型暂不可用';
   else if(state==='candidate') label=(candidates[0].scoreType==='mock'?'示例候选 · ':'候选 · ')+candidates[0].name;
   const scope=species.decision?.candidate_scope;
@@ -158,7 +158,7 @@ export class LiveVision {
           const error=recognitionFailure(res);
           this.clearFrame();
           this.next=Date.now()+Math.max(this.interval+80,(error.retryAfterSeconds??1)*1000);
-          this.status('正在调整取帧间隔',true);
+          this.status('实时服务繁忙，仍可按快门拍照',true);
         }else this.fail(recognitionFailure(res).message);
       },()=>{this.upload=undefined;if(this.ready)this.fail('画面上传失败，请检查网络后重新开启。');});
     }catch{this.fail('此设备无法编码取景画面，可拍照后分析。');}

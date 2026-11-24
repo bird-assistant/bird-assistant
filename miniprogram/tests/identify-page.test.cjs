@@ -19,8 +19,25 @@ test('only an explicit shutter during live identification analyzes the full came
     p.review=()=>calls.push('review');
     p.analyse=()=>calls.push(p.data.imagePath);
     p.shutterPhoto();
-    assert.deepEqual(calls,live?['review','full.jpg']:[]);
+    assert.deepEqual(calls,live?['review','full.jpg']:['review']);
   }
+});
+
+test('the guide returns an offered species to the original photo and subject only',()=>{
+  let navigation;
+  global.wx={navigateTo:options=>{navigation=options;}};
+  const p=page(),box={x1:0.2,y1:0.3,x2:0.7,y2:0.8};
+  const candidates=[{speciesId:'bird-a',rank:1},{speciesId:'bird-b',rank:2}];
+  p.setData({imagePath:'local.jpg',currentId:'asset',analysis:{analysisId:'analysis1',subjects:[{rank:2,box,candidates}]}});
+  const choices=[];p.selectCandidate=(subject,rank)=>choices.push([subject,rank]);
+  p.compareTarget({currentTarget:{dataset:{rank:2}}});
+  assert.match(navigation.url,/ids=bird-a,bird-b/);
+  navigation.success({eventChannel:{emit:(event,data)=>{assert.equal(event,'subject');assert.deepEqual(data,{src:'local.jpg',box});}}});
+  navigation.events.choose({id:'unrelated'});
+  navigation.events.choose({id:'bird-b'});
+  p.data.analysis.analysisId='analysis2';
+  navigation.events.choose({id:'bird-a'});
+  assert.deepEqual(choices,[[2,2]]);
 });
 
 test('a storage failure after file persistence retains the durable photo and notes, then retries without moving the vanished temp path again',async(t)=>{

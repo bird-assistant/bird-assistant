@@ -1,9 +1,9 @@
 "use strict";
 
-const labels = {post:"讨论帖", map:"地图鸟讯", reply:"回复", reports:"举报", history:"审核记录"};
+const labels = {observation:"待审观察", reply:"回复", reports:"举报", history:"审核记录"};
 const results = {approved:"已通过", rejected:"已驳回", report_kept:"保留被举报内容", report_removed:"已移除被举报内容"};
 const get = id => document.getElementById(id);
-const state = {csrf:"", tab:"post", page:1, version:0, saving:false};
+const state = {csrf:"", tab:"observation", page:1, version:0, saving:false};
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -61,17 +61,52 @@ function selectTab(tab,page) {
 }
 
 async function decide(item,status,label,kind) {
-  if (state.saving || !window.confirm(`确定${label}「${item.title || item.id}」？`)) return;
+  if (state.saving) return;
+  let reason = "";
+  if (status === "rejected" && kind === "pending") {
+    reason = window.prompt(`退回「${item.title || item.id}」的原因（作者可见）`)?.trim();
+    if (!reason) return;
+    if (reason.length > 400) { notice("退回原因最多 400 字。"); return; }
+  } else if (!window.confirm(`确定${label}「${item.title || item.id}」？`)) return;
   state.saving = true;
   try {
-    await api(`actions/${kind}/${encodeURIComponent(item.id)}`, {status});
+    await api(`actions/${kind}/${encodeURIComponent(item.id)}`, {status,reason});
     notice(`处理成功，已${label}。`);
     await refresh();
   } catch(error) { notice(error.message); }
   finally { state.saving = false; }
 }
 
+function observationCard(item) {
+  const node=element('article');
+  const channel=item.channels.find(entry=>entry.status==='pending' && entry.photo);
+  const layout=element('div','','observation-layout');
+  if(channel){
+    const image=document.createElement('img');
+    const link=element('a','','photo');
+    link.href='/admin/photos/'+encodeURIComponent(channel.id);
+    link.target='_blank';link.rel='noopener noreferrer';
+    image.src=link.href;image.loading='lazy';image.alt='放大观察照片';link.append(image);layout.append(link);
+  }
+  const channels=element('div');
+  for(const entry of item.channels){
+    const name=entry.channel==='map'?'地图鸟讯':'讨论帖';
+    const section=element('section','','review-channel');
+    section.append(element('h3',name+' · '+(entry.title||entry.species||'待鉴定')));
+    if(entry.body)section.append(element('p',entry.body));
+    section.append(element('p',[entry.author,entry.species,entry.date,entry.photo?'公开照片':'隐藏照片',entry.point?`公开区域 ${entry.point.latitude}, ${entry.point.longitude}`:'隐藏地点'].filter(Boolean).join(' · '),'meta'));
+    if(entry.status==='pending'){
+      const actions=element('div','','actions');
+      for(const choice of [['通过','approved'],['退回','rejected']])actions.append(button(choice[0]+name,()=>decide(entry,choice[1],choice[0]+name,'pending'),choice[1]==='approved'?'primary':'danger'));
+      section.append(actions);
+    }else section.append(element('p',(results[entry.status]||'已撤回')+(entry.reason?' · '+entry.reason:'')));
+    channels.append(section);
+  }
+  layout.append(channels);node.append(layout);return node;
+}
+
 function card(item,tab) {
+  if(tab==='observation')return observationCard(item);
   const node = element("article");
   const title = tab === "history" ? results[item.status] || item.status : item.title || labels[tab];
   node.append(element("h3",title));
@@ -139,7 +174,7 @@ get("credentials").addEventListener("submit",async event=>{
     const result = await api("login",{username:form.elements.username.value,password:form.elements.password.value});
     form.elements.password.value = "";
     signedIn(result.csrf);
-    selectTab("post",1);
+    selectTab("observation",1);
   } catch(error) { notice(error.message); }
   finally { submit.disabled = false; }
 });

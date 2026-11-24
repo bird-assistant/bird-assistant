@@ -11,6 +11,7 @@ def main():
     parser.add_argument("image", type=Path)
     parser.add_argument("--host", default="ubuntu@49.233.81.227")
     parser.add_argument("--origin", default="https://api.auroraliu.cn:8080")
+    parser.add_argument("--field-guide", action="store_true", help="核对识别、图鉴和公开渠道")
     args = parser.parse_args()
     remote = (
         "sudo env PYTHONPATH=/opt/bird-assistant/community-current/src /opt/bird-assistant/venv/bin/python"
@@ -43,6 +44,12 @@ def main():
         subject = next(item for item in analysis["subjects"] if item["candidates"])
         species = subject["candidates"][0]["species_id"]
         print("GPU candidate", species, flush=True)
+        if args.field_guide:
+            guide = call("GET", f"/api/v1/species/{species}/guide", {})
+            assert guide["id"] == species and guide["guide"]["fields"]
+            if guide["guide"]["photo"]:
+                assert client.get(f"/api/v1/species/{species}/photo").headers["content-type"] == "image/jpeg"
+            print("Guide matches", guide["scientific"], flush=True)
         media = call("POST", root + "/media", files={"file": image})
         observation = call(
             "PUT",
@@ -91,10 +98,21 @@ def main():
             assert next(row["id"] for row in rows if row["channel"] == "map") in {
                 item["id"] for item in pins["items"]
             }
-            sender, recipient = [call("GET", root + "/me", user)["id"] for user in (author, reader)]
-            call("POST", root + "/messages/" + recipient, json={"reference": "smoke", "body": "联调"})
-            assert call("GET", root + "/messages/" + sender, reader)["items"][0]["body"] == "联调"
-            print("PASS photo, recognition, moderation, related map/post, species, DM", flush=True)
+            if args.field_guide:
+                state = call("GET", "/api/v2/observations/by-reference/" + identity)
+                assert state["id"] == observation["id"] and len(state["channels"]) == 2
+                assert all(row["status"] == "approved" for row in state["channels"])
+                assert call("GET", f"/api/v1/species/{species}/places", {})["recordCount"] > 0
+                posts = call("GET", root + "/posts", {}, params={"species": species})["items"]
+                assert next(row["id"] for row in rows if row["channel"] == "post") in {
+                    post["id"] for post in posts
+                }
+                print("PASS private observation, both channels, species places and posts", flush=True)
+            else:
+                sender, recipient = [call("GET", root + "/me", user)["id"] for user in (author, reader)]
+                call("POST", root + "/messages/" + recipient, json={"reference": "smoke", "body": "联调"})
+                assert call("GET", root + "/messages/" + sender, reader)["items"][0]["body"] == "联调"
+                print("PASS photo, recognition, moderation, related map/post, species, DM", flush=True)
         finally:
             for row in rows:
                 call("DELETE", root + "/publications/" + row["id"])

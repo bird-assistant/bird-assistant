@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>羽迹 · 从快门到鸟讯</title>
+  <style>
+    :root {font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif;color:#19392e;background:#eef0e6;line-height:1.55}
+    * {box-sizing:border-box} body {margin:0} [hidden] {display:none!important} button,input,select {font:inherit} button {cursor:pointer}
+    .bar, main {width:min(820px,100%);margin:auto;padding:18px 22px}.bar,.row,.tools,.actions {display:flex;align-items:center;justify-content:space-between;gap:10px}.bar strong {font-family:Georgia,serif;font-size:25px}.bar small {display:block;color:#56665a;font-size:12px}
+    .switcher {display:flex;padding:3px;border:1px solid #bdc8b7;border-radius:24px}.switcher button {border:0;background:transparent;border-radius:20px}.switcher [aria-pressed=true],.primary {background:#244f3c;color:white}
+    button,select {padding:9px 16px;border:1px solid #c3cdbd;border-radius:12px;background:white;color:#244534}button:focus-visible,input:focus-visible,select:focus-visible {outline:3px solid #bc741c;outline-offset:2px}
+    .card {background:#fffef8;border-radius:22px;overflow:hidden;border:1px solid #c7d0bf}.content {padding:22px 26px}.camera {background:#17291f;color:white;position:relative}.camera img,.wide {width:100%;display:block;aspect-ratio:16/9;object-fit:cover}.overlay {position:absolute;top:14px;left:14px;border-radius:20px;padding:5px 12px;background:#16281ee6;font-size:13px}.tools {padding:12px 20px;color:#fff}.tools span {font-size:13px}.shutter {width:66px;height:66px;border-radius:50%;border:5px double #234634;background:#fffdf2;color:#234634;font-weight:650}
+    h1,h2,p {margin:0}h1,h2 {font-family:Georgia,"Songti SC","STSong",serif}h1 {font-size:clamp(24px,4vw,36px);line-height:1.25}h2 {font-size:22px}.muted,.meta {color:#58685b}.meta {font-size:13px}.content>*+* {margin-top:14px}.choice {display:block;border:1px solid #d7dece;border-radius:12px;padding:12px;margin-top:9px}.choice input {accent-color:#28553e}.choice small {display:block;margin-left:26px;color:#566457}.actions {justify-content:flex-start;flex-wrap:wrap}.note {background:#eef1e5;border-radius:12px;padding:12px}.detail {display:flex;align-items:center;gap:15px}.crop {width:92px;height:92px;flex:none;border-radius:12px;background:url('observation.jpg') 77% 71% / 510% auto no-repeat}
+    .states {list-style:none;margin:0;padding:0}.states li {display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #d7dece}.states b {color:#704d1f}.admin-card {display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:15px}.admin-card img {width:100%;border-radius:12px}.review-item {padding:14px 0;border-top:1px solid #d7dece}.review-item>*+* {margin-top:8px}.reset {margin-top:18px;background:transparent;font-size:13px}.picker {padding:7px;max-width:100%}
+    @media(max-width:580px){.bar,main {padding:12px}.content {padding:18px}.admin-card {grid-template-columns:1fr}.tools {padding:10px 16px}.switcher button {padding:7px 12px}.camera img {aspect-ratio:4/4.4;object-position:78% center}}
+  </style>
+</head>
+<body>
+  <header class="bar"><div><strong>羽迹</strong><small>交互提案 · 模拟记录</small></div><nav class="switcher" aria-label="切换体验身份"><button id="observer" aria-pressed="true">观鸟者</button><button id="reviewer" aria-pressed="false">审核员</button></nav></header>
+  <main>
+    <section id="capture" class="card">
+      <div class="camera"><img src="observation.jpg" alt="一只山雀停在木台上"><span class="overlay">取景中 · 发现鸟形</span><div class="tools"><span>照片</span><button class="shutter" id="take">拍照</button><span>1×</span></div></div>
+      <div class="content"><h1>拍下这次相遇</h1><p class="muted">按快门留住原片，再慢慢看是哪种鸟。</p></div>
+    </section>
+    <section id="result" class="card" hidden>
+      <img class="wide" src="observation.jpg" alt="刚拍下的观察原片"><div class="content"><p class="meta">原片已保留在本机</p><h1>可能是山雀</h1>
+      <div class="detail"><div class="crop" role="img" aria-label="原片中鸟体的放大局部"></div><div><strong>看一眼鸟体细节</strong><p class="muted">拿不准时也可以先记下，稍后请鸟友帮助鉴定。</p></div></div>
+      <label class="choice"><input type="radio" name="species" value="待鉴定" checked> 保留为待鉴定</label><label class="choice"><input type="radio" name="species" value="大山雀"> 我确认为大山雀</label>
+      <div class="actions"><button class="primary" id="save">存入我的观察</button></div></div>
+    </section>
+    <section id="observation" class="card" hidden><div class="content"><p class="meta">我的观察 · 仅自己可见</p><div class="detail"><div class="crop"></div><div><h1 data-bird></h1><p class="muted">湖畔公园一带 · 示例地点</p></div></div>
+      <ul class="states" id="statuses" aria-live="polite"></ul><div class="actions"><button class="primary" id="share">分享这次观察</button></div></div></section>
+    <section id="sharing" class="card" hidden><div class="content"><p class="meta">公开预览</p><h1>谁能看到这条观察？</h1><img class="wide" src="observation.jpg" alt="公开后可见的照片"><strong data-bird></strong>
+      <label class="choice"><input type="checkbox" id="post" checked> 分享到鸟友讨论<small>匿名展示照片和鉴定结果。</small></label>
+      <label class="choice"><input type="checkbox" id="map"> 同时添加地图鸟讯<small id="map-help"></small></label>
+      <p class="note" id="scope" aria-live="polite"></p><div class="actions"><button id="submit" class="primary">提交审核</button><button id="cancel">返回观察</button></div></div></section>
+    <section id="admin" class="card" hidden><div class="content"><p class="meta">社区管理</p><h1>待审核的观察</h1><p id="empty" class="note">当前没有待审记录。可切换到观鸟者体验拍照和分享。</p>
+      <div id="work" class="admin-card" hidden><div><img src="observation.jpg" alt="用户选择公开的原片"><strong data-bird></strong></div><div id="decisions"></div></div></div></section>
+    <button id="reset" class="reset">重新体验</button>
+  </main>
+  <script>
+    const byId = id => document.getElementById(id);
+    const screens = ['capture','result','observation','sharing','admin'];
+    const names = {post:'讨论帖',map:'地图鸟讯'};
+    const submissions = new Map();
+    let step = 'capture';
+    let bird = '待鉴定';
+    function show(screen) {
+      for (const name of screens) byId(name).hidden = name !== screen;
+      if (screen !== 'admin') step = screen;
+      byId('observer').setAttribute('aria-pressed', screen !== 'admin');
+      byId('reviewer').setAttribute('aria-pressed', screen === 'admin');
+      document.querySelectorAll('[data-bird]').forEach(node => node.textContent = bird);
+      window.scrollTo(0,0);
+    }
+    function record() {
+      byId('statuses').replaceChildren();
+      for (const [channel, decision] of submissions) {
+        const row = document.createElement('li');
+        const status = document.createElement('b');
+        status.textContent = decision;
+        row.append(names[channel], status);
+        byId('statuses').append(row);
+      }
+      byId('share').hidden = submissions.size > 0;
+      byId('share').textContent = bird === '待鉴定' ? '请鸟友帮我认' : '分享这次观察';
+      show('observation');
+    }
+    function scope() {
+      const chosen = Object.keys(names).filter(channel => byId(channel).checked);
+      byId('scope').textContent = chosen.length ? '审核通过后可见：'+chosen.map(channel => names[channel]).join('、')+'。'+(chosen.includes('map')?'地图显示约十公里范围。':'观察地点保密。') : '请选择要分享的位置。';
+      byId('submit').disabled = !chosen.length;
+    }
+    function review() {
+      const pending = [...submissions].filter(entry => entry[1] === '待审核');
+      byId('empty').hidden = pending.length > 0;
+      byId('work').hidden = pending.length === 0;
+      byId('empty').textContent = submissions.size ? '已处理完，切换到观鸟者可查看各渠道的结果。' : '当前没有待审记录。可切换到观鸟者体验拍照和分享。';
+      byId('decisions').replaceChildren();
+      for (const [channel] of pending) {
+        const item = document.createElement('section');
+        item.className = 'review-item';
+        const title = document.createElement('h2');
+        title.textContent = names[channel];
+        const detail = document.createElement('p');
+        detail.textContent = channel === 'map' ? '公开湖畔公园一带的概略位置。' : '匿名公开照片和鸟种，隐藏地点。';
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        for (const label of ['通过','退回']) {
+          const button = document.createElement('button');
+          button.textContent = label;
+          if (label === '通过') button.className = 'primary';
+          button.onclick = () => {
+            if (label === '通过') submissions.set(channel,'已公开');
+            else {
+              const reason = window.prompt('写给观察者的退回原因');
+              if (!reason?.trim()) return;
+              submissions.set(channel,'已退回 · '+reason.trim());
+            }
+            review();
+          };
+          actions.append(button);
+        }
+        item.append(title,detail,actions);
+        byId('decisions').append(item);
+      }
+      show('admin');
+    }
+    byId('take').onclick = () => show('result');
+    byId('save').onclick = () => {bird = document.querySelector('[name=species]:checked').value; record();};
+    byId('share').onclick = () => {
+      byId('map').disabled = bird === '待鉴定';
+      byId('map-help').textContent = byId('map').disabled ? '确认鸟种后可加入地图。' : '只公开约十公里范围。';
+      scope(); show('sharing');
+    };
+    byId('post').onchange = byId('map').onchange = scope;
+    byId('cancel').onclick = record;
+    byId('submit').onclick = () => {for (const channel of Object.keys(names)) if (byId(channel).checked) submissions.set(channel,'待审核'); record();};
+    byId('reviewer').onclick = review;
+    byId('observer').onclick = () => step === 'observation' ? record() : show(step);
+    byId('reset').onclick = () => {submissions.clear(); bird='待鉴定'; document.querySelector('[value="待鉴定"]').checked=true; byId('map').checked=false; byId('post').checked=true; show('capture');};
+  </script>
+</body></html>

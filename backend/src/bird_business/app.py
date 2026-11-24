@@ -12,9 +12,11 @@ from bird_business.community import router as community_router
 from bird_business.community_store import CommunityStore
 from bird_business.config import BusinessSettings, get_settings
 from bird_business.db import ObservationStore
+from bird_business.guide_api import router as guide_router
 from bird_business.metrics import BusinessMetrics
 from bird_business.social import router as social_router
 from bird_business.social_groups import router as groups_router
+from bird_business.trip import router as trip_router
 from bird_business.writing import install as install_writing
 from bird_business.writing import router as writing_router
 from bird_common.app_factory import build_service_app
@@ -71,6 +73,8 @@ def create_app(settings: BusinessSettings | None = None, *, store: ObservationSt
     service.include_router(mobile_router)
     service.include_router(admin_router)
     service.include_router(community_router)
+    service.include_router(guide_router)
+    service.include_router(trip_router)
     service.include_router(social_router)
     service.include_router(groups_router)
     service.include_router(writing_router)

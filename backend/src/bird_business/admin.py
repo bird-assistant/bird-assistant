@@ -22,7 +22,7 @@ router = APIRouter(prefix="/admin", include_in_schema=False)
 ASSETS = Path(__file__).with_name("admin_web")
 STAFF = "web:admin"
 PAGE_SIZE = 12
-Tab = Literal["post", "map", "reply", "reports", "history"]
+Tab = Literal["observation", "post", "map", "reply", "reports", "history"]
 HEADERS = {
     "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",
@@ -36,6 +36,10 @@ HEADERS = {
 class Login(BaseModel):
     username: str = Field(max_length=64)
     password: SecretStr = Field(min_length=1, max_length=256)
+
+
+class ReviewDecision(Decision):
+    reason: str = Field(default="", max_length=400)
 
 
 @router.get("/")
@@ -84,7 +88,36 @@ def counts(db):
     total["reply"] = db.execute("SELECT count(*) FROM replies WHERE status='pending'").fetchone()[0]
     total["reports"] = db.execute("SELECT count(DISTINCT target) FROM reports").fetchone()[0]
     total["history"] = db.execute("SELECT count(*) FROM decisions").fetchone()[0]
+    total["observation"] = db.execute(
+        "SELECT count(DISTINCT coalesce(sighting,preview,id)) FROM publications WHERE status='pending'"
+    ).fetchone()[0]
     return total
+
+
+def grouped_observations(db, offset):
+    groups = db.execute(
+        "SELECT coalesce(sighting,preview,id) group_id FROM publications WHERE status='pending' "
+        "GROUP BY group_id ORDER BY min(created),group_id LIMIT ? OFFSET ?",
+        (PAGE_SIZE, offset),
+    )
+    items = []
+    for group in groups:
+        rows = db.execute(
+            "SELECT p.*,f.reason FROM publications p LEFT JOIN review_feedback f ON p.id=f.target "
+            "WHERE coalesce(p.sighting,p.preview,p.id)=? ORDER BY p.created DESC,p.channel",
+            (group[0],),
+        )
+        channels = [
+            {
+                **publication_row(row),
+                "channel": row["channel"],
+                "status": row["status"],
+                "reason": row["reason"],
+            }
+            for row in rows
+        ]
+        items.append({"id": group[0], "channels": channels})
+    return items
 
 
 def publication_row(row):
@@ -133,7 +166,9 @@ def queue(
         pages = max(1, (totals[tab] + PAGE_SIZE - 1) // PAGE_SIZE)
         page = min(page, pages)
         offset = (page - 1) * PAGE_SIZE
-        if tab in {"post", "map"}:
+        if tab == "observation":
+            items = grouped_observations(db, offset)
+        elif tab in {"post", "map"}:
             rows = db.execute(
                 "SELECT id,created,display FROM publications WHERE status='pending' AND channel=? "
                 "ORDER BY created,id LIMIT ? OFFSET ?",
@@ -176,11 +211,17 @@ def photo(record: str, database: DB):
 
 
 @router.post("/actions/{kind}/{record}", dependencies=[Depends(authorized_write)])
-def decide(kind: Literal["pending", "report"], record: str, body: Decision, database: DB, response: Response):
+def decide(
+    kind: Literal["pending", "report"], record: str, body: ReviewDecision, database: DB, response: Response
+):
     with database.transaction() as db:
         if kind == "report":
             result = decide_report(db, record, body.status, STAFF)
         else:
             result = decide_publication(db, record, body.status, STAFF, pending_only=True)
+            if body.status == "rejected" and body.reason.strip():
+                db.execute(
+                    "INSERT OR REPLACE INTO review_feedback VALUES(?,?)", (record, body.reason.strip())
+                )
     response.headers.update(HEADERS)
     return result

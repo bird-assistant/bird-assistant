@@ -36,3 +36,17 @@ python scripts/build_species_catalog.py \
 ```
 
 升级目录时必须提交两个 CSV、`catalog_metadata.json`、映射差异说明和固定评测集结果，不得只替换 CSV。
+
+## 辨认资料和参考照片
+
+`avonet_traits.json` 使用 Tobias et al. (2022) 的 AVONET 补充数据 1，第 7 版。构建脚本核对原工作簿校验和，通过 eBird 工作表中的 `Avibase.ID2` 精确匹配当前启用鸟种，共 10,050 种。体重单位为克，翼长、嘴峰长和尾长单位为毫米。界面翻译生境、食性与活动方式，显示物种平均值，并标明上游推定值。数据以 CC BY 4.0 发布。[AVONET 数据与许可](https://doi.org/10.6084/m9.figshare.16586228.v7)
+
+`guide_photos.json` 保存每张参考照片的作者、原图页面和许可链接。来源为 GBIF 收录的 iNaturalist Research-grade Observations。选图时核对学名、媒体类型与每张照片的许可，仅采用 CC BY 4.0 或 CC0 1.0。`guide_images/` 存放转正、缩放并转为 JPEG 的副本。照片由社区观察提供，四种常见鸟另附可溯源的 RSPB 辨认提示。[iNaturalist 数据集](https://www.gbif.org/dataset/50c9509d-22c7-4a22-a47d-8c48425ef4a7)
+
+从 `backend` 目录重建参考资料和补充常见鸟种配图：
+
+```bash
+curl -fL https://ndownloader.figshare.com/files/34480856 -o /tmp/avonet-v7.xlsx
+python scripts/build_field_guide.py /tmp/avonet-v7.xlsx
+PYTHONPATH=src python scripts/seed_guide_photos.py
+```

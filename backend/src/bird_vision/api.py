@@ -217,11 +217,19 @@ async def create_photo_analysis(
         raise ServiceError("CAPTURED_AT_REQUIRED", "historical photo requires a timestamp with timezone", 422)
     if (latitude is None) != (longitude is None):
         raise ServiceError("COORDINATES_INCOMPLETE", "coordinates must be paired", 422)
-    context = ObservationContext(
-        observed_at=captured_at, time_precision=capture_time_precision, time_source="captured_at",
-        latitude=latitude, longitude=longitude, coordinate_source="frame" if latitude is not None else "none",
-        region_code=None,
-    ) if observation_mode and captured_at else None
+    context = (
+        ObservationContext(
+            observed_at=captured_at,
+            time_precision=capture_time_precision,
+            time_source="captured_at",
+            latitude=latitude,
+            longitude=longitude,
+            coordinate_source="frame" if latitude is not None else "none",
+            region_code=None,
+        )
+        if observation_mode and captured_at
+        else None
+    )
     data = await image.read()
     decoded, decode_ms = decode_image(data, image.content_type, settings)
     async with request.app.state.photo_slots:
@@ -413,9 +421,7 @@ async def submit_frame(
     ],
     frame: Annotated[UploadFile, File(description="JPEG, PNG or WebP image")],
     captured_at: Annotated[datetime | None, Form()] = None,
-    capture_time_precision: Annotated[
-        Literal["exact", "date", "month", "unknown"], Form()
-    ] = "exact",
+    capture_time_precision: Annotated[Literal["exact", "date", "month", "unknown"], Form()] = "exact",
     latitude: Annotated[float | None, Form(ge=-90.0, le=90.0)] = None,
     longitude: Annotated[float | None, Form(ge=-180.0, le=180.0)] = None,
 ) -> FrameAcceptedResponse:

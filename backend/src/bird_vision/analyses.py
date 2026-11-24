@@ -48,13 +48,15 @@ def _tile_spans(length: int, base_size: int) -> list[tuple[int, int]]:
 def _detect_subjects(image: Image.Image, detector: Detector, settings: Settings) -> list[RawDetection]:
     minimum = settings.photo_min_recognizable_side_px
     detections = [
-        item for item in detector.predict(image).detections
+        item
+        for item in detector.predict(image).detections
         if item.score >= settings.detection_confidence
         or item.box.short_side >= settings.min_recognizable_side_px
     ]
     full_size = (
         settings.detection_high_resolution_image_size
-        if settings.detection_high_resolution_enabled else settings.model_image_size
+        if settings.detection_high_resolution_enabled
+        else settings.model_image_size
     )
     if max(image.size) > full_size and not any(item.box.short_side >= minimum for item in detections):
         full_image_scale = full_size / max(image.size)
@@ -63,8 +65,10 @@ def _detect_subjects(image: Image.Image, detector: Detector, settings: Settings)
             for top, bottom in _tile_spans(image.height, settings.model_image_size):
                 with image.crop((left, top, right, bottom)) as tile:
                     for item in detector.predict(tile).detections:
-                        if (item.score < settings.detection_confidence
-                                or item.box.short_side * full_image_scale > small_side):
+                        if (
+                            item.score < settings.detection_confidence
+                            or item.box.short_side * full_image_scale > small_side
+                        ):
                             continue
                         box = item.box
                         projected = Box(left + box.x1, top + box.y1, left + box.x2, top + box.y2)
@@ -75,7 +79,7 @@ def _detect_subjects(image: Image.Image, detector: Detector, settings: Settings)
         if all(intersection_over_union(item.box, other.box) <= settings.detection_iou for other in distinct):
             distinct.append(item)
     distinct.sort(key=lambda item: (item.box.short_side >= minimum, item.box.area * item.score), reverse=True)
-    return distinct[:settings.photo_max_subjects]
+    return distinct[: settings.photo_max_subjects]
 
 
 def _crop(image: Image.Image, box: Box, padding: float) -> Image.Image:

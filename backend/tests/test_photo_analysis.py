@@ -84,7 +84,7 @@ def test_photo_analysis_keeps_tiny_box_without_guessing_species(jpeg_bytes) -> N
     assert body["state"] == "unknown"
     assert body["policy"]["reason"] == "subject_below_minimum_size"
     assert "small_detections_ignored" in body["notes"]
-    subject, = body["subjects"]
+    (subject,) = body["subjects"]
     assert subject["short_side_px"] == 20
     assert subject["state"] == "unknown" and subject["candidates"] == []
 
@@ -103,10 +103,19 @@ def test_photo_classifies_small_bird_in_one_pass(jpeg_bytes) -> None:
 def test_photo_recovers_tiled_subject_once_in_original_coordinates() -> None:
     app = create_app(photo_settings())
     sizes = []
-    results = iter([(), (RawDetection(Box(700, 520, 750, 560), 0.85),), (), (), (
-        RawDetection(Box(60, 40, 110, 80), 0.95), RawDetection(Box(150, 60, 205, 99), 0.12),
-        RawDetection(Box(0, 0, 400, 360), 0.91),
-    )])
+    results = iter(
+        [
+            (),
+            (RawDetection(Box(700, 520, 750, 560), 0.85),),
+            (),
+            (),
+            (
+                RawDetection(Box(60, 40, 110, 80), 0.95),
+                RawDetection(Box(150, 60, 205, 99), 0.12),
+                RawDetection(Box(0, 0, 400, 360), 0.91),
+            ),
+        ]
+    )
 
     def predict(image):
         sizes.append(image.size)
@@ -118,7 +127,7 @@ def test_photo_recovers_tiled_subject_once_in_original_coordinates() -> None:
         Image.new("RGB", (1600, 1200)).save(data, format="JPEG")
         body = upload(client, data.getvalue()).json()
     assert sizes == [(1600, 1200), *[(960, 720)] * 4]
-    subject, = body["subjects"]
+    (subject,) = body["subjects"]
     assert subject["state"] == "candidate"
     assert subject["detection_score"] == 0.95
     assert subject["bbox"] == dict(x1=700 / 1600, x2=750 / 1600, y1=520 / 1200, y2=560 / 1200)

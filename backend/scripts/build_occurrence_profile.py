@@ -91,8 +91,7 @@ def circle_wkt(latitude: float, longitude: float, radius_km: float, points: int 
     ]
     coordinates.append(coordinates[0])
     body = ",".join(
-        f"{point_longitude:.6f} {point_latitude:.6f}"
-        for point_latitude, point_longitude in coordinates
+        f"{point_longitude:.6f} {point_latitude:.6f}" for point_latitude, point_longitude in coordinates
     )
     return f"POLYGON(({body}))"
 
@@ -128,9 +127,7 @@ def occurrence_facet(
             total = int(payload.get("count", 0))
         facets = payload.get("facets") or []
         counts = facets[0].get("counts", []) if facets else []
-        page_signature = tuple(
-            (str(item.get("name", "")), str(item.get("count", ""))) for item in counts
-        )
+        page_signature = tuple((str(item.get("name", "")), str(item.get("count", ""))) for item in counts)
         if page_signature in seen_pages:
             raise RuntimeError("GBIF species facet pagination returned a repeated page")
         seen_pages.add(page_signature)

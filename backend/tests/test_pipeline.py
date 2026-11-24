@@ -125,11 +125,7 @@ def test_pipeline_returns_predicted_track_without_reclassifying(test_settings) -
 
         def predict(self, image):
             self.calls += 1
-            detections = (
-                (RawDetection(Box(80, 40, 180, 160), 0.9),)
-                if self.calls == 1
-                else tuple()
-            )
+            detections = (RawDetection(Box(80, 40, 180, 160), 0.9),) if self.calls == 1 else tuple()
             return DetectorOutput(detections)
 
     class CountingSpeciesProvider(MockSpeciesProvider):

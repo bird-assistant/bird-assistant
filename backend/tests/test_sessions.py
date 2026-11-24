@@ -126,9 +126,7 @@ async def test_live_session_prefetches_occurrence_cache(manager, monkeypatch) ->
     )
 
 
-async def test_live_session_prefetches_adjacent_month_at_utc_boundary(
-    manager, monkeypatch
-) -> None:
+async def test_live_session_prefetches_adjacent_month_at_utc_boundary(manager, monkeypatch) -> None:
     class BoundaryDateTime(datetime):
         @classmethod
         def now(cls, tz=None):
@@ -147,19 +145,20 @@ async def test_live_session_prefetches_adjacent_month_at_utc_boundary(
     assert {call.kwargs["observed_at"].month for call in prepare.call_args_list} == {5, 6}
 
 
-async def test_occurrence_prepare_limits_each_principal_to_two_pending_keys(
-    manager, monkeypatch
-) -> None:
+async def test_occurrence_prepare_limits_each_principal_to_two_pending_keys(manager, monkeypatch) -> None:
     prepare = Mock(return_value={"status": "pending", "source": "gbif", "candidate_count": 0})
     monkeypatch.setattr(manager.pipeline.species, "prepare_occurrence_cache", prepare)
     for month in (5, 6):
-        assert manager.prepare_occurrence_cache(
-            owner_subject="caller",
-            latitude=31.8206,
-            longitude=117.2272,
-            observed_at=datetime(2026, month, 15, tzinfo=UTC),
-            time_precision="exact",
-        )["status"] == "pending"
+        assert (
+            manager.prepare_occurrence_cache(
+                owner_subject="caller",
+                latitude=31.8206,
+                longitude=117.2272,
+                observed_at=datetime(2026, month, 15, tzinfo=UTC),
+                time_precision="exact",
+            )["status"]
+            == "pending"
+        )
     with pytest.raises(ServiceError) as denied:
         manager.prepare_occurrence_cache(
             owner_subject="caller",

@@ -57,10 +57,7 @@ class VisionPipeline:
                 continue
             quality = self._quality(job.image, track.box, track.detection_score)
             track.best_quality = max(track.best_quality, quality)
-            eligible = (
-                track.hits >= self.settings.track_confirm_hits
-                and self._recognizable(track)
-            )
+            eligible = track.hits >= self.settings.track_confirm_hits and self._recognizable(track)
             if (
                 self.species.backend != "disabled"
                 and eligible
@@ -148,9 +145,7 @@ class VisionPipeline:
         return track.pending_best_quality >= required
 
     @staticmethod
-    def _reset_species_evidence_for_context_change(
-        track: Track, prediction: SpeciesPrediction
-    ) -> None:
+    def _reset_species_evidence_for_context_change(track: Track, prediction: SpeciesPrediction) -> None:
         previous = track.species_history[-1] if track.species_history else track.species_prediction
         if previous is None:
             return

@@ -184,10 +184,7 @@ class YoloDetector:
         )
 
     def _inference_size(self, image: Image.Image) -> int:
-        threshold = (
-            self.settings.model_image_size
-            * self.settings.detection_high_resolution_min_image_ratio
-        )
+        threshold = self.settings.model_image_size * self.settings.detection_high_resolution_min_image_ratio
         if self.settings.detection_high_resolution_enabled and max(image.size) >= threshold:
             return self.settings.detection_high_resolution_image_size
         return self.settings.model_image_size

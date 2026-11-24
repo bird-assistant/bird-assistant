@@ -116,9 +116,7 @@ def test_repository_catalog_is_complete_and_versioned() -> None:
 
 
 @pytest.fixture
-def bioclip_provider(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> Iterator[tuple[Any, ...]]:
+def bioclip_provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[Any, ...]]:
     torch = pytest.importorskip("torch")
     snapshot = tmp_path / ".cache" / "huggingface" / "snapshots" / ("a" * 40)
     snapshot.mkdir(parents=True)
@@ -464,9 +462,7 @@ def test_gbif_preference_keeps_reported_mugimaki_over_little_minivet(
     provider, _, _, _ = bioclip_provider
     # Local Mugimaki was 0.689453; global Little Minivet was 0.699707.
     assert provider._prefer_local_ranking(local_top_similarity=0.689453)
-    assert provider._prefer_local_ranking(
-        local_top_similarity=provider.settings.species_min_similarity
-    )
+    assert provider._prefer_local_ranking(local_top_similarity=provider.settings.species_min_similarity)
     assert provider._decision(0.689453, 0.001) == (False, "ambiguous_candidates")
 
 
@@ -509,9 +505,7 @@ def test_bioclip_keeps_viable_local_candidate_even_when_global_candidate_is_stro
     assert prediction.fallback_reason is None
 
 
-def test_bioclip_uses_global_model_when_all_local_candidates_are_low(
-    bioclip_provider, monkeypatch
-) -> None:
+def test_bioclip_uses_global_model_when_all_local_candidates_are_low(bioclip_provider, monkeypatch) -> None:
     provider, _, _, _ = bioclip_provider
     provider.load()
     provider._active_taxa.append(Taxon("outside", "Avis outside", None, None, None, None))
@@ -539,9 +533,7 @@ def test_bioclip_uses_global_model_when_all_local_candidates_are_low(
     assert prediction.fallback_reason == "local_candidates_not_visually_supported"
 
 
-def test_bioclip_keeps_ambiguous_result_inside_viable_local_list(
-    bioclip_provider, monkeypatch
-) -> None:
+def test_bioclip_keeps_ambiguous_result_inside_viable_local_list(bioclip_provider, monkeypatch) -> None:
     provider, _, _, _ = bioclip_provider
     provider.load()
     provider._text_features = provider._torch.tensor(

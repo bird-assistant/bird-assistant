@@ -188,9 +188,7 @@ class SessionManager:
             latitude=latitude,
             longitude=longitude,
             region_code=region_code or self.settings.species_default_region_code,
-            coordinates_used_for_inference=self.pipeline.species.coordinates_supported(
-                latitude, longitude
-            ),
+            coordinates_used_for_inference=self.pipeline.species.coordinates_supported(latitude, longitude),
             tracker=self.pipeline.new_tracker(),
         )
         session.task = asyncio.create_task(self._worker(session), name=f"vision-session-{session_id}")

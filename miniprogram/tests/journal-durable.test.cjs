@@ -1,5 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
+const {registerPage}=require('./helpers/page-lifecycle.cjs');
 const journal=require('../.test-build/services/journal-model.js');
 const resize=require('../.test-build/services/journal-resize.js');
 const ai=require('../.test-build/services/journal-ai.js');
@@ -13,7 +14,7 @@ function page(extra={},storage=new Map()){
   global.Page=d=>definition=d;const file=require.resolve('../.test-build/pages/journal/index.js');delete require.cache[file];require(file);
   const p={data:structuredClone(definition.data),getTabBar:()=>({setData(){}}),setData(value){for(const[k,v]of Object.entries(value)){const match=/^renderElements\[(\d+)\]$/.exec(k);if(match)this.data.renderElements[+match[1]]=v;else this.data[k]=v;}}};
   for(const[k,v]of Object.entries(definition))if(k!=='data')p[k]=typeof v==='function'?v.bind(p):structuredClone(v);
-  p.onLoad();return {p,storage};
+  registerPage(p);p.onLoad();return {p,storage};
 }
 test('current, original and free resize modes have distinct stable semantics at both page edges',()=>{
   const d=journal.makeJournal(assets(),'Ratios'),p=d.elements.find(e=>e.type==='photo');
@@ -37,12 +38,13 @@ test('autosave persists media once, coalesces later edits and recovers the lates
   const second=journal.makeJournal(assets(),'Second');storage.set(journal.JOURNAL_KEY,[saved,second]);p.loadDrafts();p.openDraft(tap(second.id));
   const fresh=page({},storage).p;fresh.onShow();assert.equal(fresh.data.doc.id,second.id);fresh.resume();assert.equal(fresh.data.view,'editor');p.onUnload();fresh.onUnload();
 });
-test('an autosave storage failure keeps the previous copy and retries the already durable media',async()=>{
+test('an autosave storage failure keeps the previous copy and retries the already durable media',async t=>{
+  const warnings=[];t.mock.method(console,'warn',(_message,error)=>warnings.push(error));
   let moves=0,fail=true;const previous=journal.makeJournal(assets(),'Previously saved'),storage=new Map([[journal.JOURNAL_KEY,[previous]]]);
   const {p}=page({setStorageSync:(k,v)=>{if(k===journal.JOURNAL_KEY&&fail)throw Error('quota');storage.set(k,structuredClone(v));},
     getFileSystemManager:()=>({saveFile:o=>{moves++;o.success({savedFilePath:'wxfile://durable/retry'});}})},storage);
   p.openDocument(journal.makeJournal([{...assets()[0],src:'wxfile://temp',sample:false}],'New'),true);
-  assert.equal(await p.persistDraft(),false);assert.equal(p.data.dirty,true);assert.deepEqual(storage.get(journal.JOURNAL_KEY),[previous]);assert.equal(p.data.doc.elements.find(e=>e.type==='photo').src,'wxfile://durable/retry');
+  assert.equal(await p.persistDraft(),false);assert.ok(warnings.some(e=>e.message==='quota'));assert.equal(p.data.dirty,true);assert.deepEqual(storage.get(journal.JOURNAL_KEY),[previous]);assert.equal(p.data.doc.elements.find(e=>e.type==='photo').src,'wxfile://durable/retry');
   fail=false;assert.equal(await p.persistDraft(),true);assert.equal(moves,1);assert.equal(storage.get(journal.JOURNAL_KEY).length,2);p.onUnload();
 });
 test('template previews do not mutate the journal, and paper/ratio choices are saved and undoable',async()=>{
@@ -57,10 +59,11 @@ test('autosave timestamps cannot stale an AI suggestion but a real document edit
     const {p}=page();p.openDocument(journal.makeJournal(assets(),'Before'),true);p.openAi();p.prompt({detail:{value:'Polish what is visible'}});const pending=p.prepareAi();await p.persistDraft();resolve();await pending;p.applyAi({currentTarget:{dataset:{}}});assert.equal(p.data.doc.title,'Suggestion');assert.equal(p.data.ai,false);p.onUnload();
   }finally{ai.installJournalAiTransport(null);}
 });
-test('a malformed older journal is retained and never overwritten by autosave',async()=>{
+test('a malformed older journal is retained and never overwritten by autosave',async t=>{
+  const warnings=[];t.mock.method(console,'warn',(_message,error)=>warnings.push(error));
   const malformed=[{version:1,id:'legacy',elements:[]}],storage=new Map([[journal.JOURNAL_KEY,malformed]]);
   const {p}=page({},storage);p.openDocument(journal.makeJournal(assets(),'Keep my edit'),true);
-  assert.equal(await p.persistDraft(),false);assert.deepEqual(storage.get(journal.JOURNAL_KEY),malformed);assert.equal(p.data.dirty,true);p.onUnload();
+  assert.equal(await p.persistDraft(),false);assert.deepEqual(storage.get(journal.JOURNAL_KEY),malformed);assert.ok(warnings.some(e=>/已有草稿未覆盖/.test(e.message)));assert.equal(p.data.dirty,true);p.onUnload();
 });
 test('mixed portrait and landscape photos fit all ratios and templates without covering headings or captions',()=>{
   const overlap=(a,b)=>a.x<b.x+b.w-.02&&b.x<a.x+a.w-.02&&a.y<b.y+b.h-.02&&b.y<a.y+a.h-.02;

@@ -1,16 +1,17 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
+const {registerPage}=require('./helpers/page-lifecycle.cjs');
 const model=require('../.test-build/services/map-model.js');
 const journal=require('../.test-build/services/journal-model.js');
 const canvas=require('../.test-build/services/canvas.js');
 const motion=require('../.test-build/services/map-motion.js');
 function page(name,width=390,height=844,extra={}){
-  let definition;const bar={},scroll=[];
-  global.wx={canIUse:()=>false,createCameraContext:()=>({}),getWindowInfo:()=>({windowWidth:width,windowHeight:height,screenHeight:height,statusBarHeight:24,safeArea:{bottom:height-34}}),getMenuButtonBoundingClientRect:()=>({top:30,bottom:62,left:width-100}),getStorageSync:()=>'',nextTick:fn=>fn(),pageScrollTo:o=>scroll.push(o),...extra};
+  let definition;const bar={},scroll=[],storage=new Map();
+  global.wx={canIUse:()=>false,createCameraContext:()=>({}),getWindowInfo:()=>({windowWidth:width,windowHeight:height,screenHeight:height,statusBarHeight:24,safeArea:{bottom:height-34}}),getMenuButtonBoundingClientRect:()=>({top:30,bottom:62,left:width-100}),getStorageSync:k=>structuredClone(storage.get(k)||''),setStorageSync:(k,v)=>storage.set(k,structuredClone(v)),nextTick:fn=>fn(),pageScrollTo:o=>scroll.push(o),...extra};
   global.Page=x=>definition=x;const path=require.resolve('../.test-build/pages/'+name+'/index.js');delete require.cache[path];require(path);
   const p={data:structuredClone(definition.data),setData(v){Object.assign(this.data,v);},getTabBar:()=>({setData:v=>Object.assign(bar,v)})};
   for(const[k,v]of Object.entries(definition))if(k!=='data')p[k]=typeof v==='function'?v.bind(p):structuredClone(v);
-  p.onLoad?.();return {p,bar,scroll};
+  if(name==='journal')registerPage(p);p.onLoad?.();return {p,bar,scroll};
 }
 const tap=id=>({currentTarget:{dataset:{id}}});
 test('font sizing uses integers for live adjustment, typed input, legacy values and related title size',()=>{
@@ -137,11 +138,13 @@ test('composition changes keep captions with photos and undo restores both; resi
   p.rearrange();assert.equal(photo.x,caption.x);assert.notEqual(photo.x,oldX);p.undo();assert.equal(p.data.doc.elements.find(e=>e.id===photo.id).x,oldX);
   const before=structuredClone(p.data.doc.elements.find(e=>e.id===photo.id));p.dragStart({currentTarget:{dataset:{id:photo.id,resize:'yes'}},touches:[{clientX:50,clientY:50}]});p.dragMove({touches:[{clientX:70,clientY:80}]});p.dragEnd();const resized=p.data.doc.elements.find(e=>e.id===photo.id);assert.ok(resized.w>before.w&&resized.h>before.h);p.undo();assert.deepEqual(p.data.doc.elements.find(e=>e.id===photo.id),before);
 });
-test('AI writing brief includes only explicitly checked photos and sends no network request',()=>{
-  const {p}=page('journal');p.sample();p.generate();p.openAi();for(const image of p.data.aiPhotos.slice(1))p.aiPhoto(tap(image.id));p.prepareAi();assert.match(p.data.bundleSummary,/1 张关联图片/);assert.match(p.data.error,/补充写作要求/);
+test('AI writing brief includes only explicitly checked photos and sends no network request',t=>{
+  const warnings=[];t.mock.method(console,'warn',(_message,error)=>warnings.push(error));
+  const {p}=page('journal');p.sample();p.generate();p.openAi();for(const image of p.data.aiPhotos.slice(1))p.aiPhoto(tap(image.id));p.prepareAi();assert.match(p.data.bundleSummary,/1 张关联图片/);assert.match(p.data.error,/补充写作要求/);assert.ok(warnings.some(e=>/补充写作要求/.test(e.message)));
 });
-test('a failed autosave retains the current journal instead of replacing it',async()=>{
-  const {p}=page('journal',390,844,{setStorageSync:()=>{throw Error('quota');}});p.sample();p.generate();const id=p.data.doc.id;p.setData({view:'home'});p.newJournal();await new Promise(resolve=>setImmediate(resolve));assert.equal(p.data.doc.id,id);assert.equal(p.data.view,'home');assert.match(p.data.error,/自动保存未完成/);p.onUnload();
+test('a failed autosave retains the current journal instead of replacing it',async t=>{
+  const warnings=[];t.mock.method(console,'warn',(_message,error)=>warnings.push(error));
+  const {p}=page('journal',390,844,{setStorageSync:()=>{throw Error('quota');}});p.sample();p.generate();const id=p.data.doc.id;p.setData({view:'home'});p.newJournal();await new Promise(resolve=>setImmediate(resolve));assert.equal(p.data.doc.id,id);assert.equal(p.data.view,'home');assert.match(p.data.error,/自动保存未完成/);assert.ok(warnings.some(e=>e.message==='quota'));p.onUnload();
 });
 test('canvas and layer selection identify the same element without changing the journal or undo history',()=>{
   const {p}=page('journal');p.sample();p.generate();const photo=p.data.doc.elements.find(e=>e.type==='photo');

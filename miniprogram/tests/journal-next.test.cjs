@@ -1,5 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
+const {registerPage}=require('./helpers/page-lifecycle.cjs');
 const journal=require('../.test-build/services/journal-model.js');
 const ai=require('../.test-build/services/journal-ai.js');
 const provider=require('../.test-build/services/recognition-provider.js');
@@ -7,11 +8,11 @@ const fixture=require('./fixtures/recognition.json');
 const assets=n=>Array.from({length:n},(_,i)=>({id:'p'+i,src:'/assets/samples/field-'+i+'.png',selected:true,label:'观察 '+i,notes:'',sample:true}));
 const tap=id=>({currentTarget:{dataset:{id}}});
 function page(extra={}){
-  let definition;global.wx={canIUse:()=>false,getWindowInfo:()=>({windowWidth:390,windowHeight:844,screenHeight:844,statusBarHeight:24,safeArea:{bottom:810}}),getMenuButtonBoundingClientRect:()=>({top:30,bottom:62,left:290}),getStorageSync:()=>'',nextTick:f=>f(),pageScrollTo:()=>{},...extra};
+  let definition;const storage=new Map();global.wx={canIUse:()=>false,getWindowInfo:()=>({windowWidth:390,windowHeight:844,screenHeight:844,statusBarHeight:24,safeArea:{bottom:810}}),getMenuButtonBoundingClientRect:()=>({top:30,bottom:62,left:290}),getStorageSync:k=>structuredClone(storage.get(k)||''),setStorageSync:(k,v)=>storage.set(k,structuredClone(v)),nextTick:f=>f(),pageScrollTo:()=>{},...extra};
   global.Page=d=>definition=d;const path=require.resolve('../.test-build/pages/journal/index.js');delete require.cache[path];require(path);
   const patches=[],p={data:structuredClone(definition.data),getTabBar:()=>({setData:()=>{}}),setData(v){patches.push(structuredClone(v));for(const [k,value]of Object.entries(v)){const indexed=/^renderElements\[(\d+)\]$/.exec(k);if(indexed)this.data.renderElements[Number(indexed[1])]=value;else this.data[k]=value;}}};
   for(const [k,v]of Object.entries(definition))if(k!=='data')p[k]=typeof v==='function'?v.bind(p):structuredClone(v);
-  p.onLoad();return {p,patches};
+  registerPage(p);p.onLoad();return {p,patches};
 }
 test('single and paired photo layouts are distinct for all three ratios, preserve sources/crops and clear the title',()=>{
   const overlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;

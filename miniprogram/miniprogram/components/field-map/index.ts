@@ -37,6 +37,7 @@ Component({
     species(event:WechatMiniprogram.TouchEvent){this.setData({species:event.currentTarget.dataset.id,speciesLabel:event.currentTarget.dataset.name,matches:[]});void this.load();},
     marker(event:WechatMiniprogram.CustomEvent<{markerId:number}>){this.setData({selected:this.data._groups?.[event.detail.markerId-1]||[]});},
     list(){this.setData({selected:this.data.selected.length?[]:this.data.items});},
+    guide(event:WechatMiniprogram.TouchEvent){hub('species',event.currentTarget.dataset.id);},
     go(event:WechatMiniprogram.TouchEvent){hub('record',event.currentTarget.dataset.id);},
     async position(){try{const point=await wx.getLocation({type:'gcj02'});this.setData({latitude:point.latitude,longitude:point.longitude,scale:11,dirty:true});}catch{this.setData({error:'定位不可用，可拖动地图选区。'});}},
     async place(){try{const point=await wx.chooseLocation({});this.setData({latitude:point.latitude,longitude:point.longitude,scale:12,dirty:true});}catch{this.setData({dirty:true});}}

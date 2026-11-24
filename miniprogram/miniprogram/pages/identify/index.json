@@ -1,1 +1,1 @@
-{ "navigationBarTitleText": "识别与记录", "usingComponents": {} }
+{ "navigationBarTitleText": "识别与记录", "usingComponents": {"bird-crop":"/components/bird-crop/index"} }

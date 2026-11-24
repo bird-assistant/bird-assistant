@@ -68,6 +68,56 @@ def test_login_controls_and_logout(console):
     )
 
 
+def test_observation_review_keeps_channel_feedback_private(console):
+    client, member = console
+    reference = "/api/v2/observations/by-reference/test-photo"
+    species = "avibase-C22FBF8D"
+    sighting = client.put(
+        reference,
+        headers=member,
+        json={
+            "reference": "test-photo",
+            "species": species,
+            "point": {"latitude": 40, "longitude": 116, "system": "GCJ-02"},
+        },
+    ).json()["id"]
+    preview = client.post(
+        ROOT + "/previews",
+        headers=member,
+        json={
+            "sighting": sighting,
+            "channels": ["post", "map"],
+        },
+    ).json()["id"]
+    rows = client.post(ROOT + "/publications", headers=member, json={"preview": preview}).json()["items"]
+    headers = sign_in(client)
+    queue = "/admin/queue?tab=observation"
+    group = client.get(queue).json()["items"][0]
+    assert group["id"] == sighting
+    assert {row["id"] for row in rows} == {row["id"] for row in group["channels"]}
+    channels = {row["channel"]: row["id"] for row in rows}
+    rejected = client.post(
+        "/admin/actions/pending/" + channels["map"],
+        headers=headers,
+        json={"status": "rejected", "reason": "请核对位置"},
+    )
+    assert rejected.is_success and len(client.get(queue).json()["items"][0]["channels"]) == 2
+    assert client.post(
+        "/admin/actions/pending/" + channels["post"], headers=headers, json={"status": "approved"}
+    ).is_success
+    assert client.get(queue).json()["items"] == []
+    state = client.get(reference, headers=member).json()
+    assert state["id"] == sighting
+    assert {row["channel"]: (row["status"], row["reason"]) for row in state["channels"]} == {
+        "map": ("rejected", "请核对位置"),
+        "post": ("approved", ""),
+    }
+    outsider = {"Authorization": "Bearer " + client.app.state.auth.issue("observer-elsewhere")}
+    assert client.get(reference, headers=outsider).json() == {"id": None, "channels": []}
+    assert client.get("/api/v1/species/" + species + "/places").json()["recordCount"] == 0
+    assert "reason" not in client.get(ROOT + "/publications/" + channels["post"]).json()
+
+
 def test_review_publication_reply_photo_and_report(console):
     client, member = console
     buffer = BytesIO()

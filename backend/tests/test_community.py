@@ -31,6 +31,27 @@ MAP = "/api/v1/map/observations"
 OBS = "/api/v2/observations"
 
 
+def test_field_guide_matches_photo_traits_and_caches_misses(field, monkeypatch):
+    client, _, _, store = field
+    species = "/api/v1/species/avibase-C22FBF8D"
+    guide = client.get(species + "/guide").json()["guide"]
+    assert "栗色" in guide["mark"] and len(guide["fields"]) == 7
+    assert guide["photo"]["credit"] and guide["photo"]["license"] in {"CC BY 4.0", "CC0 1.0"}
+    assert client.get(species + "/reference").json()["photo"] == guide["photo"]
+    assert Image.open(BytesIO(client.get(species + "/photo").content)).format == "JPEG"
+    assert client.get("/api/v1/species/unlisted/guide").status_code == 404
+    from bird_business.field_guide import read_data
+
+    seed = read_data(store.catalog_dir / "guide_photos.json")
+    with store.transaction() as database:
+        unseeded = next(row[0] for row in database.execute("SELECT id FROM taxa") if row[0] not in seed)
+    calls = []
+    monkeypatch.setattr("bird_business.guide_api.fetch_reference", lambda name: calls.append(name))
+    for _ in range(2):
+        assert client.get("/api/v1/species/" + unseeded + "/reference").json() == {"photo": None}
+    assert len(calls) == 1
+
+
 def test_registered_friends_inbox_and_privacy(field):
     client, (author, reader, outsider), staff, _store = field
 

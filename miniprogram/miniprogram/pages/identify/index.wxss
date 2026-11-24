@@ -58,3 +58,4 @@
 .vision-subject{margin:8px 0;padding-top:6px;border-top:1px solid #cbd7c9}
 .vision-choice{display:flex;justify-content:space-between;align-items:center;width:100%;padding:6px 8px;margin-top:4px;background:white;color:#285b49;font-size:13px}
 .review-targets{position:relative;width:100%;overflow:hidden;border-radius:12px}.review-targets image{width:100%;display:block}
+.zoom-chip{width:auto;min-width:110rpx;margin:0 auto;padding:4rpx 22rpx;border-radius:32rpx;background:#173c31d9;color:#fff;font-size:24rpx;line-height:1.7}

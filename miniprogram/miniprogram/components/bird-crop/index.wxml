@@ -1,0 +1,1 @@
+<view class="crop" style="padding-top:{{height}}"><image src="{{src}}" mode="scaleToFill" style="{{style}}" bindload="loaded"/></view>

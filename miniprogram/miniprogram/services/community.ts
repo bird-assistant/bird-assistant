@@ -38,7 +38,7 @@ function failure(status:number,body:any){
   return new Error(reasons[code]||({401:'微信登录已失效。',403:'当前账号没有此权限。',404:'内容已撤回或不可见。',409:'内容已变化，请刷新后重试。',413:'照片超过上传大小限制。',422:'请检查必填项和坐标。',429:'操作频繁，请稍后重试。'} as Record<number,string>)[status]||'业务服务连接失败，请重试。');
 }
 export async function api(path:string,method:Method='GET',data?:object):Promise<any>{
-  const guest=sessionState()==='out' && method==='GET' && (path===community+'/posts'||path===community+'/external'||path.startsWith(community+'/publications/')||path.startsWith('/api/v1/species'));
+  const guest=method==='GET' && (path.startsWith('/api/v1/species') || (path===community+'/posts' && data && 'species' in data) || (sessionState()==='out' && (path===community+'/posts'||path===community+'/external'||path.startsWith(community+'/publications/'))));
   if(!guest)ensureSession();
   for(const refresh of [false,true]){
     const connection=guest?{origin:businessOrigin(),header:{}}:await connectBusiness(refresh);

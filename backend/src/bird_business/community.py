@@ -23,6 +23,7 @@ from bird_business.community_store import (
     relationship,
     uid,
 )
+from bird_business.field_guide import field_marks, guide
 from bird_common.auth import Principal, require_principal
 from bird_common.errors import ServiceError
 
@@ -73,7 +74,9 @@ def species_name(row):
 
 
 @router.get("/api/v1/species")
-def search_species(database: DB, q: Annotated[str, Query(max_length=128)] = "", limit: Limit = 30):
+def search_species(
+    database: DB, q: Annotated[str, Query(max_length=128)] = "", limit: Limit = 30, featured: bool = False
+):
     with database.transaction() as db:
         query = "%" + q + "%"
         rows = db.execute(
@@ -81,14 +84,23 @@ def search_species(database: DB, q: Annotated[str, Query(max_length=128)] = "", 
             'ORDER BY (name=?) DESC,(name!="") DESC,name,scientific LIMIT ?',
             (query, query, query, q, limit),
         )
-        return {"items": [dict(row) for row in rows], "source": "AviList v2026 · CC BY 4.0"}
+        result = {"items": [dict(row) for row in rows], "source": "AviList v2026 · CC BY 4.0"}
+        if featured and not q:
+            examples = db.execute(
+                "SELECT id,name,english FROM taxa WHERE scientific IN (?,?,?,?) ORDER BY name",
+                ("Passer montanus", "Passer domesticus", "Parus major", "Cyanistes caeruleus"),
+            )
+            result["featured"] = [
+                {**dict(bird), "photo": guide(database.catalog_dir, bird["id"])["photo"]} for bird in examples
+            ]
+        return result
 
 
 @router.get("/api/v1/species/{species}")
 def species_detail(species: str, database: DB):
     with database.transaction() as db:
         return {
-            **taxon(db, species),
+            **guide_record(db, database, species),
             "source": "AviList v2026 · CC BY 4.0",
             "records": [
                 public(row)
@@ -99,6 +111,39 @@ def species_detail(species: str, database: DB):
                 )
             ],
         }
+
+
+def guide_record(db, database, species):
+    bird = taxon(db, species)
+    profile = guide(database.catalog_dir, species)
+    if not profile["photo"]:
+        cached = db.execute("SELECT metadata FROM field_photos WHERE species=?", (species,)).fetchone()
+        if cached and cached[0]:
+            profile["photo"] = json.loads(cached[0])
+    return {**bird, "guide": {**profile, **field_marks(bird["scientific"])}}
+
+
+@router.get("/api/v1/species/{species}/guide")
+def identification_guide(species: str, database: DB):
+    with database.transaction() as db:
+        return guide_record(db, database, species)
+
+
+@router.get("/api/v2/observations/by-reference/{reference}")
+def find_observation(reference: str, database: DB, owner: Member):
+    with database.transaction() as db:
+        row = db.execute("SELECT id FROM sightings WHERE owner=? AND ref=?", (owner, reference)).fetchone()
+        return {"id": row[0] if row else None, "channels": channel_status(db, row[0], owner) if row else []}
+
+
+def channel_status(db, record, owner):
+    rows = db.execute(
+        "SELECT p.id,p.channel,p.status,p.created,coalesce(f.reason,'') reason "
+        "FROM publications p LEFT JOIN review_feedback f ON f.target=p.id "
+        "WHERE p.sighting=? AND p.owner=? ORDER BY p.created DESC,p.id",
+        (record, owner),
+    )
+    return [dict(row) for row in rows]
 
 
 @router.get("/api/v1/species/{species}/places")
@@ -435,9 +480,12 @@ def mine(database: DB, owner: Member):
     with database.transaction() as db:
         return {
             "items": [
-                public(row)
+                {**public(row), "ownedSighting": row["sighting"], "reason": row["reason"]}
                 for row in db.execute(
-                    "SELECT * FROM publications WHERE owner=? ORDER BY created DESC LIMIT 100", (owner,)
+                    "SELECT p.*, coalesce(f.reason,'') reason FROM publications p "
+                    "LEFT JOIN review_feedback f ON f.target=p.id WHERE p.owner=? "
+                    "ORDER BY p.created DESC LIMIT 100",
+                    (owner,),
                 )
             ]
         }
@@ -539,6 +587,7 @@ def map_detail(record: str, database: DB, owner: Member):
             data = json.loads(row["payload"])
             return {
                 "id": record,
+                "channels": channel_status(db, record, owner),
                 **data,
                 "visibility": "private",
                 "displayLocation": data["mapPoint"],

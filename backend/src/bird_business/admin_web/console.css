@@ -13,3 +13,4 @@ form label {display:block;margin:18px 0;color:#344e40} input {display:block;widt
 article p {margin:8px 0;white-space:pre-wrap} .meta {color:#53675c;font-size:14px}.record-id {font:12px/1.5 monospace;color:#65786b}.photo {display:block;width:fit-content;max-width:100%;margin:12px 0}.photo img {display:block;max-width:100%;width:auto;max-height:260px;border-radius:8px}
 .actions {margin-top:14px}.empty {color:#53675c} footer {justify-content:center;margin:20px 0 44px} main {padding-bottom:40px!important}
 @media(max-width:600px){.wrap{padding-inline:14px}article{padding:15px}nav{gap:6px}nav button{padding:6px 9px}.top{height:54px}}
+.observation-layout {display:flex;gap:24px;align-items:flex-start}.observation-layout>.photo {flex:1;min-width:0}.observation-layout>div {flex:1.4;min-width:0}.review-channel {padding:12px 0}.review-channel+.review-channel {border-top:1px solid #c7d3c7}@media(max-width:650px){.observation-layout{display:block}}

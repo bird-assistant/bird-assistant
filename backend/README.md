@@ -70,13 +70,15 @@ pytest
 
 ## 云 GPU 快速启动
 
+新容器使用 SSH 别名 `bird-gpu-new`。在本机 WSL 的仓库根目录运行 `./test-cloud-vision.sh --setup`，脚本会在 Ubuntu 容器安装缺少的系统包，创建 `/root/venvs/bird-vision`，复用镜像的 CUDA PyTorch 并验证 GPU 算子。初始化沿用共享盘上的模型和私有 `.env`。其他主机可用 `--ssh-host` 指定。
+
 已经完成云端模型和 `.env` 配置后，可以从项目根目录一键使用本地 `image/` 中的图片测试完整 HTTP/WebSocket 链路：
 
 ```bash
 ./test-cloud-vision.sh
 ```
 
-脚本会先通过 `rsync` 自动同步后端代码，同时保留云端 `.env`、虚拟环境、运行目录、GBIF SQLite 缓存和测试结果；然后通过 `bird-gpu` SSH 别名启动云端服务、建立临时隧道并生成 HTML、CSV 和 JSON 报告。脚本在会话和每个帧请求中显式传入合肥市中心坐标 `31.8206, 117.2272`，并校验后端回显；这只是当前测试图片的默认位置，不是后端地域默认。任意区域首次查询完成后都会写入云端 `runtime/gbif-occurrence-cache.sqlite3`，后续会话及服务重启直接复用。拍摄时间优先读取 EXIF 和文件名，只有文件修改时间时会标为 `unknown` 并禁用月份过滤。整批图片拍摄时间不详时，使用 `./test-cloud-vision.sh --capture-time-precision unknown` 强制使用当地全年候选。其他 SSH 别名、坐标、等待时间或路径可通过 `./test-cloud-vision.sh --help` 查看和覆盖。
+脚本会先通过 `rsync` 自动同步后端代码，同时保留云端 `.env`、虚拟环境、运行目录、GBIF SQLite 缓存和测试结果；然后通过 SSH 启动云端服务、建立临时隧道并生成 HTML、CSV 和 JSON 报告。脚本在会话和每个帧请求中显式传入合肥市中心坐标 `31.8206, 117.2272`，并校验后端回显；这只是当前测试图片的默认位置，不是后端地域默认。任意区域首次查询完成后都会写入云端 `runtime/gbif-occurrence-cache.sqlite3`，后续会话及服务重启直接复用。拍摄时间优先读取 EXIF 和文件名，只有文件修改时间时会标为 `unknown` 并禁用月份过滤。整批图片拍摄时间不详时，使用 `./test-cloud-vision.sh --capture-time-precision unknown` 强制使用当地全年候选。其他 SSH 别名、坐标、等待时间或路径可通过 `./test-cloud-vision.sh --help` 查看和覆盖。
 
 不要安装原预研目录里固定为 `+cpu` 的 PyTorch。应保留云镜像已经提供的 CUDA PyTorch：
 

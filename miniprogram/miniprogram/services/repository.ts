@@ -1,4 +1,5 @@
 import { ContextInput, ObservationContext, observationContext, validStoredContext } from './observation-context';
+import type { RecognitionResult } from './recognition';
 
 export interface StoragePort {
   read(key: string): unknown;
@@ -17,6 +18,7 @@ export interface Observation extends Partial<ObservationContext> {
   sync: 'local-only';
   mediaKind?: 'photo' | 'video' | 'audio';
   sample?: boolean;
+  analysis?: RecognitionResult;
 }
 
 export interface Profile { name: string; avatar: string; }
@@ -53,11 +55,11 @@ export function createRepository(port: StoragePort, now: () => string = () => ne
     if (!valid) throw new RepositoryError('本机记录包含无法读取的内容，已有资料未覆盖。');
     return copy(stored.records as Observation[]);
   }
-  function save(draft: Pick<Observation, 'birdName' | 'notes' | 'imagePath' | 'source'> & Partial<Pick<Observation, 'mediaKind' | 'sample'>> & Partial<ContextInput>): Observation {
+  function save(draft: Pick<Observation, 'birdName' | 'notes' | 'imagePath' | 'source'> & Partial<Pick<Observation, 'mediaKind' | 'sample' | 'analysis'>> & Partial<ContextInput>): Observation {
     const existing = list();
     if (!draft.imagePath.trim()) throw new RepositoryError('请先选择或拍摄照片。');
     const createdAt=now(),context=observationContext({observedDate:draft.observedDate||'',observedTime:draft.observedTime||'',placeName:draft.placeName||''},createdAt);
-    const record: Observation = { imagePath:draft.imagePath,source:draft.source,notes:draft.notes,mediaKind:draft.mediaKind,sample:draft.sample,
+    const record: Observation = { imagePath:draft.imagePath,source:draft.source,notes:draft.notes,mediaKind:draft.mediaKind,sample:draft.sample,analysis:draft.analysis,
       birdName:draft.birdName.trim()||'待鉴定',id:id(),createdAt,...context,visibility:'private',sync:'local-only' };
     // Synchronous storage must acknowledge the write before the caller shows success.
     port.write(RECORDS_KEY, { version: 1, records: [record, ...existing] });

@@ -27,7 +27,7 @@ from starlette.requests import Request as StarletteRequest
 
 from bird_vision.analyses import analyze_photo
 from bird_vision.auth import Principal, require_principal
-from bird_vision.domain import FrameJob
+from bird_vision.domain import FrameJob, ObservationContext
 from bird_vision.errors import ServiceError
 from bird_vision.images import decode_image
 from bird_vision.schemas import (
@@ -199,8 +199,13 @@ async def models(request: Request, _: Annotated[Principal, Depends(require_princ
 )
 async def create_photo_analysis(
     request: Request,
-    _: Annotated[Principal, Depends(require_principal)],
+    principal: Annotated[Principal, Depends(require_principal)],
     image: Annotated[UploadFile, File(description="Single still image: JPEG, PNG or WebP")],
+    observation_mode: Annotated[Literal["historical"] | None, Form()] = None,
+    captured_at: Annotated[datetime | None, Form()] = None,
+    capture_time_precision: Annotated[Literal["exact", "date", "month", "unknown"], Form()] = "unknown",
+    latitude: Annotated[float | None, Form(ge=-90, le=90)] = None,
+    longitude: Annotated[float | None, Form(ge=-180, le=180)] = None,
 ) -> PhotoAnalysisResponse:
     """One-shot photo recognition for the mini program's photo screen.
 
@@ -208,10 +213,19 @@ async def create_photo_analysis(
     detections of a single still image once and returns candidates immediately.
     """
     settings = request.app.state.settings
+    if observation_mode and (captured_at is None or captured_at.utcoffset() is None):
+        raise ServiceError("CAPTURED_AT_REQUIRED", "historical photo requires a timestamp with timezone", 422)
+    if (latitude is None) != (longitude is None):
+        raise ServiceError("COORDINATES_INCOMPLETE", "coordinates must be paired", 422)
+    context = ObservationContext(
+        observed_at=captured_at, time_precision=capture_time_precision, time_source="captured_at",
+        latitude=latitude, longitude=longitude, coordinate_source="frame" if latitude is not None else "none",
+        region_code=None,
+    ) if observation_mode and captured_at else None
     data = await image.read()
     decoded, decode_ms = decode_image(data, image.content_type, settings)
     async with request.app.state.photo_slots:
-        return await asyncio.to_thread(
+        result = await asyncio.to_thread(
             analyze_photo,
             image=decoded,
             settings=settings,
@@ -221,7 +235,15 @@ async def create_photo_analysis(
             content_type=image.content_type,
             size_bytes=len(data),
             decode_ms=decode_ms,
+            context=context,
         )
+    if principal.subject.startswith("mobile:"):
+        details = result.model.details
+        result.model.details = {
+            "revision": details.get("resolved_revision") or details.get("artifact_fingerprint_sha256"),
+            "catalog_version": (details.get("catalog") or {}).get("version"),
+        }
+    return result
 
 
 @router.get(
@@ -546,6 +568,9 @@ async def session_events(websocket: WebSocket, session_id: str) -> None:
                     "region_code": session.region_code,
                     "coordinates_used_for_inference": session.coordinates_used_for_inference,
                     "catalog_version": websocket.app.state.species.catalog_info().get("version"),
+                    "model_revision": websocket.app.state.species.metadata().get(
+                        "artifact_fingerprint_sha256"
+                    ),
                 },
             }
         )

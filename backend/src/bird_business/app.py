@@ -10,7 +10,8 @@ from bird_business.config import BusinessSettings, get_settings
 from bird_business.db import ObservationStore
 from bird_business.metrics import BusinessMetrics
 from bird_common.app_factory import build_service_app
-from bird_common.auth import ApiKeyAuth
+from bird_common.mobile_auth import MobileAuth
+from bird_common.mobile_auth import router as mobile_router
 
 LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def create_app(settings: BusinessSettings | None = None, *, store: ObservationSt
         app.state.settings = resolved
         app.state.store = observations
         app.state.metrics = metrics
-        app.state.auth = ApiKeyAuth(resolved)
+        app.state.auth = MobileAuth(resolved, ("/api/v1/observations",))
         LOGGER.info("business service ready", extra={"detail": f"database={observations.path}"})
         try:
             yield
@@ -34,7 +35,7 @@ def create_app(settings: BusinessSettings | None = None, *, store: ObservationSt
             LOGGER.info("stopping business service")
             observations.close()
 
-    return build_service_app(
+    service = build_service_app(
         settings=resolved,
         router=router,
         lifespan=lifespan,
@@ -45,6 +46,8 @@ def create_app(settings: BusinessSettings | None = None, *, store: ObservationSt
             "services. Raw recordings and images are intentionally not stored here."
         ),
     )
+    service.include_router(mobile_router)
+    return service
 
 
 app = create_app()

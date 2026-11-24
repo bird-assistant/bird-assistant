@@ -1,0 +1,12 @@
+Match User bird-tunnel
+    AuthenticationMethods publickey
+    PasswordAuthentication no
+    AllowTcpForwarding remote
+    PermitListen 127.0.0.1:18000
+    GatewayPorts no
+    AllowAgentForwarding no
+    AllowStreamLocalForwarding no
+    X11Forwarding no
+    PermitTTY no
+    MaxSessions 0
+Match all

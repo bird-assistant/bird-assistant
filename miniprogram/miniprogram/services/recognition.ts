@@ -1,7 +1,3 @@
-/** Pinned team contracts: bird-assistant/bird-assistant@016a381.
- * No credentials, endpoint configuration or native networking is installed here.
- * A future authenticated gateway supplies the transport; only an explicit action starts a job.
- */
 export type RecognitionKind = 'photo' | 'audio';
 export type RecognitionState = 'candidate' | 'unknown';
 export interface RecognitionCandidate {
@@ -16,7 +12,9 @@ export interface RecognitionSubject {
 export interface RecognitionResult {
   analysisId:string; kind:RecognitionKind; state:RecognitionState; reason:string;
   candidates:RecognitionCandidate[]; subjects:RecognitionSubject[];
-  model:{name:string;backend:string}; example:boolean;
+  model:{name:string;backend:string;revision?:string;catalogVersion?:string}; example:boolean;
+  frameContext?:{sessionId:string;capturedAt:string;latitude:number|null;longitude:number|null;regionCode:string|null};
+  photoContext?:Record<string,string>;
 }
 export interface RecognitionInput {kind:RecognitionKind;filePath:string;reference:string;sample?:boolean;}
 export interface RecognitionUpload {
@@ -69,6 +67,9 @@ function candidates(value:unknown,kind:RecognitionKind):RecognitionCandidate[] {
       score,scoreType,scoreText:score.toFixed(2),mapped:kind==='photo'||c.mapped===true};
   });
 }
+export function trackCandidates(value:unknown):RecognitionCandidate[] {
+  return candidates(list(value,50).map((entry,index)=>({...object(entry),rank:index+1})),'photo');
+}
 function decode(body:string):Record<string,unknown> {
   if(typeof body!=='string'||body.length>1024*1024)return invalid();
   try{return object(JSON.parse(body) as unknown);}catch{return invalid();}
@@ -90,9 +91,9 @@ export function parseRecognitionResult(body:string,kind:RecognitionKind,referenc
     if(subjectState==='candidate'&&!subjectCandidates.length)return invalid();
     return {rank:order,state:subjectState,reason:text(s.reason),box:bounds,candidates:subjectCandidates};
   });
-  const backend=text(model.backend);
+  const backend=text(model.backend),details=model.details?object(model.details):{};
   return {analysisId:text(raw.analysis_id,128),kind,state:resultState,reason:text(policy.reason),candidates:items,subjects,
-    model:{name:text(model.name),backend},example:backend==='mock'||policy.score_type==='mock'||items.some(c=>c.scoreType==='mock')||subjects.some(s=>s.candidates.some(c=>c.scoreType==='mock'))};
+    model:{name:text(model.name),backend,revision:optionalText(details.revision),catalogVersion:optionalText(details.catalog_version)},example:backend==='mock'||policy.score_type==='mock'||items.some(c=>c.scoreType==='mock')||subjects.some(s=>s.candidates.some(c=>c.scoreType==='mock'))};
 }
 
 const ERROR_COPY:Record<string,string>={

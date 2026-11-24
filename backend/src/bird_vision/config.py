@@ -69,6 +69,9 @@ class Settings(BaseSettings):
     species_min_margin: float = Field(default=0.01, ge=0.0, le=2.0)
 
     api_keys: str = ""
+    mobile_signing_key: str = Field(default="", pattern=r"^(?:|[a-f0-9]{64})$")
+    wechat_app_id: str = ""
+    wechat_app_secret: str = ""
     allow_anonymous: bool = True
 
     max_image_bytes: int = Field(default=6 * 1024 * 1024, ge=1024)

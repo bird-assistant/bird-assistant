@@ -28,6 +28,9 @@ class BusinessSettings(BaseSettings):
     max_note_length: int = Field(default=2000, ge=0, le=20_000)
 
     api_keys: str = ""
+    wechat_app_id: str = ""
+    wechat_app_secret: str = ""
+    mobile_signing_key: str = Field(default="", pattern=r"^(?:|[a-f0-9]{64})$")
     allow_anonymous: bool = True
     cors_origins: str = ""
 

@@ -1,0 +1,26 @@
+server {
+    listen 80;
+    server_name api.auroraliu.cn;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/bird-acme;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 308 https://api.auroraliu.cn$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen 443 quic;
+    http2 on;
+    server_name api.auroraliu.cn;
+    include /etc/bird-assistant/nginx/api-tls.conf;
+    include /etc/bird-assistant/nginx/bird-api.nginx;
+
+    location / {
+        return 404;
+    }
+}

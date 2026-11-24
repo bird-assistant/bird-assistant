@@ -375,6 +375,11 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                 if not self._valid_text_features(probe, 1):
                     raise ValueError("BioCLIP text encoder returned invalid features")
             self._text_features = self._load_or_encode_taxa()
+            if self.device.startswith("cuda") and hasattr(self._model, "visual"):
+                for name, module in self._model.named_children():
+                    if name != "visual":
+                        module.to("cpu")
+                torch.cuda.empty_cache()
             if self.settings.species_warmup_on_start:
                 self.classify([Image.new("RGB", (224, 224), (127, 127, 127))], 1)
             self.ready = True

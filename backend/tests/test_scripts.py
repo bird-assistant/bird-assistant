@@ -347,7 +347,7 @@ def test_cloud_image_test_syncs_backend_without_overwriting_remote_state(scripts
         occurrence_cache_seed=None,
     )
     ssh = SimpleNamespace(rsync_remote_shell="ssh -S /tmp/bird-control -o ControlMaster=no")
-    scripts.cloud_images.sync_backend(args, ssh)
+    scripts.cloud_images.sync_backend(args, ssh.rsync_remote_shell)
     command, kwargs = calls[0]
     assert command[:3] == ["rsync", "-rz", "--links"]
     assert command[3:5] == ["-e", ssh.rsync_remote_shell]
@@ -356,7 +356,8 @@ def test_cloud_image_test_syncs_backend_without_overwriting_remote_state(scripts
     assert kwargs == {"text": True, "timeout": 120, "check": False}
 
 
-def test_cloud_image_test_establishes_control_connection_before_sync(scripts, monkeypatch):
+@pytest.mark.parametrize("existing_master", [True, False])
+def test_cloud_image_test_establishes_control_connection_before_sync(scripts, monkeypatch, existing_master):
     commands = []
 
     class Pipe:
@@ -387,6 +388,13 @@ def test_cloud_image_test_establishes_control_connection_before_sync(scripts, mo
         return process
 
     monkeypatch.setattr(scripts.cloud_images.shutil, "which", lambda name: "/usr/bin/ssh")
+    controls = []
+
+    def control(command, **kwargs):
+        controls.append(command)
+        return SimpleNamespace(returncode=0 if existing_master else 255)
+
+    monkeypatch.setattr(scripts.cloud_images.subprocess, "run", control)
     monkeypatch.setattr(scripts.cloud_images.subprocess, "Popen", popen)
     session = scripts.cloud_images.SSHSession("bird-gpu")
     markers = []
@@ -397,13 +405,18 @@ def test_cloud_image_test_establishes_control_connection_before_sync(scripts, mo
     )
     session.connect(18000, 8000)
     command = commands[0][0]
-    assert command[:4] == ["ssh", "-M", "-S", session.control_path]
+    if existing_master:
+        assert "ControlMaster=no" in command and "-M" not in command
+        assert "ControlMaster=no" in session.rsync_remote_shell
+    else:
+        assert command[:4] == ["ssh", "-M", "-S", session.control_path]
+        assert session.control_path in session.rsync_remote_shell
     assert "127.0.0.1:18000:127.0.0.1:8000" in command
     assert markers and markers[0] not in process.stdin.writes[0]
     assert "stty -echo" in process.stdin.writes[0]
     assert markers[0].removeprefix("BIRD_SSH_READY_") in process.stdin.writes[0]
-    assert session.control_path in session.rsync_remote_shell
     session.close()
+    assert any("cancel" in call for call in controls) == existing_master
 
 
 def test_ssh_output_queue_finds_markers_without_selector_buffering(scripts) -> None:
@@ -435,7 +448,7 @@ def test_cloud_image_test_uploads_optional_occurrence_cache_seed(scripts, tmp_pa
         occurrence_cache_seed=seed,
     )
     ssh = SimpleNamespace(rsync_remote_shell="ssh -S /tmp/bird-control -o ControlMaster=no")
-    scripts.cloud_images.sync_backend(args, ssh)
+    scripts.cloud_images.sync_backend(args, ssh.rsync_remote_shell)
     store.close()
     assert len(calls) == 2
     assert calls[1][0][:2] == ["rsync", "-z"]

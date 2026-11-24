@@ -53,6 +53,8 @@
     ]
   },
   "lazyCodeLoading": "requiredComponents",
+  "permission": {"scope.userLocation": {"desc":"已授权时，使用观测位置筛选当地鸟种候选"}},
+  "requiredPrivateInfos": ["getLocation"],
   "sitemapLocation": "sitemap.json",
   "usingComponents": {
     "app-header": "/components/app-header/index"

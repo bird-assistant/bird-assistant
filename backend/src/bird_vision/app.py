@@ -7,13 +7,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from bird_common.app_factory import build_service_app
-from bird_common.auth import ApiKeyAuth
 from bird_vision.api import router
 from bird_vision.config import Settings, get_settings
 from bird_vision.inference.detectors import build_detector
 from bird_vision.inference.pipeline import VisionPipeline
 from bird_vision.inference.species import build_species_provider
 from bird_vision.metrics import Metrics
+from bird_vision.mobile_auth import VisionAuth
+from bird_vision.mobile_auth import router as mobile_router
 from bird_vision.sessions import SessionManager
 
 LOGGER = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.species = species
             app.state.metrics = metrics
             app.state.sessions = sessions
-            app.state.auth = ApiKeyAuth(resolved)
+            app.state.auth = VisionAuth(resolved)
             # One-shot photo analyses share the single GPU slot with the pipeline.
             app.state.photo_slots = asyncio.Semaphore(resolved.max_concurrent_inference)
             LOGGER.info("inference service ready")
@@ -65,7 +66,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     if detector is not None:
                         detector.close()
 
-    return build_service_app(
+    service = build_service_app(
         settings=resolved,
         router=router,
         lifespan=lifespan,
@@ -77,6 +78,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "correctness probabilities."
         ),
     )
+    service.include_router(mobile_router)
+    return service
 
 
 app = create_app()

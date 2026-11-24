@@ -62,7 +62,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="一键测试本地 image/ 中的图片是否能被云端鸟类识别后端处理",
     )
-    parser.add_argument("--ssh-host", default="bird-gpu", help="SSH 主机或 ~/.ssh/config 别名")
+    parser.add_argument("--ssh-host", default="bird-gpu-new", help="SSH 主机或 ~/.ssh/config 别名")
     parser.add_argument(
         "--remote-backend",
         default="/root/shared-nvme/bird-assistant/backend",
@@ -120,7 +120,9 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="本地预热的 SQLite 区域缓存；上传后与云端缓存合并",
     )
-    parser.add_argument(
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--setup", action="store_true", help="初始化云容器的 rsync 和 GPU Python 环境")
+    modes.add_argument(
         "--prepare-only",
         action="store_true",
         help="只生成符合接口限制的测试图片，不连接云端",
@@ -152,14 +154,14 @@ def validate_args(args: argparse.Namespace) -> None:
         raise TestFailure("--occurrence-cache-seed 必须是现有 SQLite 文件")
 
 
-def sync_backend(args: argparse.Namespace, ssh: SSHSession) -> None:
+def sync_backend(args: argparse.Namespace, remote_shell: str) -> None:
     source = PROJECT_ROOT / "backend"
     command = [
         "rsync",
         "-rz",
         "--links",
         "-e",
-        ssh.rsync_remote_shell,
+        remote_shell,
         "--exclude",
         ".venv",
         "--exclude",
@@ -199,7 +201,7 @@ def sync_backend(args: argparse.Namespace, ssh: SSHSession) -> None:
             "rsync",
             "-z",
             "-e",
-            ssh.rsync_remote_shell,
+            remote_shell,
             str(snapshot_path),
             f"{args.ssh_host}:{args.remote_backend.rstrip('/')}/.gbif-occurrence-seed.sqlite3",
         ]
@@ -314,6 +316,7 @@ class SSHSession:
         self._control_directory: tempfile.TemporaryDirectory[str] | None = None
         self._output: queue.Queue[str | None] = queue.Queue()
         self._reader: threading.Thread | None = None
+        self._borrowed_forward: str | None = None
 
     @property
     def control_path(self) -> str:
@@ -323,6 +326,8 @@ class SSHSession:
 
     @property
     def rsync_remote_shell(self) -> str:
+        if self._borrowed_forward:
+            return "ssh -o ControlMaster=no -o BatchMode=yes"
         return shlex.join(
             ["ssh", "-S", self.control_path, "-o", "ControlMaster=no", "-o", "ConnectTimeout=20"]
         )
@@ -334,11 +339,15 @@ class SSHSession:
             raise TestFailure("SSH 控制连接已经建立")
         self._control_directory = tempfile.TemporaryDirectory(prefix="bird-ssh-")
         forward_spec = f"127.0.0.1:{local_port}:127.0.0.1:{remote_port}"
+        master = subprocess.run(["ssh", "-O", "check", "--", self.host], capture_output=True)
+        if master.returncode == 0:
+            self._borrowed_forward = forward_spec
+            options = ["-o", "ControlMaster=no", "-o", "BatchMode=yes"]
+        else:
+            options = ["-M", "-S", self.control_path]
         command = [
             "ssh",
-            "-M",
-            "-S",
-            self.control_path,
+            *options,
             "-tt",
             "-o",
             "ControlPersist=no",
@@ -467,6 +476,10 @@ class SSHSession:
                 self.process.kill()
                 self.process.wait(timeout=5)
         self.process = None
+        if self._borrowed_forward:
+            subprocess.run(["ssh", "-O", "cancel", "-L", self._borrowed_forward, "--", self.host],
+                           capture_output=True)
+            self._borrowed_forward = None
         if self._reader is not None:
             self._reader.join(timeout=1)
             self._reader = None
@@ -624,6 +637,12 @@ PY
   fi
   service_status="started"
   echo "BIRD_TEST_PROGRESS=正在启动云端模型服务，首次加载可能需要数分钟"
+  if [[ -r /sys/fs/cgroup/cpu.max ]]; then
+    read -r quota period < /sys/fs/cgroup/cpu.max
+    if [[ $quota =~ ^[0-9]+$ ]] && (( quota <= period )); then
+      export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+    fi
+  fi
   nohup env \
     BIRD_VISION_DETECTION_HIGH_RESOLUTION_ENABLED=true \
     PYTHONPATH="$backend/src" \
@@ -1385,7 +1404,43 @@ def write_reports(
     return summary, html_path, csv_path, json_path
 
 
+def setup_remote(args: argparse.Namespace) -> None:
+    if not shutil.which("rsync"):
+        raise TestFailure("请先在本机 WSL 安装 rsync：sudo apt-get install rsync")
+    prerequisites = r'''
+set -eu
+packages=()
+command -v rsync >/dev/null || packages+=(rsync)
+command -v curl >/dev/null || packages+=(curl)
+python3 -c 'import venv, ensurepip' 2>/dev/null || packages+=(python3-venv)
+python3 -c 'from ctypes import CDLL; CDLL("libGL.so.1")' 2>/dev/null || packages+=(libgl1)
+if (( ${#packages[@]} )); then
+  if [[ $(id -u) != 0 ]] || ! command -v apt-get >/dev/null; then
+    echo "请管理员在云容器安装 ${packages[*]}" >&2
+    exit 1
+  fi
+  apt-get update
+  apt-get install -y --no-install-recommends "${packages[@]}"
+fi
+mkdir -p -- "$1"
+'''
+    command = ["ssh", "--", args.ssh_host]
+    try:
+        subprocess.run([*command, shlex.join(["bash", "-s", "--", args.remote_backend])],
+                       input=prerequisites, text=True, check=True)
+        sync_backend(args, "ssh")
+        installer = f"{args.remote_backend.rstrip('/')}/scripts/setup_cloud_vision.sh"
+        subprocess.run([*command, shlex.join(["bash", installer, args.remote_backend, args.remote_venv])],
+                       check=True)
+    except subprocess.CalledProcessError as exc:
+        raise TestFailure(f"云端初始化失败（退出码 {exc.returncode}），请检查前面的安装输出") from exc
+
+
 async def async_main(args: argparse.Namespace) -> int:
+    if args.setup:
+        setup_remote(args)
+        log(f"环境就绪。运行 ./test-cloud-vision.sh --ssh-host {args.ssh_host} 开始识别测试。")
+        return 0
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     run_dir = args.output_root / timestamp
     prepared_dir = run_dir / "prepared"
@@ -1410,7 +1465,7 @@ async def async_main(args: argparse.Namespace) -> int:
         log(f"[2/5] 建立并验证到 {args.ssh_host} 的 SSH 控制连接……")
         ssh.connect(local_port, args.remote_port)
         log(f"      正在通过已验证连接同步后端代码到 {args.ssh_host}……")
-        sync_backend(args, ssh)
+        sync_backend(args, ssh.rsync_remote_shell)
         log("[3/5] 检查并启动云端识别服务；首次加载模型可能需要几分钟……")
         remote = bootstrap_remote(
             ssh,

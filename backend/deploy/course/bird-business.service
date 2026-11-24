@@ -1,0 +1,22 @@
+[Unit]
+Description=Bird Assistant WeChat login and observation API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=bird-business
+Group=bird-business
+WorkingDirectory=/opt/bird-assistant/backend
+EnvironmentFile=/etc/bird-assistant/business.env
+ExecStart=/opt/bird-assistant/venv/bin/bird-business --host 127.0.0.1 --port 8200 --workers 1
+StateDirectory=bird-business
+UMask=0077
+Restart=on-failure
+RestartSec=4
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

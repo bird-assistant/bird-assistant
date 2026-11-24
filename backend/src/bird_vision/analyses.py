@@ -17,7 +17,7 @@ from typing import Literal
 from PIL import Image
 
 from bird_vision.config import Settings
-from bird_vision.domain import Box, RawDetection, SpeciesCandidate, SpeciesPrediction
+from bird_vision.domain import Box, ObservationContext, RawDetection, SpeciesCandidate, SpeciesPrediction
 from bird_vision.inference.detectors import Detector
 from bird_vision.inference.species import SpeciesProvider
 from bird_vision.schemas import (
@@ -111,6 +111,7 @@ def analyze_photo(
     content_type: str | None,
     size_bytes: int,
     decode_ms: float,
+    context: ObservationContext | None = None,
 ) -> PhotoAnalysisResponse:
     width, height = image.size
     detector_output = detector.predict(image)
@@ -121,7 +122,10 @@ def analyze_photo(
     species_started = time.perf_counter()
     if classifier_enabled:
         crops = [_crop(image, subject.box, settings.crop_padding_ratio) for subject in subjects]
-        predictions = species.classify(crops, settings.species_top_k)
+        if context:
+            predictions = species.classify(crops, settings.species_top_k, context=context)
+        else:
+            predictions = species.classify(crops, settings.species_top_k)
     species_ms = (time.perf_counter() - species_started) * 1000.0
     prediction_by_rank = {
         subject.rank: prediction for subject, prediction in zip(subjects, predictions, strict=False)

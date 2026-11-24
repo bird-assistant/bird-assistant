@@ -1,0 +1,7 @@
+[Unit]
+Description=Issue or renew the Bird Assistant API certificate
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/bird-assistant/backend/deploy/course/api-certificate.sh

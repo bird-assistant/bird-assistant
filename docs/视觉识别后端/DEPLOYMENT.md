@@ -82,6 +82,17 @@ rsync -rz --links \
 
 不同步本地 `.venv` 或 `.env`：虚拟环境包含平台相关的 Torch/CUDA 二进制，私有配置应在云端单独生成。
 
+### 从本机备份恢复旧容器的模型
+
+旧容器的图片联调用的是 YOLO11l 和 BioCLIP 2。两者的权重已备份在本机 `~/bird-model-staging/`，约 3.3 GiB。在仓库根目录运行以下命令，将示例主机、端口、数据盘路径替换为新容器的实际值。
+
+```bash
+./upload-vision-models.sh --check-local
+./upload-vision-models.sh bird-gpu-new /root/shared-nvme/models
+```
+
+使用 SSH 别名时可省略 `-p`。脚本通过 rsync 上传模型文件，传输中断后可用同一命令续传。若新容器缺少 rsync，脚本会直接检查共享盘上的已有模型。两端都按旧容器实测的指纹校验。成功后，把输出的五项配置填入云端 `backend/.env`。新容器还需要按第 6 节安装 GPU 依赖，并按第 7 节配置服务；其中模型路径和哈希使用脚本输出，BioCLIP revision 留空。
+
 ## 6. 安装
 
 第一次在新的 GPU 镜像上 bootstrap（尚未生成该平台锁文件时）：

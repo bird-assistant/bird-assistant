@@ -49,3 +49,12 @@
 .context-field{display:flex;align-items:center;min-height:44px;padding:8px 10px;border:1px solid #d8e3d2;border-radius:10px;font-size:12px;line-height:20px;color:#285b49}
 .context-disabled{opacity:.5}.context-clear{display:flex;justify-content:flex-end;gap:14px;margin-top:5px}.context-clear .text-button{min-height:32px;font-size:11px}
 .context-fields .label{margin-top:12px}.context-help{margin-top:9px}
+.vision-encoder{position:fixed;left:-2000px;top:0;width:1px;height:1px;pointer-events:none}
+.vision-box{position:absolute;box-sizing:border-box;border:2px solid #94f3ac;pointer-events:none}
+.vision-tentative{border:2px dashed #f2d98c}.vision-lost{border:1px dashed #d8dddc;opacity:.72}
+.vision-tag{background:#254638;color:white;font-size:11px;line-height:18px;height:18px;padding:0 4px}
+.vision-toggle{background:#285b49;color:white;font-size:12px;line-height:2.1;margin:4px 0}
+.vision-list{max-height:16vh;overflow-y:auto}.vision-result{background:#f2f5ed;border-radius:12px;padding:12px;margin-top:8px}
+.vision-subject{margin:8px 0;padding-top:6px;border-top:1px solid #cbd7c9}
+.vision-choice{display:flex;justify-content:space-between;align-items:center;width:100%;padding:6px 8px;margin-top:4px;background:white;color:#285b49;font-size:13px}
+.review-targets{position:relative;width:100%;overflow:hidden;border-radius:12px}.review-targets image{width:100%;display:block}

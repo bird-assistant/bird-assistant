@@ -24,6 +24,24 @@ test('photo-to-journal sends selected copies, previews a bounded suggestion, the
   assert.equal(p.data.doc.title,'枝头的一刻');assert.equal(p.data.doc.style,'minimal');assert.deepEqual(p.data.doc.elements.filter(e=>e.type==='photo').map(e=>e.src),before.elements.filter(e=>e.type==='photo').map(e=>e.src));
   p.undo();assert.deepEqual(p.data.doc,before);p.onUnload();
 });
+test('closing, hiding, reopening or changing a journal brief during photo persistence prevents a late upload',async t=>{
+  let requests=0;ai.installJournalAiTransport({generate:input=>{requests++;return {result:Promise.resolve({version:1,requestId:input.requestId,title:'Too late',body:'Too late',design:{style:'nature',variant:1}}),cancel(){}};}});
+  t.after(()=>ai.installJournalAiTransport(null));
+  for(const action of ['close','hide','reopen','document','prompt','photo','choice']){
+    const {p}=page();p.openDocument(journal.makeJournal([{...assets(1)[0],sample:false,src:'wxfile://original.jpg',persisted:false}],'Keep'),false);
+    let finish;const saving=new Promise(resolve=>finish=resolve);p.persistDraft=()=>saving;
+    p.openAi();p.prompt({detail:{value:'A short caption'}});const running=p.prepareAi();
+    if(action==='close')p.closeAi();
+    if(action==='hide')p.onHide();
+    if(action==='reopen'){p.closeAi();p.openAi();}
+    if(action==='document')p.openDocument(journal.makeJournal(assets(1),'Other'),false);
+    if(action==='prompt')p.prompt({detail:{value:'Changed requirement'}});
+    if(action==='photo')p.aiPhoto(tap(p.data.aiPhotos[0].id));
+    if(action==='choice')p.aiChoice({currentTarget:{dataset:{key:'purpose'}},detail:{value:1}});
+    finish(true);await running;assert.equal(requests,0,action);assert.equal(p.data.aiSuggestion,null,action);
+    p.persistDraft=async()=>true;p.onUnload();
+  }
+});
 test('single and paired photo layouts are distinct for all three ratios, preserve sources/crops and clear the title',()=>{
   const overlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
   for(const n of [1,2])for(const ratio of ['3:4','1:1','4:3'])for(const style of ['nature','magazine','minimal']){

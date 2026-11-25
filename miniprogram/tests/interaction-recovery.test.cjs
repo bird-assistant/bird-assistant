@@ -108,6 +108,23 @@ test('private map links request a close view while coarse public links keep thei
   h.data.record={visibility:'private',displayLocation:{latitude:39.991234,longitude:116.312345}};h.viewMap();const precise=service.takeMapFocus();assert.equal(precise.scale,17);assert.equal(precise.latitude,39.991234);assert.equal(precise.scope,2);
   h.data.record={visibility:'public',precisionLabel:'约一公里公开网格',displayLocation:{latitude:39.99,longitude:116.31}};h.viewMap();const publicPoint=service.takeMapFocus();assert.equal(publicPoint.scale,13);assert.match(publicPoint.focusLabel,/非精确拍摄点/);
 });
+test('a forum author can open the authorized original point and a hidden page cannot trigger a late map jump',async t=>{
+  global.wx={...windowFake(),switchTab(){}};const pending=[];
+  t.mock.method(service,'api',(path)=>new Promise(resolve=>pending.push({path,resolve})));
+  const p=page('field/hub');p.data.record={ownedSighting:'obs_owner',displayLocation:{latitude:39.9,longitude:116.3},visibility:'public'};
+  const first=p.viewMap();assert.equal(pending[0].path,'/api/v1/map/observations/obs_owner');
+  pending[0].resolve({id:'obs_owner',visibility:'private',displayLocation:{latitude:39.991234,longitude:116.312345}});await first;
+  const focus=service.takeMapFocus();assert.equal(focus.scale,17);assert.equal(focus.latitude,39.991234);assert.equal(focus.scope,2);assert.equal(p.data.mapOpening,false);
+  const late=p.viewMap();p.onHide();assert.equal(p.data.mapOpening,false);
+  pending[1].resolve({id:'obs_owner',visibility:'private',displayLocation:{latitude:40,longitude:116}});await late;assert.equal(service.takeMapFocus(),null);p.onUnload();
+});
+test('a slow trip-center read cannot navigate after leaving, and a lost callback has a bounded fallback',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});const callbacks=[],visits=[];
+  const {instance,definition}=map(t,{getCenterLocation:o=>callbacks.push(o)});global.wx.navigateTo=o=>visits.push(o.url);
+  const first=instance.planTrip();definition.pageLifetimes.hide.call(instance);callbacks[0].success({latitude:40,longitude:116});await first;assert.deepEqual(visits,[]);
+  instance.data._visible=true;const retry=instance.planTrip();t.mock.timers.tick(1800);await retry;assert.deepEqual(visits,['/field/trip/index']);
+  callbacks[1].success({latitude:40,longitude:116});await settle();assert.equal(visits.length,1);
+});
 test('zoom and clue controls collapse independently without pausing the camera or removing the shutter',()=>{
   global.wx={...windowFake(),createCameraContext:()=>({})};const p=page('pages/identify');p.onLoad();assert.equal(p.data.zoomOpen,false);assert.equal(p.data.clueCollapsed,true);
   p.toggleClues();assert.equal(p.data.clueCollapsed,false);p.toggleZoom();assert.equal(p.data.zoomOpen,true);assert.equal(p.data.paused,false);

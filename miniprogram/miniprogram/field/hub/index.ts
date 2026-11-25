@@ -13,10 +13,10 @@ type Input=WechatMiniprogram.CustomEvent<{value:string}>;
 function message(error:unknown){return error instanceof Error?error.message:'请求失败，请重试。';}
 
 Page({
-  data:{displayResolution:'',manualCamera:{} as PhotoDetails,manualPhotoInfo:null as ReturnType<typeof photoInfo>,photoInfo:null as ReturnType<typeof photoInfo>,postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
+  data:{mapOpening:false,displayResolution:'',manualCamera:{} as PhotoDetails,manualPhotoInfo:null as ReturnType<typeof photoInfo>,photoInfo:null as ReturnType<typeof photoInfo>,postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
     draft:null as Draft|null,anonymous:true,shareDate:false,shareCamera:false,sharePhoto:true,map:false,post:true,
     externalPage:0,externalNext:false,preview:null as any,previewLines:[] as string[],photo:'',replySpecies:'',self:'',selectedSpecies:'',matches:[] as any[]},
-  _cameraDetails:{} as Record<string,string>,_media:'',_sighting:'',_generation:0,_submitKey:'',_replySignature:'',_path:'',_closed:false,_replyOffset:0,_replyLoading:false,
+  _mapGeneration:0,_cameraDetails:{} as Record<string,string>,_media:'',_sighting:'',_generation:0,_submitKey:'',_replySignature:'',_path:'',_closed:false,_replyOffset:0,_replyLoading:false,
   onLoad(options:Record<string,string|undefined>){
     const screen=options.screen&&names[options.screen]?options.screen:'feed';
     this._submitKey=key();
@@ -29,7 +29,8 @@ Page({
     }
     void this.load();
   },
-  onUnload(){this._closed=true;this._generation++;},
+  onHide(){this._mapGeneration++;this.setData({mapOpening:false});},
+  onUnload(){this._mapGeneration++;this._closed=true;this._generation++;},
   copyCredit(event:Tap){void wx.setClipboardData({data:event.currentTarget.dataset.url});},
   onShareAppMessage(){
     const record=this.data.record;
@@ -48,7 +49,7 @@ Page({
       species:'/api/v1/species/'+id,record:id.startsWith('obs_')?'/api/v1/map/observations/'+id:community+'/publications/'+id,
       chat:community+'/messages/'+id,growth:community+'/me'};
     if(!routes[screen])return;
-    this.setData({busy:true,error:'',photoFailed:false,displayResolution:''});
+    this._mapGeneration++;this.setData({mapOpening:false,busy:true,error:'',photoFailed:false,displayResolution:''});
     try{
       const result=screen==='external'?await api(routes.external,'GET',{limit:40,offset:this.data.externalPage*40}):await api(routes[screen]);if(generation!==this._generation)return;
       if(screen==='library')this.setData({featured:(result.featured||[]).map((bird:{id:string;photo:object|null})=>({...bird,image:bird.photo?picture(bird.id):''}))});
@@ -106,7 +107,23 @@ Page({
   },
   focusReplies(){this.setData({replyFocused:true});wx.pageScrollTo({selector:'#reply-composer',duration:160});},
   speciesMap(event:Tap){const place=this.data.places.find(row=>row.id===event.currentTarget.dataset.id);if(place)openMap(place.displayLocation,this.data.id,this.data.record.name||this.data.record.english,1);},
-  viewMap(){const record=this.data.record;if(!record?.displayLocation)return;const precise=record.visibility==='private',label=record.precisionLabel||'约十公里公开区域';openMap(record.displayLocation,'','所有鸟种',precise?2:1,{scale:precise?17:/一公里/.test(label)?13:11,precisionLabel:precise?'我的私人拍摄点':label+' · 非精确拍摄点'});},
+  async viewMap(){
+    if(this.data.mapOpening||this._closed)return;
+    const record=this.data.record;if(!record)return;
+    const token=++this._mapGeneration;this.setData({mapOpening:true});
+    try{
+      let point=record.displayLocation,precise=record.visibility==='private';
+      if(typeof record.ownedSighting==='string'&&record.ownedSighting.startsWith('obs_')){
+        const original=await api('/api/v1/map/observations/'+encodeURIComponent(record.ownedSighting));
+        if(token!==this._mapGeneration||this._closed)return;
+        if(original.id===record.ownedSighting&&original.visibility==='private'&&original.displayLocation){point=original.displayLocation;precise=true;}
+      }
+      if(!point){this.setData({notice:'这条观察没有记录拍摄位置。'});return;}
+      const label=record.precisionLabel||'约十公里公开区域';
+      openMap(point,'','所有鸟种',precise?2:1,{scale:precise?17:/一公里/.test(label)?13:11,precisionLabel:precise?'我的私人拍摄点':label+' · 非精确拍摄点'});
+    }catch(error){if(token===this._mapGeneration&&!this._closed)this.setData({error:message(error)});}
+    finally{if(token===this._mapGeneration&&!this._closed)this.setData({mapOpening:false});}
+  },
   choosePoint(){navigate({url:'/field/picker/index',events:{point:(point:Point)=>{if(this.data.draft){this._sighting='';this.setData({draft:{...this.data.draft,point},preview:null});}}}});},
   async findSpecies(){try{const res=await api('/api/v1/species?q='+encodeURIComponent(this.data.keyword));this.setData({matches:res.items});}catch(error){this.setData({error:message(error)});}},
   pickSpecies(event:Tap){const item=this.data.matches.find(row=>row.id===event.currentTarget.dataset.id);if(!item)return;

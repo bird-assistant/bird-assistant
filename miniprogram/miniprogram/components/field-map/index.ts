@@ -19,13 +19,13 @@ type MarkerTarget={group:Cluster;query:Record<string,unknown>;zoom:number};
 const targets=new WeakMap<object,Map<number,MarkerTarget>>();
 const cellQueries=new WeakMap<object,Record<string,unknown>>();
 Component({
-  data:{focusLabel:'',nativeActive:true,_watchTimer:0,mapMoving:false,_restoreExpanded:true,sheetCollapsed:false,recordsLoading:false,recordsError:'',_recordSeq:0,_moving:false,_motionTimer:0,_nextMarkerId:0,_recordQuery:{} as Record<string,unknown>,searchHeight:176,drawerWidth:366,searchMore:false,headerHeight:88,fieldHeight:600,toolbarHeight:112,mapHeight:488,sheetHeight:224,sheetHeaderHeight:64,creditReserve:36,compact:false,listHeight:160,listTotal:0,listTitle:'本区域观察',wide:false,searching:false,searchError:'',_searchSeq:0,_visible:true,_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:4,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
+  data:{focusLabel:'',nativeActive:true,_tripSeq:0,_watchTimer:0,mapMoving:false,_restoreExpanded:true,sheetCollapsed:false,recordsLoading:false,recordsError:'',_recordSeq:0,_moving:false,_motionTimer:0,_nextMarkerId:0,_recordQuery:{} as Record<string,unknown>,searchHeight:176,drawerWidth:366,searchMore:false,headerHeight:88,fieldHeight:600,toolbarHeight:112,mapHeight:488,sheetHeight:224,sheetHeaderHeight:64,creditReserve:36,compact:false,listHeight:160,listTotal:0,listTitle:'本区域观察',wide:false,searching:false,searchError:'',_searchSeq:0,_visible:true,_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:4,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
     origin:0,origins:['全部来源','羽迹鸟友','外部鸟讯'],period:0,periods:['所有日期','今天','近七天','近三十天'],keyword:'',species:'',speciesLabel:'所有鸟种',matches:[] as any[],
     markers:[] as Array<{id:number;latitude:number;longitude:number;iconPath:string;width:number;height:number}>,selected:[] as Pin[],total:0,error:'',loading:false,dirty:false},
   lifetimes:{attached(){const view=readMapView();if(view)this.setData(view);},ready(){this.resizeMap();this.watchViewport();if(wx.nextTick)wx.nextTick(()=>void this.load());else void this.load();},detached(){this.suspend();searches.delete(this);targets.delete(this);cellQueries.delete(this);hints.delete(this);this.data._ready=false;}},
   pageLifetimes:{resize(){this.resizeMap();this.queueLoad();},hide(){this.suspend();},show(){this.data._visible=true;hints.delete(this);const focus=takeMapFocus();if(focus)this.closeList();this.setData({nativeActive:true,...(focus?{...focus,origin:0,period:0}:readMapView()||{})},()=>{this.watchViewport();if(this.data._ready){if(wx.nextTick)wx.nextTick(()=>void this.load());else void this.load();}});}},
   methods:{
-    suspend(){clearTimeout(this.data._watchTimer);this.data._watchTimer=0;hints.delete(this);this.data._visible=false;this.data._moving=false;searches.get(this)?.close();this.data._viewRead++;this.data._seq++;this.data._recordSeq++;this.data._searchSeq++;clearTimeout(this.data._timer);clearTimeout(this.data._motionTimer);this.data._timer=0;this.data._motionTimer=0;this.setData({nativeActive:false,mapMoving:false,loading:false,recordsLoading:false,searching:false,matches:[],searchError:''});},
+    suspend(){this.data._tripSeq++;clearTimeout(this.data._watchTimer);this.data._watchTimer=0;hints.delete(this);this.data._visible=false;this.data._moving=false;searches.get(this)?.close();this.data._viewRead++;this.data._seq++;this.data._recordSeq++;this.data._searchSeq++;clearTimeout(this.data._timer);clearTimeout(this.data._motionTimer);this.data._timer=0;this.data._motionTimer=0;this.setData({nativeActive:false,mapMoving:false,loading:false,recordsLoading:false,searching:false,matches:[],searchError:''});},
     watchViewport(){
       if(!this.data._visible||this.data._watchTimer)return;
       this.data._watchTimer=setTimeout(()=>{this.data._watchTimer=0;if(!this.data._visible)return;void this.updateViewport(false).finally(()=>this.watchViewport());},240);
@@ -45,12 +45,14 @@ Component({
     expandList(){this.data._restoreExpanded=this.data.sheetCollapsed;this.setData({sheetCollapsed:!this.data.sheetCollapsed});},
     retryRecords(){void this.showRecords(false);},
     async planTrip(){
+      const token=++this.data._tripSeq;let deadline=0;
       try{
         const map=wx.createMapContext('field-map',this);
-        const center=await new Promise<WechatMiniprogram.GetCenterLocationSuccessCallbackResult>((resolve,reject)=>map.getCenterLocation({success:resolve,fail:reject}));
+        const center=await Promise.race([new Promise<WechatMiniprogram.GetCenterLocationSuccessCallbackResult>((resolve,reject)=>map.getCenterLocation({success:resolve,fail:reject})),new Promise<never>((_resolve,reject)=>{deadline=setTimeout(()=>reject(new Error('native map read timeout')),1800);})]);
+        if(!this.data._visible||token!==this.data._tripSeq)return;
         const latitude=center.latitude.toFixed(1),longitude=center.longitude.toFixed(1);
         navigate({url:`/field/trip/index?lat=${latitude}&lon=${longitude}&species=${encodeURIComponent(this.data.species)}&label=${encodeURIComponent(this.data.speciesLabel)}`});
-      }catch{navigate({url:'/field/trip/index'});}
+      }catch{if(this.data._visible&&token===this.data._tripSeq)navigate({url:'/field/trip/index'});}finally{clearTimeout(deadline);}
     },
     load(){
       this.data._ready=true;

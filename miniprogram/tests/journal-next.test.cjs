@@ -14,6 +14,16 @@ function page(extra={}){
   for(const [k,v]of Object.entries(definition))if(k!=='data')p[k]=typeof v==='function'?v.bind(p):structuredClone(v);
   registerPage(p);p.onLoad();return {p,patches};
 }
+test('photo-to-journal sends selected copies, previews a bounded suggestion, then applies one undoable edit',async t=>{
+  let sent;ai.installJournalAiTransport({generate:input=>{sent=input;return {result:Promise.resolve({version:1,requestId:input.requestId,title:'枝头的一刻',body:'鸟停在枝头，羽色映着周围的绿。',design:{style:'minimal',variant:2}}),cancel(){}};}});
+  t.after(()=>ai.installJournalAiTransport(null));
+  const {p}=page();p._catalog=assets(2).map(a=>({...a,src:'wxfile://'+a.id+'.jpg',sample:false,persisted:true}));
+  await p.generateFromPhotos();assert.equal(sent.purpose,'照片手帐');assert.equal(sent.images.length,2);assert.equal(sent.maxChars,60);
+  assert.ok(p.data.aiSuggestion);assert.notEqual(p.data.doc.title,'枝头的一刻');
+  const before=structuredClone(p.data.doc);p.applyAi({currentTarget:{dataset:{design:'yes'}}});
+  assert.equal(p.data.doc.title,'枝头的一刻');assert.equal(p.data.doc.style,'minimal');assert.deepEqual(p.data.doc.elements.filter(e=>e.type==='photo').map(e=>e.src),before.elements.filter(e=>e.type==='photo').map(e=>e.src));
+  p.undo();assert.deepEqual(p.data.doc,before);p.onUnload();
+});
 test('single and paired photo layouts are distinct for all three ratios, preserve sources/crops and clear the title',()=>{
   const overlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
   for(const n of [1,2])for(const ratio of ['3:4','1:1','4:3'])for(const style of ['nature','magazine','minimal']){

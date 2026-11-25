@@ -5,6 +5,7 @@
   "usingComponents": {
     "guide-card": "../guide-card/index",
     "species-search": "/components/species-search/index",
-    "photo-editor": "/components/photo-editor/index"
+    "photo-editor": "/components/photo-editor/index",
+    "photo-card": "/components/photo-card/index"
   }
 }

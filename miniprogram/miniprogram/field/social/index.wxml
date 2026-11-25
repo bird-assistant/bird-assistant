@@ -11,7 +11,7 @@
     <view class="label">社区昵称</view><input maxlength="24" value="{{form.nickname}}" data-field="nickname" bindinput="formInput" placeholder="鸟友看到的名字" />
     <view class="label">鸟友号</view><input maxlength="24" value="{{form.handle}}" data-field="handle" bindinput="formInput" placeholder="3–24 位字母、数字或下划线" />
     <view class="label">个人简介</view><textarea maxlength="160" value="{{form.bio}}" data-field="bio" bindinput="formInput" placeholder="喜欢在哪里观鸟？" />
-    <view class="label">社区头像</view><view class="choices"><button wx:for="{{avatars}}" wx:key="*this" class="avatar-choice {{form.avatar === item ? 'picked' : ''}}" data-field="avatar" data-value="{{item}}" bindtap="choice"><image src="/assets/avatars/{{item}}.png" /></button></view>
+    <view class="label">社区头像</view><view class="choices"><button wx:for="{{avatars}}" wx:key="*this" class="avatar-choice {{form.avatar === item ? 'picked' : ''}}" data-field="avatar" data-value="{{item}}" bindtap="choice"><profile-avatar avatar="{{item}}" name="{{form.nickname}}" size="42"/></button></view>
     <view class="line"><text>允许通过鸟友号或昵称搜索</text><switch checked="{{form.discoverable}}" bindchange="toggleSearch" color="#285b49" /></view>
     <view class="label">允许谁发私信</view><view class="choices"><button class="{{form.dm === 'friends' ? 'picked' : ''}}" data-field="dm" data-value="friends" bindtap="choice">好友</button><button class="{{form.dm === 'everyone' ? 'picked' : ''}}" data-field="dm" data-value="everyone" bindtap="choice">所有鸟友</button></view>
     <view class="label">谁能查看我收藏的公开内容</view><view class="choices"><button wx:for="{{visibilities}}" wx:key="*this" class="{{form.bookmarks === item ? 'picked' : ''}}" data-field="bookmarks" data-value="{{item}}" bindtap="choice">{{visibilityNames[index]}}</button></view>
@@ -19,7 +19,7 @@
     <button wx:if="{{editing}}" bindtap="cancel">取消</button><button wx:else bindtap="logout">退出本机账号</button>
   </view>
   <block wx:elif="{{screen === 'account'}}">
-    <view class="card identity"><image src="/assets/avatars/{{account.avatar}}.png"/><view><view class="title">{{account.nickname}}</view><view>@{{account.handle}}</view><view class="muted">{{account.bio}}</view></view></view>
+    <view class="card identity"><profile-avatar avatar="{{account.avatar}}" name="{{account.nickname}}" size="64"/><view><view class="title">{{account.nickname}}</view><view>@{{account.handle}}</view><view class="muted">{{account.bio}}</view></view></view>
     <button class="primary" bindtap="edit">编辑社区资料与隐私</button>
     <view class="choices"><button data-screen="member" data-id="{{self}}" bindtap="go">我的主页</button><button data-screen="friends" bindtap="go">我的好友</button><button data-screen="inbox" bindtap="go">私信与通知</button><button data-screen="groups" bindtap="go">我的群聊</button><button data-screen="blocked" bindtap="go">屏蔽名单</button></view>
     <button bindtap="logout">退出本机账号</button>
@@ -35,7 +35,7 @@
     <view wx:if="{{outgoing.length}}" class="section-title">等待对方确认</view><view class="line card" wx:for="{{outgoing}}" wx:key="id"><text>{{item.nickname}}</text><button data-op="cancel" data-id="{{item.id}}" bindtap="mutate">撤回申请</button></view>
   </block>
   <block wx:elif="{{screen === 'member' && member}}">
-    <view class="identity card"><image src="/assets/avatars/{{member.profile.avatar}}.png"/><view><view class="title">{{member.profile.nickname}}</view><view wx:if="{{member.profile.handle}}">@{{member.profile.handle}}</view><view class="muted">{{member.profile.bio}}</view></view></view>
+    <view class="identity card"><profile-avatar avatar="{{member.profile.avatar}}" name="{{member.profile.nickname}}" size="64"/><view><view class="title">{{member.profile.nickname}}</view><view wx:if="{{member.profile.handle}}">@{{member.profile.handle}}</view><view class="muted">{{member.profile.bio}}</view></view></view>
     <view wx:if="{{id !== self}}" class="choices">
       <button wx:if="{{member.registered && member.relationship === 'none'}}" class="picked" data-op="request" bindtap="mutate">申请加好友</button>
       <button wx:if="{{member.relationship === 'incoming'}}" data-op="accept" bindtap="mutate">接受申请</button><button wx:if="{{member.relationship === 'incoming'}}" data-op="decline" bindtap="mutate">拒绝</button>

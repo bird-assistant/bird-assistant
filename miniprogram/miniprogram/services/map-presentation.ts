@@ -2,13 +2,12 @@
 export function mapPanes(width:number,height:number){
   const fieldHeight=Math.max(0,Math.floor(height)),toolbarHeight=fieldHeight<380?96:112;
   const mapHeight=Math.max(0,fieldHeight-toolbarHeight);
-  const compact=mapHeight<260,creditReserve=24,sheetHeaderHeight=compact?44:64,wide=width>=700;
-  // The sheet reaches the tab bar. Its clear footer preserves the native
-  // attribution; opening it does not resize the map.
-  const sheetHeight=wide?Math.max(0,mapHeight-creditReserve-16):Math.min(300,Math.max(0,Math.floor(mapHeight*.46)));
+  const compact=mapHeight<260,creditReserve=0,sheetHeaderHeight=compact?44:64,wide=width>=700;
+  // Flush to the tab boundary, with an opaque bottom and an upward content fade.
+  const sheetHeight=wide?Math.max(0,mapHeight-16):Math.min(300,Math.max(0,Math.floor(mapHeight*.46)));
   return {fieldHeight,toolbarHeight,mapHeight,sheetHeight,sheetHeaderHeight,creditReserve,compact,
     searchHeight:Math.max(60,Math.min(176,mapHeight-44)),
-    drawerWidth:wide?Math.round(Math.min(380,width*.4)):width-24,listHeight:Math.max(0,sheetHeight-sheetHeaderHeight-creditReserve),wide};
+    drawerWidth:wide?Math.round(Math.min(380,width*.4)):width,listHeight:Math.max(0,sheetHeight-sheetHeaderHeight),wide};
 }
 export const INDIVIDUAL_PIN_ZOOM=16;
 export function clusterMarker(group:{latitude:number;longitude:number;count:number},index:number,zoom=4){

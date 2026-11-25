@@ -4,6 +4,7 @@ import {api,community,Draft,getDraft,hub,imageUrl,key,openMap,Point,privatePhoto
 
 import {forumPost,forumThreads,ReplyView} from '../../services/forum';
 import {compareBirds,picture} from '../../services/field-guide';
+import {chinesePlace} from '../../services/place-names';
 import {photoInfo} from '../../services/photo-info';
 
 const names:Record<string,string>={external:'外部社区鸟讯',library:'鸟种资料库',species:'鸟种资料',record:'观察与讨论',publish:'发布观察',
@@ -53,19 +54,19 @@ Page({
     try{
       const result=screen==='external'?await api(routes.external,'GET',{limit:40,offset:this.data.externalPage*40}):await api(routes[screen]);if(generation!==this._generation)return;
       if(screen==='library')this.setData({featured:(result.featured||[]).map((bird:{id:string;photo:object|null})=>({...bird,image:bird.photo?picture(bird.id):''}))});
-      const items=result.items||result.records||[];
+      const items=(result.items||result.records||[]).map((row:any)=>({...row,placeName:chinesePlace(row.placeName)}));
       this.setData({items,externalNext:result.hasMore??items.length===40,record:{...result,image:imageUrl(result.image)},photo:imageUrl(result.image)});
       if(screen==='record'){
         this._replyOffset=(result.replies||[]).length;
         const pending=result.features?.threadedReplies?[]:this.data.pendingReplies;
-        const replies=(result.replies||[]).concat(pending),record={...result,...forumPost(result),image:imageUrl(result.image),replies,replyCount:result.replyCount??(result.replies||[]).length};
+        const replies=(result.replies||[]).concat(pending),record={...result,...forumPost(result),placeName:chinesePlace(result.placeName),place:chinesePlace(result.place),image:imageUrl(result.image),replies,replyCount:result.replyCount??(result.replies||[]).length};
         this.setData({record,photoInfo:photoInfo(Object.keys(result.camera||{}).length?result.camera:record.embeddedCamera,Object.keys(result.camera||{}).length?'照片附带 / 已分享的参数':'从照片文件读取'),manualPhotoInfo:photoInfo(record.manualCamera,'作者填写'),replyThreads:forumThreads(replies)});wx.setNavigationBarTitle({title:result.channel==='post'?'帖子详情':'观察详情'});
       }
       if(screen==='species'){
         const responses=await Promise.all([api(routes.species+'/places'),api(community+'/posts','GET',{species:id})]);
         const places=responses[0],posts=responses[1];
         if(generation!==this._generation)return;
-        this.setData({places:places.items,placeCount:places.placeCount,recordCount:places.recordCount,speciesPosts:posts.items});
+        this.setData({places:places.items.map((row:any)=>({...row,placeName:chinesePlace(row.placeName)})),placeCount:places.placeCount,recordCount:places.recordCount,speciesPosts:posts.items});
       }
       if(result.visibility==='private'&&result.media){const path=await privatePhoto(id);if(generation===this._generation)this.setData({photo:path});}
       if((screen==='chat'||screen==='record') && sessionState()!=='out'){const self=await api(community+'/me');if(generation===this._generation)this.setData({self:self.id});}
@@ -84,7 +85,7 @@ Page({
   compareSpecies(){compareBirds(this.data.screen==='species'?[this.data.id]:[]);},
   changeTab(event:Tap){this.setData({tab:event.currentTarget.dataset.tab});},
   async morePlaces(){if(this.data.placeLoading||this.data.places.length>=this.data.placeCount)return;const id=this.data.id,generation=this._generation;this.setData({placeLoading:true});
-    try{const result=await api('/api/v1/species/'+id+'/places','GET',{limit:50,offset:this.data.places.length});if(generation===this._generation){const unique=new Map(this.data.places.concat(result.items).map((row:any)=>[row.id,row]));this.setData({places:Array.from(unique.values())});}}
+    try{const result=await api('/api/v1/species/'+id+'/places','GET',{limit:50,offset:this.data.places.length});if(generation===this._generation){const unique=new Map(this.data.places.concat(result.items.map((row:any)=>({...row,placeName:chinesePlace(row.placeName)}))).map((row:any)=>[row.id,row]));this.setData({places:Array.from(unique.values())});}}
     catch(error){if(generation===this._generation)this.setData({error:message(error)});}finally{if(generation===this._generation)this.setData({placeLoading:false});}},
   startSpeciesDiscussion(){const row=this.data.record;if(!row)return;setCompose({title:'关于'+(row.name||row.english)+'的讨论',body:'',photo:'',speciesId:this.data.id,speciesName:row.name||row.english,speciesSupported:row.features?.speciesPosts===true});hub('publish','compose');},
   chooseReplySpecies(event:WechatMiniprogram.CustomEvent<{id:string;name:string}>){this.setData({replySpecies:event.detail.id,selectedSpecies:event.detail.name,replySuggestOpen:false});},

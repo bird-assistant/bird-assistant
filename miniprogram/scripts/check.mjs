@@ -18,7 +18,7 @@ for(const entry of app.tabBar.list){
   for(const key of ['iconPath','selectedIconPath'])assert(existsSync(resolve(root,'miniprogram',entry[key])),'Missing tab asset: '+entry[key]);
 }
 const subpages=(app.subpackages||app.subPackages||[]).flatMap(group=>group.pages.map(page=>group.root+'/'+page));
-for(const route of [...app.pages,...subpages,'custom-tab-bar/index','components/app-header/index','components/field-map/index','components/photo-editor/index']){
+for(const route of [...app.pages,...subpages,'custom-tab-bar/index','components/app-header/index','components/field-map/index','components/photo-editor/index','components/photo-card/index','components/profile-avatar/index']){
   const base=resolve(root,'miniprogram',route);
   for(const ext of ['ts','json','wxml','wxss'])assert(existsSync(base+'.'+ext),'Missing '+route+'.'+ext);
   JSON.parse(readFileSync(base+'.json','utf8'));

@@ -1,0 +1,1 @@
+<view class="profile-avatar" style="width:{{size}}px;height:{{size}}px" aria-label="{{name}}的头像"><view wx:if="{{letters}}" class="avatar-initials" style="font-size:{{size * (initials.length > 1 ? .32 : .44)}}px">{{initials}}</view><image wx:else class="avatar-image" src="{{path}}" mode="aspectFill"/></view>

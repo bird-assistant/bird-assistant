@@ -1,1 +1,8 @@
-{"navigationStyle":"default","navigationBarTitleText":"鸟友社区","enablePullDownRefresh":true}
+{
+  "navigationStyle": "default",
+  "navigationBarTitleText": "鸟友社区",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "profile-avatar": "/components/profile-avatar/index"
+  }
+}

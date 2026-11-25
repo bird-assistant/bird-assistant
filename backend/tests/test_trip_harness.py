@@ -53,6 +53,24 @@ def final(**changes):
     return {"content": json.dumps({**plan, **changes}), "usage": {"total_tokens": 42}}
 
 
+def test_structured_brief_is_validated_and_keeps_evidence_cards(advisor, monkeypatch):
+    client, (owner, _), body = advisor
+    brief = {
+        "headline": "先从附近公园开始，沿步道慢慢观察。",
+        "reasons": ["适合作为初次踏查地点"],
+        "watchFor": [],
+        "preparation": ["带上望远镜"],
+        "uncertainty": ["暂无对应时段的天气预报"],
+    }
+    monkeypatch.setattr(trip_harness, "cloud_chat", lambda *_: final(brief=brief))
+    result = client.post(ROUTE, headers=owner, json=body)
+    assert result.is_success and result.json()["brief"] == brief
+    assert result.json()["parks"] and result.json()["sources"]
+    monkeypatch.setattr(trip_harness, "cloud_chat", lambda *_: final(brief={**brief, "headline": "长" * 91}))
+    failure = client.post(ROUTE, headers=owner, json={**body, "requestId": "invalid-brief"})
+    assert failure.status_code == 502 and failure.json()["error"]["code"] == "TRIP_OUTPUT"
+
+
 def test_chat_tools_followup_idempotency_and_owner(advisor, monkeypatch):
     client, (owner, other), body = advisor
     requests = []

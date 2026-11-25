@@ -13,7 +13,7 @@ interface RecordView extends Observation {timeLabel:string;placeLabel:string;sav
 
 const avatars = [
   { id: 'owl', name: '夜枭' }, { id: 'finch', name: '林雀' }, { id: 'leaf', name: '绿叶' },
-  { id: 'mountain', name: '山岚' }, { id: 'water', name: '湖光' }, { id: 'letter', name: '字母 B' }
+  { id: 'mountain', name: '山岚' }, { id: 'water', name: '湖光' }, { id: 'letter', name: '字母 / 姓名' }
 ];
 
 Page({

@@ -157,6 +157,7 @@ class TripEvidence:
     def render(self, answer):
         return {
             "answer": answer.answer,
+            "brief": answer.brief.model_dump() if answer.brief else None,
             "sources": [
                 {"id": key, "label": self.sources[key]}
                 for key in dict.fromkeys([*answer.sources, *answer.destinations])

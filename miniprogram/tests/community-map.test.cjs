@@ -60,6 +60,16 @@ test('circle taps remain responsive while clusters refresh and retain the marker
   instance.marker({detail:{markerId:id}});assert.equal(instance.data.listOpen,true);assert.equal(requests[2].q.speciesId,'');assert.equal(requests[2].q.minLongitude,116.4);
   requests[1].resolve({total:0,clusters:[]});requests[2].resolve({items:[{id:'tapped'}],nextCursor:'',total:1});await next;await settle();assert.equal(instance.data.selected[0].id,'tapped');
 });
+test('the first native string-ID tap opens records and uses native fitting even when the bound zoom has not changed',async t=>{
+  const fits=[];t.mock.method(service,'api',async(_p,_m,q)=>q.zoom?{total:320,clusters:[group()]}:{items:[{id:'first',placeName:'Beijing'}],total:320,nextCursor:''});
+  const native=nativeMap();const {instance}=mapInstance(t,{createMapContext:()=>({...native(),includePoints:options=>fits.push(options)})});
+  await instance.load();const id=instance.data.markers[0].id;
+  for(let i=0;i<20;i++)instance.renderClusters(8);
+  assert.equal(instance.data.markers[0].id,id);instance.data.scale=10;
+  instance.marker({detail:{markerId:String(id)}});
+  assert.equal(instance.data.listOpen,true);assert.equal(instance.data.recordsLoading,true);assert.equal(fits.length,1);
+  assert.equal(fits[0].points[0].longitude,116.38);await settle();assert.equal(instance.data.selected[0].placeName,'北京');
+});
 test('a user-collapsed drawer stays collapsed after pan and repeated render events do not reload its records',async t=>{
   t.mock.timers.enable({apis:['setTimeout']});let west=116;const queries=[];
   t.mock.method(service,'api',async(_p,_m,q)=>{queries.push(q);return q.zoom?{total:1,clusters:[]}:{items:[{id:'one'}],total:1,nextCursor:''};});
@@ -83,10 +93,10 @@ test('a shared-location list ignores closed requests and pages without duplicate
   instance.list();pending[2].resolve({items:[{id:'a'}],nextCursor:'next',total:200});await settle();
   instance.more();instance.more();assert.equal(pending.length,4);assert.equal(pending[3].q.cursor,'next');pending[3].resolve({items:[{id:'a'},{id:'b'}],nextCursor:'',total:200});await settle();assert.deepEqual(instance.data.selected.map(x=>x.id),['a','b']);
 });
-test('boundary drawers preserve a clear attribution footer and at least half the phone map without resizing it',()=>{
+test('boundary drawers meet the tab bar with no clear footer while keeping at least half the phone map',()=>{
   const {mapPanes,clusterMarker,INDIVIDUAL_PIN_ZOOM}=require('../.test-build/services/map-presentation.js');
   for(const [width,height] of [[320,330],[390,676],[768,850],[1024,260],[1440,700]]){
-    const p=mapPanes(width,height);assert.equal(p.toolbarHeight+p.mapHeight,height);assert.ok(p.creditReserve>=24);assert.ok(p.listHeight>0);
+    const p=mapPanes(width,height);assert.equal(p.toolbarHeight+p.mapHeight,height);assert.equal(p.creditReserve,0);assert.ok(p.listHeight>0);
     if(!p.wide)assert.ok(p.sheetHeight<=p.mapHeight*.46);assert.equal(p.listHeight+p.sheetHeaderHeight+p.creditReserve,p.sheetHeight);
   }
   const single=clusterMarker({latitude:39,longitude:116,count:1},0,INDIVIDUAL_PIN_ZOOM-1);assert.equal(single.label.content,'1');

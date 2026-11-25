@@ -1,0 +1,260 @@
+[
+  {
+    "kind": "camera",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 540.11,
+        "width": 296.0,
+        "height": 189.89
+      }
+    ]
+  },
+  {
+    "kind": "cameraZoom",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 346.25,
+        "width": 296.0,
+        "height": 383.75
+      }
+    ]
+  },
+  {
+    "kind": "map",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "mapMoving",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "menu",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "forum-menu",
+        "x": 0,
+        "y": 420.7,
+        "width": 284.0,
+        "height": 391.3
+      }
+    ]
+  },
+  {
+    "kind": "photo",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-info-card",
+        "x": 16.0,
+        "y": 641.59,
+        "width": 258.0,
+        "height": 132.89
+      }
+    ]
+  },
+  {
+    "kind": "feed",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "refresh",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "compose",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "camera",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 540.11,
+        "width": 366.0,
+        "height": 189.89
+      }
+    ]
+  },
+  {
+    "kind": "cameraZoom",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 346.25,
+        "width": 366.0,
+        "height": 383.75
+      }
+    ]
+  },
+  {
+    "kind": "map",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "mapMoving",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "menu",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "forum-menu",
+        "x": 0,
+        "y": 420.7,
+        "width": 354.0,
+        "height": 391.3
+      }
+    ]
+  },
+  {
+    "kind": "photo",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-info-card",
+        "x": 16.0,
+        "y": 605.04,
+        "width": 328.0,
+        "height": 95.89
+      }
+    ]
+  },
+  {
+    "kind": "feed",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "refresh",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "compose",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "camera",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 540.11,
+        "width": 626.0,
+        "height": 189.89
+      }
+    ]
+  },
+  {
+    "kind": "cameraZoom",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 346.25,
+        "width": 626.0,
+        "height": 383.75
+      }
+    ]
+  },
+  {
+    "kind": "map",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "mapMoving",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "menu",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "forum-menu",
+        "x": 0,
+        "y": 420.7,
+        "width": 584.0,
+        "height": 391.3
+      }
+    ]
+  },
+  {
+    "kind": "photo",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-info-card",
+        "x": 90.0,
+        "y": 572.64,
+        "width": 558.0,
+        "height": 95.89
+      }
+    ]
+  },
+  {
+    "kind": "feed",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "refresh",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "compose",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  }
+]

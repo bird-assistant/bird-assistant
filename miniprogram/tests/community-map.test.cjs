@@ -83,11 +83,11 @@ test('a shared-location list ignores closed requests and pages without duplicate
   instance.list();pending[2].resolve({items:[{id:'a'}],nextCursor:'next',total:200});await settle();
   instance.more();instance.more();assert.equal(pending.length,4);assert.equal(pending[3].q.cursor,'next');pending[3].resolve({items:[{id:'a'},{id:'b'}],nextCursor:'',total:200});await settle();assert.deepEqual(instance.data.selected.map(x=>x.id),['a','b']);
 });
-test('floating drawers preserve attribution and at least half the phone map without resizing it',()=>{
+test('boundary drawers preserve a clear attribution footer and at least half the phone map without resizing it',()=>{
   const {mapPanes,clusterMarker,INDIVIDUAL_PIN_ZOOM}=require('../.test-build/services/map-presentation.js');
   for(const [width,height] of [[320,330],[390,676],[768,850],[1024,260],[1440,700]]){
-    const p=mapPanes(width,height);assert.equal(p.toolbarHeight+p.mapHeight,height);assert.ok(p.creditReserve>=36);assert.ok(p.listHeight>0);
-    if(!p.wide)assert.ok(p.sheetHeight<=p.mapHeight*.46);assert.equal(p.listHeight+p.sheetHeaderHeight,p.sheetHeight);
+    const p=mapPanes(width,height);assert.equal(p.toolbarHeight+p.mapHeight,height);assert.ok(p.creditReserve>=24);assert.ok(p.listHeight>0);
+    if(!p.wide)assert.ok(p.sheetHeight<=p.mapHeight*.46);assert.equal(p.listHeight+p.sheetHeaderHeight+p.creditReserve,p.sheetHeight);
   }
   const single=clusterMarker({latitude:39,longitude:116,count:1},0,INDIVIDUAL_PIN_ZOOM-1);assert.equal(single.label.content,'1');
   const pin=clusterMarker({latitude:39,longitude:116,count:1},0,INDIVIDUAL_PIN_ZOOM);assert.equal(pin.label,undefined);assert.equal(pin.width,26);

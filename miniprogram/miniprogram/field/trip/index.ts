@@ -1,3 +1,4 @@
+import {navigate} from '../../services/navigation';
 import {api,hub,key,openMap} from '../../services/community';
 import {beijingDate,beijingDateTime} from '../../services/observation-context';
 
@@ -38,7 +39,7 @@ Page({
   },
   async locate(){try{const point=await wx.getLocation({type:'gcj02'});this.setPoint(point,'我的位置附近');}
     catch{this.setData({error:'未取得定位，可以使用地图中心或手动选点。'});}},
-  pick(){wx.navigateTo({url:'/field/picker/index',events:{point:(point:Point)=>this.setPoint(point,'手动选择的区域')}});},
+  pick(){navigate({url:'/field/picker/index',events:{point:(point:Point)=>this.setPoint(point,'手动选择的区域')}});},
   filters(event:Input){
     const field=event.currentTarget.dataset.field,value=event.detail.value;
     this.changed();

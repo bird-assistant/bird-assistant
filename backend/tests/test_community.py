@@ -31,6 +31,59 @@ MAP = "/api/v1/map/observations"
 OBS = "/api/v2/observations"
 
 
+def test_shared_photo_settings_are_allowlisted_and_standalone_posts_require_camera_consent(field):
+    client, (author, _, _), _, _ = field
+    buffer = BytesIO()
+    exif = Image.Exif()
+    exif[271], exif[272] = "Sony", "ILCE-7M4"
+    exif[34665] = {
+        42036: "FE 200-600mm",
+        34855: 800,
+        33434: 0.0005,
+        33437: 6.3,
+        37386: 600,
+        41987: 0,
+        37380: -0.33,
+        37383: 3,
+        37385: 0,
+        42033: "private-camera-serial",
+    }
+    Image.new("RGB", (600, 400)).save(buffer, "JPEG", exif=exif)
+    upload = client.post(ROOT + "/media", headers=author, files={"file": ("bird.jpg", buffer.getvalue())})
+    assert upload.status_code == 201
+    photo = upload.json()
+    camera = photo["camera"]
+    assert camera["resolution"] == "600 × 400 px"
+    assert camera["lens"] == "FE 200-600mm"
+    assert camera["whiteBalance"] == "AWB"
+    assert camera["exposureBias"] == "-0.33 EV"
+    assert camera["metering"] == "点测光" and camera["flash"] == "未闪光"
+    assert "focusMode" not in camera and "private-camera-serial" not in str(camera)
+    for share in (False, True):
+        preview = client.post(
+            ROOT + "/previews",
+            headers=author,
+            json={
+                "body": "观察",
+                "channels": ["post"],
+                "media": photo["id"],
+                "share_photo": True,
+                "share_camera": share,
+            },
+        )
+        assert preview.status_code == 200
+        assert preview.json()["display"]["post"]["camera"] == (camera if share else {})
+
+
+def test_malformed_or_unknown_exif_numbers_remain_unknown():
+    from bird_business.community import capture_number
+
+    for value in (None, "invalid", float("nan"), float("inf")):
+        assert capture_number({37380: value}, 37380) is None
+    assert capture_number({}, 37380) is None
+    assert capture_number({37380: 0}, 37380) == 0
+
+
 def test_field_guide_matches_photo_traits_and_caches_misses(field, monkeypatch):
     client, _, _, store = field
     species = "/api/v1/species/avibase-C22FBF8D"

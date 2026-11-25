@@ -1,3 +1,4 @@
+import {readPhotoDetails,readEmbeddedPhotoDetails} from './photo-details';
 export function forumTime(value:unknown){
   if(typeof value!=='string'||!value)return '';
   if(/^\d{4}-\d{2}-\d{2}$/.test(value))return value;
@@ -6,7 +7,8 @@ export function forumTime(value:unknown){
 export function forumPost(row:any){
   const name=typeof row.publicName==='string'&&row.publicName?row.publicName:'鸟友';
   const reactions=Array.isArray(row.reactions)?row.reactions:[];
-  return {...row,publicName:name,initial:Array.from(name)[0],posted:forumTime(row.updatedAt||row.created),
+  const details=readPhotoDetails(row.body),embedded=readEmbeddedPhotoDetails(details.body);
+  return {...row,body:embedded.body,manualCamera:details.camera,embeddedCamera:embedded.camera,publicName:name,initial:Array.from(name)[0],posted:forumTime(row.updatedAt||row.created),
     liked:reactions.includes('like'),favorited:row.bookmarked===true||reactions.includes('bookmark'),
     hasLikes:Number.isInteger(row.likes)&&row.likes>=0,hasReplies:Number.isInteger(row.replyCount)&&row.replyCount>=0,
     likes:Number.isInteger(row.likes)?row.likes:0,replyCount:Number.isInteger(row.replyCount)?row.replyCount:0,reacting:false};

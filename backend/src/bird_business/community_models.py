@@ -26,6 +26,14 @@ class Camera(Input):
     aperture: Label = ""
     iso: Label = ""
     focal: Label = ""
+    resolution: Label = ""
+    lens: Label = ""
+    whiteBalance: Label = ""
+    exposureBias: Label = ""
+    metering: Label = ""
+    flash: Label = ""
+    lighting: Label = ""
+    focusMode: Label = ""
 
 
 class Sighting(Input):

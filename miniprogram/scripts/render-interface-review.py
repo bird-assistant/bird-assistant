@@ -13,12 +13,12 @@ from weasyprint import CSS, HTML
 
 logging.getLogger('weasyprint').setLevel(logging.ERROR)
 root = Path(__file__).resolve().parents[1]
-source = root / 'docs/design/interface-0.4.3'
-proof = root / 'docs/design/interface-0.4.3-review'
+source = root / 'docs/design/interface-0.4.4'
+proof = root / 'docs/design/interface-0.4.4-review'
 proof.mkdir(parents=True, exist_ok=True)
 results = []
 for width in (320, 390, 768):
-    for kind in ('camera', 'cameraZoom', 'map', 'mapMoving', 'menu', 'photo', 'feed'):
+    for kind in ('camera', 'cameraZoom', 'map', 'mapMoving', 'menu', 'photo', 'feed', 'refresh', 'compose'):
         text = (source / f'{kind}-{width}.html').read_text()
         text = text.replace('/assets/', (root / 'miniprogram/assets').as_uri() + '/')
         text = re.sub(r'env\(safe-area-inset-bottom\)', '0px', text)
@@ -30,6 +30,7 @@ for width in (320, 390, 768):
                     '.viewfinder,.native-camera,.demo-scene{top:0;left:0;right:0;bottom:0}'
                     '.forum-menu-backdrop{top:0;left:0;right:0;bottom:0}'
                     '.flight-bird{animation:none;opacity:1;left:0}.bird-two{left:14px}.bird-three{left:28px}'
+                    '.pull-flight.is-flying .flight-bird{left:3px}.pull-flight.is-flying .bird-two{left:20px}.pull-flight.is-flying .bird-three{left:37px}'
                     'input,textarea{display:block}.projection-banner{position:absolute}'
                     '.post-card,.reply-thread,.column,.record-sheet{break-inside:avoid}')
         doc = HTML(string=text, base_url=str(source)).render(stylesheets=[style])
@@ -51,12 +52,12 @@ heading = ImageFont.truetype(font, 22)
 small = ImageFont.truetype(font, 14)
 canvas = Image.new('RGB', (1640, 980), '#e7ecdf')
 draw = ImageDraw.Draw(canvas)
-draw.text((28, 18), 'Bird Assistant 0.4.3 | Source layout projection', font=heading, fill='#285b49')
+draw.text((28, 18), 'Bird Assistant 0.4.4 | Source layout projection', font=heading, fill='#285b49')
 draw.text((28, 52), 'Original sample content. WXML/CSS print projection, not native WeChat acceptance.', font=small, fill='#60765e')
-for i, (kind, label) in enumerate((('cameraZoom', 'Camera / expanded zoom'), ('map', 'Floating map drawer'), ('menu', 'Forum tools'), ('photo', 'Photo information'))):
+for i, (kind, label) in enumerate((('cameraZoom', 'Camera / expanded zoom'), ('map', 'Map drawer at tab boundary'), ('menu', 'Forum tools'), ('photo', 'Photo information'))):
     x = 28 + i * 405
     draw.text((x, 88), label, font=heading, fill='#285b49')
     canvas.paste(Image.open(proof / f'{kind}-390.png').convert('RGB').crop((0, 0, 390, 844)), (x, 124))
-canvas.save(root / 'docs/design/interface-0.4.3.png', optimize=True)
-(root / 'docs/design/interface-0.4.3-bounds.json').write_text(json.dumps(results, ensure_ascii=False, indent=2) + '\n')
-print(json.dumps({'reviewed': len(results), 'bounds': 'docs/design/interface-0.4.3-bounds.json', 'image': 'docs/design/interface-0.4.3.png'}))
+canvas.save(root / 'docs/design/interface-0.4.4.png', optimize=True)
+(root / 'docs/design/interface-0.4.4-bounds.json').write_text(json.dumps(results, ensure_ascii=False, indent=2) + '\n')
+print(json.dumps({'reviewed': len(results), 'bounds': 'docs/design/interface-0.4.4-bounds.json', 'image': 'docs/design/interface-0.4.4.png'}))

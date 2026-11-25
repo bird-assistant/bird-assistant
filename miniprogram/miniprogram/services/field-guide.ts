@@ -1,3 +1,4 @@
+import {navigate} from './navigation';
 import {businessOrigin} from './vision-network';
 import {api} from './community';
 
@@ -22,7 +23,7 @@ export function comparisonWidth(width:number,count:number){const available=Math.
 export type SubjectPhoto = {src:string;box:{x1:number;y1:number;x2:number;y2:number}};
 export function compareBirds(ids:string[], select?:(id:string)=>void, subject?:SubjectPhoto){
   const unique=Array.from(new Set(ids)).filter(Boolean).slice(0,3);
-  wx.navigateTo({url:'/field/compare/index?ids='+unique.map(encodeURIComponent).join(',')+'&select='+(select?'1':'0'),
+  navigate({url:'/field/compare/index?ids='+unique.map(encodeURIComponent).join(',')+'&select='+(select?'1':'0'),
     success:result=>{if(subject)result.eventChannel.emit('subject',subject);},
     events:{choose:(event:{id:string})=>{if(select && unique.includes(event.id))select(event.id);}}});
 }

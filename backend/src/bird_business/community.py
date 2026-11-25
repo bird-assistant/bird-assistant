@@ -4,6 +4,7 @@ import json
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
+from math import isfinite
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Request, Response, UploadFile
@@ -210,6 +211,14 @@ def species_places(
         }
 
 
+def capture_number(capture, key):
+    try:
+        value = float(capture[key])
+        return value if isfinite(value) else None
+    except (KeyError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+        return None
+
+
 @router.post(ROOT + "/media", status_code=201)
 def upload(file: UploadFile, database: DB, owner: Member):
     if file.size and file.size > 24 * 1024 * 1024:
@@ -220,9 +229,25 @@ def upload(file: UploadFile, database: DB, owner: Member):
                 raise ServiceError("IMAGE_TOO_LARGE", "image too large", 413)
             exif = source.getexif()
             capture = exif.get_ifd(34665)
+            bias, flash = capture_number(capture, 37380), capture_number(capture, 37385)
             camera = {
                 key: str(value)[:100]
                 for key, value in {
+                    "resolution": f"{source.width} × {source.height} px",
+                    "lens": capture.get(42036),
+                    "whiteBalance": {0: "AWB", 1: "手动"}.get(capture.get(41987)),
+                    "exposureBias": f"{bias:+.2f} EV" if bias is not None else None,
+                    "metering": {
+                        1: "平均测光",
+                        2: "中央重点",
+                        3: "点测光",
+                        4: "多点",
+                        5: "评价测光",
+                        6: "局部测光",
+                    }.get(capture.get(37383)),
+                    "flash": ("已闪光" if int(flash) & 1 else "未闪光")
+                    if flash is not None and flash >= 0 and flash.is_integer()
+                    else None,
                     "make": exif.get(271),
                     "model": exif.get(272),
                     "exposure": capture.get(33434),
@@ -341,6 +366,11 @@ def preview(body: Preview, database: DB, owner: Member):
         media = (body.media or sighting.get("media")) if body.share_photo else None
         if media:
             one(db, "SELECT id FROM photos WHERE owner=? AND id=?", owner, media)
+        camera = sighting.get("camera", {})
+        if media and not body.sighting:
+            camera = json.loads(
+                one(db, "SELECT camera FROM photos WHERE owner=? AND id=?", owner, media)["camera"]
+            )
         value = {
             "speciesId": species.get("id", ""),
             "sourceRecord": citation,
@@ -351,9 +381,7 @@ def preview(body: Preview, database: DB, owner: Member):
             "publicName": "匿名鸟友" if body.anonymous else member_card(db, owner)["nickname"],
             "memberId": None if body.anonymous else owner,
             "date": sighting.get("date") if body.share_date else None,
-            "camera": {key: val for key, val in sighting.get("camera", {}).items() if val}
-            if body.share_camera
-            else {},
+            "camera": {key: val for key, val in camera.items() if val} if body.share_camera else {},
             "source": "羽迹社区",
             "media": media,
             "coordinateSystem": "GCJ-02",

@@ -5,7 +5,7 @@ import {layout} from '../../services/layout';
 import {readMapView,saveMapView} from '../../services/map-view';
 import {speciesSearch} from '../../services/species-search';
 import {spacedClusters} from '../../services/map-clusters';
-import {mapPanes,clusterMarker} from '../../services/map-presentation';
+import {mapPanes,clusterMarker,speciesResultsHeight} from '../../services/map-presentation';
 import {MapTargets} from '../../services/map-targets';
 import {chinesePlace} from '../../services/place-names';
 
@@ -20,7 +20,7 @@ const searches=new WeakMap<object,ReturnType<typeof speciesSearch>>();
 const targets=new WeakMap<object,MapTargets>();
 const cellQueries=new WeakMap<object,Record<string,unknown>>();
 Component({
-  data:{focusLabel:'',nativeActive:true,_tripSeq:0,_watchTimer:0,mapMoving:false,_restoreExpanded:true,sheetCollapsed:false,recordsLoading:false,recordsError:'',_recordSeq:0,_moving:false,_motionTimer:0,_recordQuery:{} as Record<string,unknown>,searchHeight:176,drawerWidth:366,searchMore:false,headerHeight:88,fieldHeight:600,toolbarHeight:112,mapHeight:488,sheetHeight:224,sheetHeaderHeight:64,creditReserve:0,compact:false,listHeight:160,listTotal:0,listTitle:'本区域观察',wide:false,searching:false,searchError:'',_searchSeq:0,_visible:true,_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:4,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
+  data:{recordOrder:'collected',focusLabel:'',nativeActive:true,_tripSeq:0,_watchTimer:0,mapMoving:false,_restoreExpanded:true,sheetCollapsed:false,recordsLoading:false,recordsError:'',_recordSeq:0,_moving:false,_motionTimer:0,_recordQuery:{} as Record<string,unknown>,searchHeight:176,drawerWidth:366,searchMore:false,headerHeight:88,fieldHeight:600,toolbarHeight:112,mapHeight:488,sheetHeight:224,sheetHeaderHeight:64,creditReserve:0,compact:false,listHeight:160,listTotal:0,listTitle:'本区域观察',wide:false,searching:false,searchError:'',_searchSeq:0,_visible:true,_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:4,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
     origin:0,origins:['全部来源','羽迹鸟友','外部鸟讯'],period:0,periods:['所有日期','今天','近七天','近三十天'],keyword:'',species:'',speciesLabel:'所有鸟种',matches:[] as any[],
     markers:[] as Array<{id:number;latitude:number;longitude:number;iconPath:string;width:number;height:number}>,selected:[] as Pin[],total:0,error:'',loading:false,dirty:false},
   lifetimes:{attached(){const view=readMapView();if(view)this.setData(view);},ready(){this.resizeMap();this.watchViewport();if(wx.nextTick)wx.nextTick(()=>void this.load());else void this.load();},detached(){this.suspend();searches.delete(this);targets.delete(this);cellQueries.delete(this);hints.delete(this);this.data._ready=false;}},
@@ -38,8 +38,8 @@ Component({
       const markers=groups.map((group,index)=>({...clusterMarker(group,index,scale),id:ids[index]}));
       if(JSON.stringify(markers)!==JSON.stringify(this.data.markers))this.setData({markers});
     },
-    resizeMap(){const box=layout();this.setData({headerHeight:box.headerHeight,...mapPanes(box.width,box.height)});},
-    query(){let query=searches.get(this);if(!query){query=speciesSearch(state=>{if(this.data._visible)this.setData(state);});searches.set(this,query);}return query;},
+    resizeMap(){const box=layout(),panes=mapPanes(box.width,box.height);this.setData({headerHeight:box.headerHeight,...panes,searchHeight:speciesResultsHeight(this.data.matches.length,this.data.searchMore,Math.max(0,panes.mapHeight-36))});},
+    query(){let query=searches.get(this);if(!query){query=speciesSearch(state=>{if(this.data._visible)this.setData({...state,searchHeight:speciesResultsHeight(state.matches.length,state.searchMore,Math.max(0,this.data.mapHeight-36))});});searches.set(this,query);}return query;},
     moreSpecies(){void this.query().more();},
     closeSearch(){searches.get(this)?.close();this.data._searchSeq++;this.setData({matches:[],searching:false,searchError:''});wx.hideKeyboard?.();},
     clearSpecies(){this.closeSearch();this.closeList();this.setData({species:'',keyword:'',speciesLabel:'所有鸟种'});void this.load();},
@@ -172,9 +172,9 @@ Component({
       if(append&&this.data.recordsLoading)return;
       if(!append&&!marker&&!Object.keys(this.data._bounds).length)this.data._recordQuery=this.data._query;
       const seq=++this.data._recordSeq;this.setData({recordsLoading:true,listOpen:true,recordsError:'',...(!append?{selected:[],cursor:''}: {})});
-      try{const res=await api(observations,'GET',{...this.data._recordQuery,...this.data._bounds,cursor:append?this.data.cursor:'',limit:60});
+      try{const res=await api(observations,'GET',{...this.data._recordQuery,...this.data._bounds,sort:'recent',cursor:append?this.data.cursor:'',limit:60});
         const items=res.items.map((row:Pin)=>({...row,placeName:chinesePlace(row.placeName)}));
-        if(seq===this.data._recordSeq&&this.data._visible)this.setData({selected:append?Array.from(new Map(this.data.selected.concat(items).map((row:Pin)=>[row.id,row])).values()):items,cursor:res.nextCursor,listTotal:res.total??this.data.listTotal,...(!this.data._moving?{sheetCollapsed:!this.data._restoreExpanded}:{})});
+        if(seq===this.data._recordSeq&&this.data._visible)this.setData({recordOrder:res.sort||'collected',selected:append?Array.from(new Map(this.data.selected.concat(items).map((row:Pin)=>[row.id,row])).values()):items,cursor:res.nextCursor,listTotal:res.total??this.data.listTotal,...(!this.data._moving?{sheetCollapsed:!this.data._restoreExpanded}:{})});
       }catch{if(seq===this.data._recordSeq&&this.data._visible)this.setData({recordsError:'记录加载失败，请重试。',...(!this.data._moving?{sheetCollapsed:!this.data._restoreExpanded}:{})});}finally{if(seq===this.data._recordSeq&&this.data._visible)this.setData({recordsLoading:false});}
     },
     more(){if(this.data.cursor&&!this.data.recordsLoading)void this.showRecords(true);},

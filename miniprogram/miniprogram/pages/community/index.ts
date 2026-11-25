@@ -41,17 +41,15 @@ Page({
   async react(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id),kind=String(event.currentTarget.dataset.kind),post=this.data.remotePosts.find((row:any)=>row.id===id);
     const activeReactions=reactions(this);
-    if(!post||!['like','bookmark'].includes(kind)||activeReactions.has(id))return;
-    activeReactions.add(id);this.patchPost(id,{reacting:true});
+    if(!post||!['like','bookmark'].includes(kind)||activeReactions.has(id+':'+kind))return;
+    const lock=id+':'+kind,pending=kind==='like'?'likePending':'bookmarkPending';activeReactions.add(lock);this.patchPost(id,{[pending]:true});
     const active=kind==='like'?post.liked:post.favorited;
     try{const base=community+'/publications/'+id;const result=await api(base+(active?'/reactions/':'/')+kind,active?'DELETE':'PUT');
       this._feedSeq++;if(!this._visible)return;
-      const reactions=Array.isArray(result.reactions)?result.reactions:null;
-      this.patchPost(id,{liked:reactions?reactions.includes('like'):kind==='like'?result.active:post.liked,
-        favorited:typeof result.bookmarked==='boolean'?result.bookmarked:kind==='bookmark'?result.active:post.favorited,
-        likes:Number.isInteger(result.likes)?result.likes:post.likes+(kind==='like'&&post.hasLikes?(result.active?1:-1):0),
-        hasLikes:post.hasLikes||Number.isInteger(result.likes)});this.setData({feedLoading:false,error:''});
-    }catch(error){if(this._visible)this.setData({error:errorText(error)});}finally{activeReactions.delete(id);if(this._visible)this.patchPost(id,{reacting:false});}
+      this.patchPost(id,kind==='like'?{liked:!!result.active,
+        likes:Number.isInteger(result.likes)?result.likes:post.likes+(post.hasLikes?(result.active?1:-1):0),hasLikes:post.hasLikes||Number.isInteger(result.likes)}:{favorited:!!result.active});
+      this.setData({feedLoading:false,error:''});
+    }catch(error){if(this._visible)this.setData({error:errorText(error)});}finally{activeReactions.delete(lock);if(this._visible)this.patchPost(id,{[pending]:false});}
   },
   moreSections(){this.setData({moreOpen:!this.data.moreOpen});},
   closeMore(){this.setData({moreOpen:false});},

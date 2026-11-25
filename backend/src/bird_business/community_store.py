@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from threading import RLock
 
+from bird_business.community_geo import distance_km
 from bird_common.errors import ServiceError
 
 SCHEMA = """
@@ -131,6 +132,7 @@ class CommunityStore:
         self.lock = RLock()
         self.db = sqlite3.connect(str(database), timeout=10, check_same_thread=False)
         self.db.row_factory = sqlite3.Row
+        self.db.create_function("distance_km", 4, distance_km, deterministic=True)
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.executescript(SCHEMA)
         with self.transaction() as db:

@@ -189,3 +189,5 @@
 .record-kind{font-size:11px;color:#849278;margin:10px 0}.related-explanation{font-size:11px;line-height:1.8;color:#849278;padding:14px 0 2px}.photo-info-device{display:block}.photo-info-label{display:block}
 
 .photo-copy-size{display:block;font-size:10px;color:#8a987f;text-align:center;margin:-8px 0 16px}
+
+.species-tabs{position:relative;z-index:2}.reaction-pending{opacity:.75}.record-action[disabled]{background:transparent;color:inherit}.record-action-hover{background:#edf3e7}.place-sort{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.place-sort button{font-size:12px;min-height:36px;padding:8px 10px}.place-distance{font-size:11px;color:#597652}

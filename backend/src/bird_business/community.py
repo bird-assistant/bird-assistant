@@ -176,26 +176,45 @@ def species_places(
     startDate: str = "",
     endDate: str = "",
     origin: Literal["all", "local", "external"] = "all",
+    sort: Literal["recent", "distance"] = "recent",
+    latitude: Annotated[float | None, Query(ge=-90, le=90)] = None,
+    longitude: Annotated[float | None, Query(ge=-180, le=180)] = None,
     limit: Limit = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ):
+    if (latitude is None) != (longitude is None) or (sort == "distance" and latitude is None):
+        raise ServiceError("INVALID_REFERENCE", "距离排序需要完整的地图参考点", 422)
     with database.transaction() as db:
         taxon(db, species)
         filters = """ FROM publications WHERE channel='map' AND status='approved' AND species=:species
             AND lat IS NOT NULL AND lon IS NOT NULL AND (:start='' OR day>=:start)
             AND (:end='' OR (day!='' AND day<=:end)) AND (:origin='all' OR
             (:origin='external' AND owner='gbif') OR (:origin='local' AND owner!='gbif')) GROUP BY lat,lon"""
-        args = dict(species=species, start=startDate, end=endDate, origin=origin, limit=limit, offset=offset)
+        args = dict(
+            species=species,
+            start=startDate,
+            end=endDate,
+            origin=origin,
+            limit=limit,
+            offset=offset,
+            latitude=latitude,
+            longitude=longitude,
+        )
+        order = "km,latest DESC,lat,lon" if sort == "distance" else "latest DESC,km,lat,lon"
         count, records = db.execute(
             "SELECT count(*),coalesce(sum(n),0) FROM (SELECT count(*) n" + filters + ")", args
         ).fetchone()
         rows = db.execute(
-            "SELECT lat,lon,count(*) n,max(day) latest,min(json_extract(display,'$.placeName')) label"
+            "SELECT lat,lon,count(*) n,max(day) latest,min(json_extract(display,'$.placeName')) label,"
+            " distance_km(lat,lon,:latitude,:longitude) km"
             + filters
-            + " ORDER BY latest DESC,lat,lon LIMIT :limit OFFSET :offset",
+            + " ORDER BY "
+            + order
+            + " LIMIT :limit OFFSET :offset",
             args,
         )
         return {
+            "sort": sort,
             "placeCount": count,
             "recordCount": records,
             "items": [
@@ -203,6 +222,7 @@ def species_places(
                     "id": f"{row['lat']},{row['lon']}",
                     "placeName": row["label"],
                     "latest": row["latest"],
+                    "km": round(row["km"], 1) if row["km"] is not None else None,
                     "records": row["n"],
                     "displayLocation": {"latitude": row["lat"], "longitude": row["lon"]},
                 }
@@ -619,6 +639,7 @@ def map_records(
     speciesId: str = "",
     startDate: str = "",
     endDate: str = "",
+    sort: Literal["collected", "recent"] = "collected",
     cursor: str = "",
     limit: Limit = 60,
     zoom: Annotated[int | None, Query(ge=3, le=20)] = None,
@@ -686,12 +707,22 @@ def map_records(
             return {"total": sum(group["count"] for group in clusters), "clusters": clusters}
         total = db.execute("SELECT count(*) FROM (" + source + ")", args).fetchone()[0]
         if cursor:
-            stamp, sep, key = cursor.partition("|")
-            if not sep or len(cursor) > 160:
+            pieces = cursor.split("|")
+            valid = len(cursor) <= 256 and (
+                len(pieces) == 2
+                if sort == "collected"
+                else len(pieces) == 5 and pieces[:2] == ["v2", "recent"]
+            )
+            if not valid:
                 raise ServiceError("INVALID_CURSOR", "invalid map cursor", 422)
-            source += " AND (created,id)<(:stamp,:key)"
-            args.update(stamp=stamp, key=key)
-        rows = db.execute(source + " ORDER BY created DESC,id DESC LIMIT :limit", args).fetchall()
+            if sort == "recent":
+                args.update(day=pieces[2], stamp=pieces[3], key=pieces[4])
+                source += " AND (day,created,id)<(:day,:stamp,:key)"
+            else:
+                args.update(stamp=pieces[0], key=pieces[1])
+                source += " AND (created,id)<(:stamp,:key)"
+        order = "day DESC,created DESC,id DESC" if sort == "recent" else "created DESC,id DESC"
+        rows = db.execute(source + " ORDER BY " + order + " LIMIT :limit", args).fetchall()
         items = []
         for row in rows[:limit]:
             if row["visibility"] == "public":
@@ -715,7 +746,9 @@ def map_records(
                     }
                 )
         next_cursor = rows[limit - 1]["created"] + "|" + rows[limit - 1]["id"] if len(rows) > limit else ""
-        return {"items": items, "nextCursor": next_cursor, "total": total}
+        if next_cursor and sort == "recent":
+            next_cursor = "v2|recent|" + rows[limit - 1]["day"] + "|" + next_cursor
+        return {"items": items, "nextCursor": next_cursor, "total": total, "sort": sort}
 
 
 @router.get("/api/v1/map/observations/{record}")

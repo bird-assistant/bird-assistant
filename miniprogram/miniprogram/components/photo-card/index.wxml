@@ -1,6 +1,6 @@
 <view class="photo-card" style="width:{{width}}px">
-  <view class="photo-stage {{flipped ? 'photo-flipped' : ''}}" style="height:{{height < 220 ? 220 : height}}px" bindtap="flip" aria-label="{{flipped ? '再次轻点返回照片' : '轻点查看拍摄参数'}}">
-    <view class="photo-face photo-front" aria-hidden="{{flipped}}"><image class="photo-image" src="{{src}}" mode="aspectFit" bindload="loaded" binderror="failed"/><view class="photo-hint">轻点查看拍摄参数</view></view>
+  <view class="photo-stage {{flipped ? 'photo-flipped' : ''}}" style="height:{{height < 220 ? 220 : height}}px" bindtap="flip" aria-label="{{canFlip ? flipped ? '再次轻点返回照片' : '轻点查看拍摄参数' : '照片，未附拍摄参数'}}">
+    <view class="photo-face photo-front" aria-hidden="{{flipped}}"><image class="photo-image" src="{{src}}" mode="aspectFit" bindload="loaded" binderror="failed"/><view wx:if="{{canFlip}}" class="photo-hint">轻点查看拍摄参数</view></view>
     <view class="photo-face photo-back" aria-hidden="{{!flipped}}"><image class="photo-watermark" src="{{src}}" mode="aspectFill"/><scroll-view class="photo-data" scroll-y style="height:{{height < 220 ? 220 : height}}px">
       <view class="photo-back-heading"><image class="photo-camera" src="/assets/icons/camera.png"/><text>拍摄参数</text></view>
       <block wx:if="{{fileInfo}}"><text class="photo-provenance">{{fileInfo.source}}</text><text class="photo-device">{{fileInfo.title}}</text><text wx:if="{{fileInfo.subtitle}}" class="photo-model">{{fileInfo.subtitle}}</text><view class="photo-parameters"><view wx:for="{{fileInfo.settings}}" wx:key="key" class="photo-parameter"><text class="photo-param-label">{{item.label}}</text><text class="photo-param-value">{{item.value}}</text></view></view></block>

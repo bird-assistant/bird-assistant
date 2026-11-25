@@ -25,8 +25,11 @@ export function hub(screen:string,id=''){
   navigate({url:'/field/'+page+'/index?screen='+encodeURIComponent(screen)+'&id='+encodeURIComponent(id)});
 }
 const sessionKey='bird-assistant.community.session.v1';
+let revision=0;
+export function sessionRevision(){return revision;}
 export function sessionState(){return wx.getStorageSync?.(sessionKey) || '';}
 export function setSession(active:boolean){
+  revision++;
   wx.setStorageSync(sessionKey,active?'active':'out');
   if(!active){forgetConnection();compose=null;draft=null;focus=null;}
 }

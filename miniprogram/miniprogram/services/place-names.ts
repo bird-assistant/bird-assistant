@@ -3,7 +3,7 @@ const provinces:Record<string,string>={
   liaoning:'辽宁',jilin:'吉林',heilongjiang:'黑龙江',jiangsu:'江苏',zhejiang:'浙江',anhui:'安徽',fujian:'福建',
   jiangxi:'江西',shandong:'山东',henan:'河南',hubei:'湖北',hunan:'湖南',guangdong:'广东',hainan:'海南',
   sichuan:'四川',guizhou:'贵州',yunnan:'云南',gansu:'甘肃',qinghai:'青海',taiwan:'台湾',
-  'inner mongolia':'内蒙古',neimenggu:'内蒙古',guangxi:'广西',ningxia:'宁夏',xinjiang:'新疆',tibet:'西藏',xizang:'西藏',
+  'inner mongolia':'内蒙古','nei mongol':'内蒙古',neimenggu:'内蒙古',guangxi:'广西','guangxi zhuang':'广西',ningxia:'宁夏','ningxia hui':'宁夏',xinjiang:'新疆','xinjiang uygur':'新疆','xinjiang uyghur':'新疆',tibet:'西藏',xizang:'西藏',
   'hong kong':'香港',hongkong:'香港',macau:'澳门',macao:'澳门',
 };
 /** Translate known source labels only; unfamiliar locality names remain intact. */

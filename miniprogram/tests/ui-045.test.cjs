@@ -47,8 +47,8 @@ test('import dispatch selects the photo independently of the last audio import a
   const page={data:structuredClone(definition.data),setData(v){Object.assign(this.data,v);}};
   for(const [key,value] of Object.entries(definition))if(key!=='data')page[key]=typeof value==='function'?value.bind(page):structuredClone(value);
   page.data.view='import';const photo=page.addEvidence('photo.jpg','photo','album'),audio=page.addEvidence('audio.mp3','audio','album');
-  assert.equal(page.data.currentId,audio.id);assert.equal(page.data.importPhotoId,photo.id);
+  assert.equal(page.data.currentId,audio.id);assert.equal(photo.selected,true);
   const sent=[];page.analyse=async()=>{sent.push(page.data.currentId);return true;};page.review=()=>page.setData({view:'review'});
   page.data.importMode='both';await page.sendImported();assert.deepEqual(sent,[]);assert.match(page.data.error,/尚未接入/);assert.equal(page.data.assets.length,2);
-  page.data.importMode='media';page.setData({error:''});await page.sendImported();assert.deepEqual(sent,[photo.id]);assert.equal(page.data.view,'review');
+  page.data.importMode='media';page.setData({error:''});await page.sendImported();assert.deepEqual(sent,[photo.id]);assert.equal(page.data.view,'import');assert.match(page.data.batchProgress,/已完成 1/);
 });

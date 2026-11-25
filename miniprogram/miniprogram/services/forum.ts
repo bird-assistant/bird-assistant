@@ -11,7 +11,7 @@ export function forumPost(row:any){
   return {...row,body:embedded.body,manualCamera:details.camera,embeddedCamera:embedded.camera,publicName:name,initial:Array.from(name)[0],posted:forumTime(row.updatedAt||row.created),
     liked:reactions.includes('like'),favorited:row.bookmarked===true||reactions.includes('bookmark'),
     hasLikes:Number.isInteger(row.likes)&&row.likes>=0,hasReplies:Number.isInteger(row.replyCount)&&row.replyCount>=0,
-    likes:Number.isInteger(row.likes)?row.likes:0,replyCount:Number.isInteger(row.replyCount)?row.replyCount:0,reacting:false};
+    likes:Number.isInteger(row.likes)?row.likes:0,replyCount:Number.isInteger(row.replyCount)?row.replyCount:0,reacting:false,likePending:false,bookmarkPending:false};
 }
 export type ReplyView={id:string;memberId:string;publicName:string;body:string;species:string;parentId:string;replyToName:string;status:string;posted:string;created:string;initial:string};
 export function forumThreads(value:any[]):Array<{id:string;root:ReplyView;children:ReplyView[]}>{

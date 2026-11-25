@@ -30,3 +30,9 @@
 .focus-notice{position:absolute;left:12px;right:68px;top:12px;padding:7px 10px;border-radius:10px;background:#fafbf5e8;color:#5c7652;font-size:11px;pointer-events:none;z-index:3}
 
 .sheet-order{font-size:10px;color:#87957d;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+
+/* Title and count keep the same baseline in both drawer states. */
+.sheet-header{align-items:flex-start;padding-top:10px;box-sizing:border-box}.sheet-header-copy{justify-content:flex-start;gap:3px}.sheet-close{margin-top:2px}.sheet-order{line-height:16px}.field-compact .sheet-header{padding-top:6px}
+.results-heading{height:36px}.results-close{height:36px;width:40px}.search-results{background:#fffef9ed}.results-scroll{max-height:132px;min-height:0}.species-result{height:44px;min-height:44px;max-height:44px;padding:8px 12px;background:transparent;display:flex;align-items:center}.species-result>text:first-child{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.species-latin{flex:none;max-width:44%}
+
+.map-base{position:absolute;left:0;right:0;bottom:0;height:26px;z-index:1;background:#fafbf5;pointer-events:none}

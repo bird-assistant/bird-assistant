@@ -1,7 +1,7 @@
 Component({
   properties:{src:{type:String,value:''},width:{type:Number,value:300},height:{type:Number,value:300},fileInfo:{type:Object,value:null},manualInfo:{type:Object,value:null},resolution:{type:String,value:''}},
-  data:{flipped:false},
-  observers:{src(){this.setData({flipped:false});}},
+  data:{flipped:false,canFlip:false},
+  observers:{src(){this.setData({flipped:false});},'fileInfo,manualInfo'(fileInfo:unknown,manualInfo:unknown){this.setData({canFlip:!!(fileInfo||manualInfo),flipped:false});}},
   methods:{
     flip(){if(!this.data.fileInfo&&!this.data.manualInfo){wx.showToast({title:'暂无可用拍摄参数',icon:'none'});return;}this.setData({flipped:!this.data.flipped});},
     loaded(event:WechatMiniprogram.CustomEvent<{width:number;height:number}>){this.triggerEvent('loaded',event.detail);},

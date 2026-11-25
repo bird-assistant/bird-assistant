@@ -598,3 +598,73 @@ def test_reply_pagination_is_bounded_without_leaking_another_readers_pending_rep
         assert (pending in {row["id"] for row in rows}) == (user == reader)
         assert first["replyCount"] == second["replyCount"] == 102
     assert client.get(path, params={"replyOffset": -1}).status_code == 422
+
+
+def test_species_places_sort_globally_before_pagination_and_use_date_within_distance(field):
+    import json
+
+    client, _, _, database = field
+    species = "avibase-C22FBF8D"
+    with database.transaction() as db:
+        for index, (lat, day) in enumerate(
+            [(40.2, "2026-11-24"), (40.0, "2026-10-01"), (40.1, "2026-11-23")]
+        ):
+            db.execute(
+                "INSERT INTO publications(id,owner,channel,status,display,species,lat,lon,day,created) "
+                "VALUES(?, 'gbif','map','approved',?,?,?,116.3,?,?)",
+                (
+                    f"sort-{index}",
+                    json.dumps({"placeName": "Beijing"}),
+                    species,
+                    lat,
+                    day,
+                    f"2026-11-25T00:00:0{index}Z",
+                ),
+            )
+    route = f"/api/v1/species/{species}/places"
+    point = {"latitude": 40, "longitude": 116.3}
+    near = [
+        client.get(route, params={**point, "sort": "distance", "limit": 1, "offset": offset}).json()["items"][
+            0
+        ]
+        for offset in range(3)
+    ]
+    assert [row["displayLocation"]["latitude"] for row in near] == [40.0, 40.1, 40.2]
+    assert near[0]["km"] == 0
+    recent = client.get(route, params={**point, "sort": "recent"}).json()
+    assert [row["latest"] for row in recent["items"]] == ["2026-11-24", "2026-11-23", "2026-10-01"]
+    assert recent["sort"] == "recent" and recent["recordCount"] == 3
+    assert client.get(route, params={"sort": "distance"}).status_code == 422
+    assert client.get(route, params={"latitude": 40}).status_code == 422
+
+
+def test_observation_date_cursor_is_stable_and_cannot_be_used_for_collection_order(field):
+    import json
+
+    client, (owner, _, _), _, database = field
+    species = "avibase-C22FBF8D"
+    with database.transaction() as db:
+        for index, day in enumerate(["2026-11-01", "2026-10-01", "2026-11-01", ""]):
+            db.execute(
+                "INSERT INTO publications(id,owner,channel,status,display,species,lat,lon,day,created) "
+                "VALUES(?, 'gbif','map','approved',?,?,40,116.3,?,?)",
+                (
+                    f"date-{index}",
+                    json.dumps({"placeName": "Beijing", "speciesName": "麻雀"}),
+                    species,
+                    day,
+                    f"2026-11-25T00:00:0{index}Z",
+                ),
+            )
+    items, cursor = [], ""
+    for _ in range(4):
+        result = client.get(
+            MAP, headers=owner, params={"sort": "recent", "limit": 1, "cursor": cursor}
+        ).json()
+        items.extend(result["items"])
+        cursor = result["nextCursor"]
+        assert result["sort"] == "recent"
+    assert [row["id"] for row in items] == ["date-2", "date-0", "date-1", "date-3"]
+    assert not cursor
+    first = client.get(MAP, headers=owner, params={"sort": "recent", "limit": 1}).json()
+    assert client.get(MAP, headers=owner, params={"cursor": first["nextCursor"]}).status_code == 422

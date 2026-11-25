@@ -12,7 +12,7 @@
     </view>
   </view>
   <view class="map-canvas" style="top:{{toolbarHeight}}px;height:{{mapHeight}}px">
-    <map id="field-map" latitude="{{latitude}}" longitude="{{longitude}}" scale="{{scale}}" markers="{{markers}}" bindregionchange="moved" bindupdated="mapUpdated" bindtap="closeSearch" bindmarkertap="marker" bindcallouttap="marker" enable-rotate="{{false}}" enable-overlooking="{{false}}" class="native"/>
+    <map id="field-map" latitude="{{latitude}}" longitude="{{longitude}}" scale="{{scale}}" markers="{{markers}}" bindregionchange="moved" bindupdated="mapUpdated" bindtap="closeSearch" bindmarkertap="marker" bindcallouttap="marker" enable-rotate="{{false}}" enable-overlooking="{{false}}" class="native"/><view class="map-base" aria-hidden="true"/>
     <view wx:if="{{focusLabel}}" class="focus-notice">{{focusLabel}}</view><view wx:if="{{!listOpen && !compact}}" class="map-actions"><button class="map-action" bindtap="position" aria-label="定位到我的位置"><image class="action-icon" src="/assets/icons/locate.png"/></button><button class="map-action" bindtap="load" loading="{{loading}}" disabled="{{loading}}" aria-label="刷新当前地图区域"><image class="action-icon" src="/assets/icons/redo.png"/></button></view>
     <view wx:if="{{!listOpen}}" class="map-dock" style="bottom:24px">
       <view wx:if="{{error}}" class="map-notice"><text class="notice-text">{{error}}</text><button class="notice-retry" bindtap="load">重试</button></view>
@@ -21,8 +21,8 @@
       <button wx:if="{{!compact}}" class="trip-entry" bindtap="planTrip"><view class="trip-copy"><image class="trip-icon" src="/assets/icons/leaf.png"/><text>观鸟出行顾问</text></view><text class="trip-chevron">›</text></button>
     </view>
   </view>
-    <view wx:if="{{listOpen}}" class="record-sheet {{sheetCollapsed ? 'sheet-collapsed' : ''}}" style="height:{{sheetCollapsed ? sheetHeaderHeight : sheetHeight}}px;bottom:0;width:{{drawerWidth}}px">
-      <view class="sheet-header" style="height:{{sheetHeaderHeight}}px"><button class="sheet-header-copy" bindtap="expandList" aria-label="{{sheetCollapsed ? '展开观察列表' : '收起观察列表'}}"><view class="sheet-title"><text>{{listTitle}}</text><view class="sheet-toggle {{sheetCollapsed ? 'toggle-up' : ''}}"/></view><text class="sheet-count">{{mapMoving || recordsLoading ? '正在更新当前视野…' : listTotal+' 条 · 最新收录在前'}}</text><text wx:if="{{!sheetCollapsed}}" class="sheet-order">收录时间倒序 · 右侧为观察日期</text></button><button class="sheet-close" bindtap="closeList" aria-label="关闭观察列表"><image class="close-icon" src="/assets/icons/close.png"/></button></view>
+    <view wx:if="{{listOpen}}" class="record-sheet {{sheetCollapsed ? 'sheet-collapsed' : ''}}" style="height:{{sheetCollapsed ? sheetHeaderHeight - (compact ? 0 : 18) : sheetHeight}}px;bottom:0;width:{{drawerWidth}}px">
+      <view class="sheet-header" style="height:{{sheetHeaderHeight - (sheetCollapsed && !compact ? 18 : 0)}}px"><button class="sheet-header-copy" bindtap="expandList" aria-label="{{sheetCollapsed ? '展开观察列表' : '收起观察列表'}}"><view class="sheet-title"><text>{{listTitle}}</text><view class="sheet-toggle {{sheetCollapsed ? 'toggle-up' : ''}}"/></view><text class="sheet-count">{{mapMoving || recordsLoading ? '正在更新当前视野…' : listTotal+' 条 · '+(recordOrder === 'recent' ? '最近观察在前' : '最新收录在前')}}</text><text wx:if="{{!sheetCollapsed}}" class="sheet-order">{{recordOrder === 'recent' ? '观察日期倒序 · 同日按收录时间' : '收录时间倒序 · 右侧为观察日期'}}</text></button><button class="sheet-close" bindtap="closeList" aria-label="关闭观察列表"><image class="close-icon" src="/assets/icons/close.png"/></button></view>
       <scroll-view wx:if="{{!sheetCollapsed}}" scroll-y class="record-scroll" style="height:{{listHeight}}px" bindscrolltolower="more">
         <view wx:if="{{recordsError}}" class="list-message"><text>{{recordsError}}</text><button class="retry-button" bindtap="retryRecords">重试加载</button></view>
         <view wx:elif="{{!selected.length}}" class="list-message">{{recordsLoading ? '正在加载观察记录…' : '没有符合筛选条件的记录'}}</view>

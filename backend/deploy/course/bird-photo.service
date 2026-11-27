@@ -1,0 +1,22 @@
+[Unit]
+Description=Bird photo recognition gateway
+After=network-online.target
+
+[Service]
+User=bird-business
+Group=bird-business
+WorkingDirectory=/opt/bird-assistant/photo
+Environment=PYTHONPATH=/opt/bird-assistant/photo/src
+EnvironmentFile=/etc/bird-assistant/business.env
+EnvironmentFile=/etc/bird-assistant/dongniao.env
+ExecStart=/opt/bird-assistant/venv/bin/python -m uvicorn bird_business.photo_gateway:create_app --factory --host 127.0.0.1 --port 8210 --no-access-log
+StateDirectory=bird-photo
+UMask=0077
+Restart=on-failure
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

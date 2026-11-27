@@ -160,7 +160,7 @@ def test_bioclip_resolves_same_snapshot_for_model_and_tokenizer(bioclip_provider
     hub.snapshot_download.assert_called_once_with(repo_id="imageomics/bioclip-2", revision=revision)
     source = f"local-dir:{snapshot}"
     open_clip.create_model_and_transforms.assert_called_once_with(
-        source, require_pretrained=True, weights_only=True
+        source, require_pretrained=True, weights_only=True, precision="fp32"
     )
     open_clip.get_tokenizer.assert_called_once_with(source)
     assert provider.ready
@@ -252,6 +252,24 @@ def test_directory_fingerprint_requires_config_and_checkpoint(tmp_path: Path) ->
     (tmp_path / "open_clip_config.json").write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="no OpenCLIP checkpoint"):
         _directory_fingerprint(tmp_path)
+
+
+@pytest.mark.parametrize("compatible", [True, False])
+def test_recovery_cpu_only_uses_validated_gpu_cache(bioclip_provider, compatible) -> None:
+    provider, *_ = bioclip_provider
+    provider.load()
+    original = provider._text_cache_path
+    cached = provider._torch.load(original, weights_only=True)
+    original.unlink()
+    cached["metadata"]["precision"] = "fp16"
+    if not compatible:
+        cached["metadata"]["model_fingerprint"] = "old-model"
+    path = provider._feature_cache_path("fp16")
+    provider._torch.save(cached, path)
+    provider.settings.allow_production_cpu = True
+    provider.load()
+    assert provider._text_cache_hit is compatible
+    assert provider._text_cache_path == (path if compatible else original)
 
 
 def test_bioclip_cache_round_trip_and_model_identity(bioclip_provider) -> None:

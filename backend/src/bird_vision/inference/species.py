@@ -348,7 +348,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
             # OpenCLIP's factory has no HF revision argument. Both consumers must
             # read the same resolved local snapshot, and weights must be present.
             self._model, _, self._preprocess = open_clip.create_model_and_transforms(
-                model_source, require_pretrained=True, weights_only=True
+                model_source, require_pretrained=True, weights_only=True, precision=self._resolved_precision
             )
             self._model = self._model.to(self.device).eval()
             self._tokenizer = open_clip.get_tokenizer(model_source)
@@ -468,7 +468,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                 chunks.append(features)
         return self._torch.cat(chunks, dim=0)
 
-    def _feature_cache_path(self) -> Path:
+    def _feature_cache_path(self, precision: str) -> Path:
         if not self._model_fingerprint or self._feature_dim is None:
             raise RuntimeError(
                 "BioCLIP model fingerprint and feature dimension must be resolved before caching"
@@ -482,7 +482,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                 str(self._feature_dim),
                 catalog_hash,
                 PROMPT_VERSION,
-                self._resolved_precision,
+                precision,
             )
         )
         cache_key = hashlib.sha256(material.encode()).hexdigest()[:24]
@@ -490,7 +490,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
 
     def _load_or_encode_taxa(self) -> Any:
         self._text_cache_hit = False
-        cache_path = self._feature_cache_path()
+        cache_path = self._feature_cache_path(self._resolved_precision)
         self._text_cache_path = cache_path
         taxa_hash = hashlib.sha256(
             "\0".join(taxon.species_id for taxon in self._active_taxa).encode()
@@ -505,25 +505,16 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
             "precision": self._resolved_precision,
             "taxon_count": len(self._active_taxa),
         }
-        features = None
-        try:
-            if cache_path.is_file():
-                cached = self._torch.load(cache_path, map_location="cpu", weights_only=True)
-                candidate = cached.get("features") if isinstance(cached, dict) else None
-                metadata = cached.get("metadata") if isinstance(cached, dict) else None
-                if metadata == expected_metadata and self._valid_text_features(
-                    candidate, len(self._active_taxa)
-                ):
-                    features = candidate
-                else:
-                    LOGGER.warning("ignoring incompatible BioCLIP text feature cache")
-        except Exception:
-            # weights_only deserialization can also raise UnpicklingError and
-            # other format errors. A disposable cache must not prevent startup.
-            LOGGER.warning("failed to load BioCLIP text feature cache", exc_info=True)
-        if features is not None:
-            self._text_cache_hit = True
-            return features.to(self.device)
+        precisions = [self._resolved_precision]
+        if self.device == "cpu" and self.settings.allow_production_cpu:
+            precisions.append("fp16")
+        for precision in precisions:
+            candidate_path = self._feature_cache_path(precision)
+            features = self._read_text_cache(candidate_path, {**expected_metadata, "precision": precision})
+            if features is not None:
+                self._text_cache_path = candidate_path
+                self._text_cache_hit = True
+                return features.to(self.device)
 
         features = self._encode_taxa()
         if not self._valid_text_features(features, len(self._active_taxa)):
@@ -542,6 +533,21 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                 with suppress(OSError):
                     temporary.unlink(missing_ok=True)
         return features
+
+    def _read_text_cache(self, path: Path, expected_metadata: dict) -> Any:
+        if path.is_file():
+            try:
+                cached = self._torch.load(path, map_location="cpu", weights_only=True)
+                if (
+                    isinstance(cached, dict)
+                    and cached.get("metadata") == expected_metadata
+                    and self._valid_text_features(cached.get("features"), len(self._active_taxa))
+                ):
+                    return cached["features"]
+                LOGGER.warning("ignoring incompatible BioCLIP text feature cache")
+            except Exception:
+                LOGGER.warning("failed to load BioCLIP text feature cache", exc_info=True)
+        return None
 
     def _valid_text_features(self, features: Any, rows: int) -> bool:
         return bool(

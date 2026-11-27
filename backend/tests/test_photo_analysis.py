@@ -62,6 +62,19 @@ def test_photo_analysis_without_classifier(jpeg_bytes) -> None:
     assert body["subjects"][0]["state"] == "unknown"
 
 
+def test_photo_rejects_busy_realtime_device(jpeg_bytes) -> None:
+    with TestClient(create_app(photo_settings())) as client:
+        slots = client.app.state.sessions._inference_slots
+        client.portal.call(slots.acquire)
+        try:
+            result = upload(client, jpeg_bytes)
+            assert result.status_code == 429
+            assert result.json()["error"]["code"] == "VISION_BUSY"
+        finally:
+            client.portal.call(slots.release)
+        assert upload(client, jpeg_bytes).status_code == 200
+
+
 def test_photo_analysis_without_detections(jpeg_bytes) -> None:
     app = create_app(photo_settings())
     with TestClient(app) as client:

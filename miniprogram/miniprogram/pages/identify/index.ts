@@ -16,6 +16,7 @@ import { RecognitionResult, RecognitionError, startRecognition } from '../../ser
 import {recognitionAvailable,recognizeWithProvider} from '../../services/recognition-provider';
 import {startAudioRecognition} from '../../services/audio-network';
 import { connectVision, photoBytes, photoTransport } from '../../services/vision-network';
+import { FrameCapacityError, reclaimFrames, storeFrame } from '../../services/frame-cache';
 import { LiveVision, LiveFrame, LiveTrack, frozenResult, overlay } from '../../services/vision-live';
 import { readPhotoMetadata, historicalFields } from '../../services/photo-context';
 import {compareBirds} from '../../services/field-guide';
@@ -57,11 +58,16 @@ Page({
   _suppressTap:false,
   _holding:false,
   _audioCapture:null as SpeechCapture|null,
-  onLoad(){this._recovery=new RecoveryFrames<LiveFrame>();const box=layout();let zoomProfile='default';try{zoomProfile=cameraZoomProfile(wx.getDeviceInfo?.());}catch{/* Some simulator versions do not expose device info. */}this.setData({height:box.height,cameraShort:box.height<520,zoomProfile,zoomWidth:Math.max(180,box.width-24)});this._camera=wx.createCameraContext();this.updateZoomView(1);},
+  onLoad(){
+    reclaimFrames([]);
+    this._recovery=new RecoveryFrames<LiveFrame>();
+    const box=layout();let zoomProfile='default';try{zoomProfile=cameraZoomProfile(wx.getDeviceInfo?.());}catch{/* Some simulator versions do not expose device info. */}this.setData({height:box.height,cameraShort:box.height<520,zoomProfile,zoomWidth:Math.max(180,box.width-24)});this._camera=wx.createCameraContext();this.updateZoomView(1);},
   onResize(){this.clearTracks();if(this.data.liveActive)wx.createSelectorQuery().in(this).select('.viewfinder').boundingClientRect(result=>{if(result&& !Array.isArray(result))this._viewport=result;}).exec();const box=layout();this.setData({height:box.height,cameraShort:box.height<520,zoomWidth:Math.max(180,box.width-24)});this.updateZoomView(this.data.zoom);},
   onShow() { this._visible=true;const reviewId=takeObservationReview();if(reviewId)this.restoreObservation(reviewId);this.setData({pageVisible:true,today:beijingDate()});selectTab(this, 2);if(this.data.view==='live'){this.setData({paused:false});this.updateZoomView(this.data.zoom);} },
   onHide(){this._recovery?.clear();this.setData({recoveryCount:0});this._visible=false;this.cancelCaptureAnalysis();this.releaseCapture();this._player?.stop();this._clueStart=null;this.stopVision();this.cancelAnalysis();this.resetZoomRequests();this.setData({pageVisible:false,cameraReady:false,recording:false,audioRecording:false,paused:true});this.updateZoomView(this.data.zoom);},
-  onUnload() { this._recovery?.clear();this._unloaded=true;this._visible=false;this.cancelCaptureAnalysis();this.releaseCapture();this._player?.stop();this._audioCapture?.dispose();this._metadataGeneration++;this.stopVision();this.cancelAnalysis();this.resetZoomRequests();this._clueMeasureGeneration++;this._pickToken++;this._holding=false;clearTimeout(this._holdTimer);clearInterval(this._recordTimer); },
+  onUnload() {
+    if (!this.data.busy) reclaimFrames([]);
+    this._recovery?.clear();this._unloaded=true;this._visible=false;this.cancelCaptureAnalysis();this.releaseCapture();this._player?.stop();this._audioCapture?.dispose();this._metadataGeneration++;this.stopVision();this.cancelAnalysis();this.resetZoomRequests();this._clueMeasureGeneration++;this._pickToken++;this._holding=false;clearTimeout(this._holdTimer);clearInterval(this._recordTimer); },
   restoreObservation(id:string){
     try{const record=localRepository().list().find(item=>item.id===id);if(!record)return;
       let asset=this.data.assets.find(item=>item.observationId===id);
@@ -249,7 +255,9 @@ Page({
   review(){this.releaseCapture();this.cancelAnalysis();this.stopVision();this.resetZoomRequests();this.setData({view:'review',paused:true,cameraReady:false,error:''});this.updateZoomView(this.data.zoom);resetPageScroll(this);},
   selectEvidence(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.batching)return;this.cancelAnalysis();this.activateEvidence(String(e.currentTarget.dataset.id));},
   activateEvidence(id:string){this._player?.stop();const a=this.data.assets.find(item=>item.id===id);if(!a)return;this.retainReviewDraft();this.setData({currentName:a.name,analysis:a.analysis||null,isSample:a.sample,latitude:a.latitude||'',longitude:a.longitude||'',currentId:a.id,fileMetadata:a.fileMetadata||null,imagePath:a.path,mediaKind:a.kind,source:a.source,persisted:a.persisted,albumStatus:a.album,birdName:a.birdName||'',notes:a.notes||'',observedDate:a.observedDate||'',observedTime:a.observedTime||'',placeName:a.placeName||'',error:''});},
-  removeEvidence(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.batching)return;const id=String(e.currentTarget.dataset.id);if(this.data.currentId===id){this._player?.stop();this.cancelAnalysis();}this.setData({assets:this.data.assets.filter(a=>a.id!==id),...(this.data.currentId===id?{currentId:'',fileMetadata:null,imagePath:'',birdName:'',notes:'',observedDate:'',observedTime:'',placeName:'',contextOpen:false,albumStatus:'',persisted:false,error:''}:{})});},
+  removeEvidence(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.batching)return;const id=String(e.currentTarget.dataset.id);if(this.data.currentId===id){this._player?.stop();this.cancelAnalysis();}this.setData({assets:this.data.assets.filter(a=>a.id!==id),...(this.data.currentId===id?{currentId:'',fileMetadata:null,imagePath:'',birdName:'',notes:'',observedDate:'',observedTime:'',placeName:'',contextOpen:false,albumStatus:'',persisted:false,error:''}:{})});
+    reclaimFrames(this.data.assets.map(asset => asset.path));
+  },
   cancelAnalysis(){
     this._batchGeneration++;
     if(this.data.batching){const assets=this.data.assets.map(a=>a.status==='识别中'?{...a,status:'已取消，可重试'}:a);this.setData({batching:false,batchProgress:'已取消；已完成的结果保留',assets});}
@@ -419,18 +427,17 @@ Page({
   },
   keepFrame(){if(this._frame&&this.data.liveActive)this.retainFrame(this._frame);},
   retainFrame(frame:LiveFrame){
-    const suffix=new Uint8Array(frame.image)[0]===137?'png':'jpg';
-    const path=wx.env.USER_DATA_PATH+'/vision-'+Date.now()+'.'+suffix;
     try {
-      wx.getFileSystemManager().writeFileSync(path,frame.image);
       const result=frozenResult(frame);
+      const path=storeFrame(frame.image,this.data.assets.map(asset => asset.path));
       const asset=this.addEvidence(path,'photo','camera',result.example);
       this.attachFrameLocation(asset,frame);asset.persisted=true;asset.analysis=result;asset.album='已保留分析帧 · 非原图快门';
       asset.observedDate=beijingDate(frame.capturedAt);
       asset.observedTime=new Date(Date.parse(frame.capturedAt)+8*3600000).toISOString().slice(11,16);
       this.setData({analysis:result,persisted:true,albumStatus:asset.album,observedDate:asset.observedDate,observedTime:asset.observedTime});
       this.review();
-    } catch {this.setData({error:'识别帧保存失败，请检查本机空间。'});}
+      if(!result.example&&result.subjects.some(subject=>subject.state==='unknown'))void this.analyse();
+    } catch (error) {this.setData({error:error instanceof FrameCapacityError ? error.message : '识别帧保存失败，请检查本机空间。'});}
   },
   shutterStart(){if(this.data.paused||this.data.busy)return;this._holding=true;this._suppressTap=false;this._holdTimer=setTimeout(()=>{this._suppressTap=true;this.startVideo();},380);},
   shutterEnd(){this._holding=false;clearTimeout(this._holdTimer);if(this.data.recording){this._suppressTap=true;this.stopVideo();}},

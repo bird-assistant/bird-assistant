@@ -81,7 +81,9 @@ export function sendImage(connection:VisionConnection,path:string,field:'frame'|
   const head=ascii(prefix),tail=ascii('\r\n--'+boundary+'--\r\n');
   const body=new Uint8Array(head.length+bytes.length+tail.length);
   body.set(head);body.set(bytes,head.length);body.set(tail,head.length+bytes.length);
-  return wx.request({url:connection.origin+path,method:'POST',header:{...connection.header,'Content-Type':'multipart/form-data; boundary='+boundary},
+  const header={...connection.header,'Content-Type':'multipart/form-data; boundary='+boundary};
+  if(field==='image')Object.assign(header,{'X-Bird-Photo-Review':'1'});
+  return wx.request({url:connection.origin+path,method:'POST',header,
     data:body.buffer,timeout:field==='file'?60000:45000,dataType:'text',success:res=>{
       if(res.statusCode===401) cached=undefined;
       success({statusCode:res.statusCode,data:String(res.data),header:res.header});
@@ -95,11 +97,18 @@ export async function photoBytes(path:string):Promise<ArrayBuffer> {
     const compressed=await wx.compressImage({src:path,quality,
       compressedWidth:Math.max(1,Math.floor(info.width*scale)),
       compressedHeight:Math.max(1,Math.floor(info.height*scale))});
-    const image=await new Promise<ArrayBuffer>((resolve,reject)=>wx.getFileSystemManager().readFile({
-      filePath:compressed.tempFilePath,
-      success:res=>typeof res.data==='string'?reject(new Error('图片读取失败，请重新选择。')):resolve(res.data),
-      fail:()=>reject(new Error('图片读取失败，请重新选择。'))}));
-    if(image.byteLength<=6*1024*1024)return image;
+    const files=wx.getFileSystemManager();
+    try {
+      const image=await new Promise<ArrayBuffer>((resolve,reject)=>files.readFile({
+        filePath:compressed.tempFilePath,
+        success:res=>typeof res.data==='string'?reject(new Error('图片读取失败，请重新选择。')):resolve(res.data),
+        fail:()=>reject(new Error('图片读取失败，请重新选择。'))}));
+      if(image.byteLength<=6*1024*1024)return image;
+    } finally {
+      if(compressed.tempFilePath && compressed.tempFilePath!==path){
+        try { files.unlinkSync(compressed.tempFilePath); } catch {}
+      }
+    }
   }
   throw new Error('图片过大，请裁剪后重试。');
 }

@@ -4,6 +4,7 @@ import asyncio
 import csv
 import importlib
 import json
+import subprocess
 import sys
 import zipfile
 from argparse import Namespace
@@ -19,6 +20,21 @@ from bird_vision.inference.detectors import MockDetector
 from bird_vision.inference.species import MockSpeciesProvider
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+
+
+def test_vision_device_guard_latches_only_native_bus_error(tmp_path):
+    guard = SCRIPTS.parent / "deploy/course/vision-device-guard.sh"
+    marker = tmp_path / "cpu-marker"
+    command = ["bash", str(guard), str(marker), "bash", "-c"]
+    assert subprocess.run([*command, "exit 23"]).returncode == 23
+    assert not marker.exists()
+    probe = (
+        "if [[ ${BIRD_VISION_DEVICE:-} != cpu ]]; then ulimit -c 0; kill -BUS $$; fi; "
+        'echo "$BIRD_VISION_SPECIES_PRECISION"'
+    )
+    for _ in range(2):
+        assert subprocess.check_output([*command, probe], text=True).strip() == "fp32"
+        assert marker.is_file()
 
 
 @pytest.fixture

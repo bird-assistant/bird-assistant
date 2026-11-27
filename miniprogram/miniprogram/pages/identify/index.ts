@@ -343,6 +343,7 @@ Page({
       asset.observedTime=new Date(Date.parse(frame.capturedAt)+8*3600000).toISOString().slice(11,16);
       this.setData({analysis:result,persisted:true,albumStatus:asset.album,observedDate:asset.observedDate,observedTime:asset.observedTime});
       this.review();
+      if(!result.example&&result.subjects.some(subject=>subject.state==='unknown'))void this.analyse();
     } catch {this.setData({error:'识别帧保存失败，请检查本机空间。'});}
   },
   shutterStart(){if(this.data.paused||this.data.busy)return;this._holding=true;this._suppressTap=false;this._holdTimer=setTimeout(()=>{this._suppressTap=true;this.startVideo();},380);},

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -49,8 +48,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.metrics = metrics
             app.state.sessions = sessions
             app.state.auth = VisionAuth(resolved)
-            # One-shot photo analyses share the single GPU slot with the pipeline.
-            app.state.photo_slots = asyncio.Semaphore(resolved.max_concurrent_inference)
             LOGGER.info("inference service ready")
             yield
         finally:

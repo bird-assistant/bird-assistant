@@ -5,6 +5,7 @@ import math
 import time
 import uuid
 from datetime import UTC, datetime
+from functools import partial
 from threading import Lock
 from typing import Annotated, Literal
 
@@ -232,8 +233,8 @@ async def create_photo_analysis(
     )
     data = await image.read()
     decoded, decode_ms = decode_image(data, image.content_type, settings)
-    async with request.app.state.photo_slots:
-        result = await asyncio.to_thread(
+    with decoded:
+        work = partial(
             analyze_photo,
             image=decoded,
             settings=settings,
@@ -245,6 +246,7 @@ async def create_photo_analysis(
             decode_ms=decode_ms,
             context=context,
         )
+        result = await request.app.state.sessions.run_photo(work)
     if principal.subject.startswith("mobile:"):
         details = result.model.details
         result.model.details = {

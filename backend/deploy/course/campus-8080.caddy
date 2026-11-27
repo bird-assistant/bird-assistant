@@ -28,6 +28,13 @@ api.auroraliu.cn:8080, api.auroraliu.cn {
 		import /etc/caddy/bird-gpu-upstream.caddy
 	}
 	@vision path /api/v1/vision/analyses /api/v1/vision/sessions /api/v1/vision/sessions/*
+	@review {
+		path /api/v1/vision/analyses
+		header X-Bird-Photo-Review 1
+	}
+	handle @review {
+		reverse_proxy 127.0.0.1:8210
+	}
 	handle @vision {
 		import /etc/caddy/bird-gpu-upstream.caddy
 	}

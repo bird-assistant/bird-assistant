@@ -76,7 +76,9 @@ export function sendImage(connection:VisionConnection,path:string,field:'frame'|
   const head=ascii(prefix),tail=ascii('\r\n--'+boundary+'--\r\n');
   const body=new Uint8Array(head.length+bytes.length+tail.length);
   body.set(head);body.set(bytes,head.length);body.set(tail,head.length+bytes.length);
-  return wx.request({url:connection.origin+path,method:'POST',header:{...connection.header,'Content-Type':'multipart/form-data; boundary='+boundary},
+  const header={...connection.header,'Content-Type':'multipart/form-data; boundary='+boundary};
+  if(field==='image')Object.assign(header,{'X-Bird-Photo-Review':'1'});
+  return wx.request({url:connection.origin+path,method:'POST',header,
     data:body.buffer,timeout:field==='file'?60000:45000,dataType:'text',success:res=>{
       if(res.statusCode===401) cached=undefined;
       success({statusCode:res.statusCode,data:String(res.data),header:res.header});

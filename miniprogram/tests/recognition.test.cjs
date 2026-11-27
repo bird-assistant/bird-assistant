@@ -26,6 +26,17 @@ test('unknown recognition is a valid result and unmapped audio names do not fabr
   const c=parseRecognitionResult(JSON.stringify(value),'audio').candidates[0];assert.equal(c.speciesId,null);assert.equal(c.mapped,false);
 });
 
+test('Dongniao photo confidence retains its source and unmapped names have no catalog ID',()=>{
+  const raw=copy(fixtures.photo);
+  raw.model.backend='dongniao';raw.policy.score_type='dongniao_confidence';
+  for(const candidate of [...raw.candidates,...raw.subjects[0].candidates]){
+    Object.assign(candidate,{score_type:'dongniao_confidence',score:0.8667,species_id:null,mapped:false});
+  }
+  const result=parseRecognitionResult(JSON.stringify(raw),'photo');
+  assert.equal(result.example,false);assert.equal(result.candidates[0].mapped,false);
+  assert.equal(result.subjects[0].candidates[0].scoreText,'懂鸟 86.7%');
+});
+
 test('wrong references, malformed scores, score types, duplicate targets and invalid boxes are rejected',()=>{
   const reject=(value,kind='audio',reference)=>assert.throws(()=>parseRecognitionResult(JSON.stringify(value),kind,reference),e=>e.code==='INVALID_RESPONSE');
   reject(fixtures.audio,'audio','other-material');

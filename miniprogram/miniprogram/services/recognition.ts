@@ -2,7 +2,7 @@ export type RecognitionKind = 'photo' | 'audio';
 export type RecognitionState = 'candidate' | 'unknown';
 export interface RecognitionCandidate {
   rank:number; speciesId:string|null; scientificName:string; name:string;
-  score:number; scoreType:'relative_similarity'|'birdnet_confidence'|'mock';
+  score:number; scoreType:'relative_similarity'|'dongniao_confidence'|'birdnet_confidence'|'mock';
   scoreText:string; mapped:boolean;
 }
 export interface RecognitionSubject {
@@ -56,15 +56,16 @@ function candidates(value:unknown,kind:RecognitionKind):RecognitionCandidate[] {
     let scoreType:RecognitionCandidate['scoreType'];
     if(c.score_type==='mock')scoreType='mock';
     else if(kind==='photo'&&c.score_type==='relative_similarity')scoreType='relative_similarity';
+    else if(kind==='photo'&&c.score_type==='dongniao_confidence')scoreType='dongniao_confidence';
     else if(kind==='audio'&&c.score_type==='birdnet_confidence')scoreType='birdnet_confidence';
     else return invalid();
     const scientificName=text(c.scientific_name),speciesId=optionalText(c.species_id)||null;
-    if(kind==='photo'&&!speciesId)return invalid();
+    if(kind==='photo'&&!speciesId&&scoreType!=='dongniao_confidence')return invalid();
     if(kind==='audio'&&typeof c.mapped!=='boolean')return invalid();
     const score=number(c.score,0,1);
     // Keep the backend score separately; display two decimals without calling it a probability.
     return {rank:order,speciesId,scientificName,name:optionalText(c.common_name_zh)||optionalText(c.common_name_en)||scientificName,
-      score,scoreType,scoreText:score.toFixed(2),mapped:kind==='photo'||c.mapped===true};
+      score,scoreType,scoreText:scoreType==='dongniao_confidence'?`懂鸟 ${(score*100).toFixed(1)}%`:score.toFixed(2),mapped:kind==='photo'?!!speciesId:c.mapped===true};
   });
 }
 export function trackCandidates(value:unknown):RecognitionCandidate[] {

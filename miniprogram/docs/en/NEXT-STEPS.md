@@ -1,3 +1,17 @@
+# Current candidate — 0.4.16 interaction follow-up
+
+28 November 2026, Beijing time. [Changes, deployment contracts and focused native acceptance](INTERACTION-0.4.16.md). All original 48 backlog IDs and R01–R64 below remain; this revision adds R65–R74. The previous 0.4.15 records below are historical.
+
+App-styled map/journal choices and a range calendar; ripple location feedback; balanced trip controls; thicker green→white journal glow, closed/open bin, staged cloud/bin departure and fade return; adaptive sharing; same-feed forum tabs with sliding selection, anchored reaction icons and explicit identification voting/withdrawal. My/profile links select the matching feed tab. Home map now exposes 收藏地点, a local bookmark, not a check-in. Cache cleanup still preserves original work.
+
+**391 client tests pass; 22 WXML/24 WXSS compile. Backend:509 passed/53 skipped,86.78% coverage.660 browser layout cases across30 supplied/custom sizes fit, with no blocked armed cards.** Browser projection, fake-time idle soak and the older bundled template compilers do not prove native WeChat touch/FPS or current DevTools full Compile. Test Pura70Pro+ and the friend's phone before uploading.
+
+R71 addresses missing bridge callbacks, excessive fallback polling and lost gesture states; the user's complete idle-freeze root cause remains open under R34 pending native evidence. R73 requires deploying DELETE identification/vote plus enriched mine/bookmarks responses; an old404/405 preserves the vote and explains the deployment gap. Writing still404/404 at02:31:36 Beijing; the active HTTPS business/proxy needs updating. The Windows helper is DevTools-only and stays running. No secrets/passwords were changed and no production deployment, team merge or experience upload was performed.
+
+Use the [canonical English Windows update commands](https://github.com/NoctisBaguette/bird-assistant-miniprogram/blob/main/docs/NEXT-STEPS.md). Keep the candidate branch, AppID and local data; run npm ci, setup, verify, then full Compile. See R65–R74 in the revision handoff for exact scope and remaining checks.
+
+---
+
 # Current candidate — 0.4.15 interaction and profile revision
 
 R64: repaired the identify zoom binding that broke Compile; mandatory strict WXML validation and bundled WeChat WCC/WCSC now compile20 WXML/22 WXSS. The earlier360-test green result missed this defect. Run npm ci before verify; still complete full DevTools Compile.

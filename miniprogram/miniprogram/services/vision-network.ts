@@ -1,4 +1,5 @@
 import { RecognitionResponse, RecognitionTransport, recognitionFailure } from './recognition';
+import {nativeDeadline} from './native-deadline';
 
 export const VISION_ORIGIN = 'https://api.auroraliu.cn:8080';
 export const LOCAL_VISION_SETTING = 'bird-assistant.vision.devtools-local.v1';
@@ -17,7 +18,7 @@ function endpoint():string {
 }
 
 function requestJson(url:string, method:'POST'|'DELETE', header:Record<string,string>, data?:object):Promise<any> {
-  return new Promise((resolve,reject)=>wx.request({url,method,header,data,timeout:15000,
+  return nativeDeadline((resolve,reject)=>wx.request({url,method,header,data,timeout:15000,
     success:res=>{
       if(res.statusCode>=200 && res.statusCode<300) return resolve(res.data);
       if(res.statusCode===401) cached=undefined;
@@ -25,7 +26,7 @@ function requestJson(url:string, method:'POST'|'DELETE', header:Record<string,st
     }, fail:error=>reject(new Error(/domain list|不在.*合法域名/i.test(error.errMsg)
       ? '微信阻止了服务请求，请检查小程序的服务器域名配置。'
       : url.startsWith('http://127.0.0.1:') ? '本机视觉联调未连接，请检查开发隧道是否已启动。'
-      : '视觉服务连接失败，原素材仍保留，请检查网络后重试。'))}));
+      : '视觉服务连接失败，原素材仍保留，请检查网络后重试。'))}),17000,'服务授权响应超时，请重试。');
 }
 
 async function login(origin:string):Promise<VisionConnection> {
@@ -33,8 +34,8 @@ async function login(origin:string):Promise<VisionConnection> {
   if(origin===LOOPBACK){
     reply=await requestJson('http://127.0.0.1:18001/login','POST',{'X-Bird-DevTools':'vision'});
   }else{
-    const code=await new Promise<string>((resolve,reject)=>wx.login({timeout:10000,
-      success:value=>resolve(value.code),fail:()=>reject(new Error('微信登录失败，请重试。'))}));
+    const code=await nativeDeadline<string>((resolve,reject)=>{wx.login({timeout:10000,
+      success:value=>resolve(value.code),fail:()=>reject(new Error('微信登录失败，请重试。'))});},12000,'微信登录响应超时，请重试。');
     reply=await requestJson(origin+'/api/v1/vision/auth/wechat','POST',{}, {code});
   }
   if(typeof reply?.access_token!=='string'||!Number.isFinite(reply.expires_in)||reply.expires_in<=0) throw new Error('视觉服务授权失败。');

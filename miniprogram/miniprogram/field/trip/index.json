@@ -1,1 +1,8 @@
-{"navigationStyle":"default","navigationBarTitleText":"观鸟出行顾问"}
+{
+  "navigationStyle": "default",
+  "navigationBarTitleText": "观鸟出行顾问",
+  "usingComponents": {
+    "choice-sheet": "/components/choice-sheet/index",
+    "date-calendar": "/components/date-calendar/index"
+  }
+}

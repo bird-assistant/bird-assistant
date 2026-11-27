@@ -58,7 +58,7 @@ test('a visible map observes zoom-only API changes, releases its native surface 
   t.mock.timers.enable({apis:['setTimeout']});let scale=8;const queries=[];
   t.mock.method(service,'api',async(_p,_m,q)=>{queries.push(q);return {total:0,clusters:[]};});
   const {instance,definition}=map(t,{getRegion:o=>o.success({southwest:{latitude:39,longitude:115},northeast:{latitude:41,longitude:117}}),getScale:o=>o.success({scale})});await instance.load();instance.watchViewport();
-  scale=12;t.mock.timers.tick(240);await settle();assert.equal(queries.at(-1).zoom,12);
+  scale=12;t.mock.timers.tick(2500);await settle();assert.equal(queries.at(-1).zoom,12);
   definition.pageLifetimes.hide.call(instance);assert.equal(instance.data.nativeActive,false);const before=queries.length;t.mock.timers.tick(5000);await settle();assert.equal(queries.length,before);
   definition.pageLifetimes.show.call(instance);await settle();assert.equal(instance.data.nativeActive,true);assert.equal(queries.length,before+1);
 });

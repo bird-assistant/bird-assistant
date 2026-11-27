@@ -135,8 +135,8 @@ test('paper gestures arm after one second, resist short drags, cancel sideways a
  const e=environment(),p=page('pages/journal');p.onLoad();const d=model.makeJournal(assets(1),'Paper');e.values.set(model.JOURNAL_KEY,[d]);p.data.libraryRows=[{id:d.id}];const actions=[];p.shareJournal=()=>actions.push('share');p.deleteJournal=()=>actions.push('confirm-delete');
  p.deckTouchStart(touch(d.id));t.mock.timers.tick(999);assert.equal(p.data.paperArmedId,'');p.deckTouchEnd();assert.deepEqual(actions,[]);
  p.deckTouchStart(touch(d.id));t.mock.timers.tick(1000);assert.equal(p.data.paperArmedId,d.id);p.deckTouchMove(touch(d.id,50,110));p.deckTouchEnd();assert.deepEqual(actions,[]);assert.equal(p.data.paperArmedId,d.id);
- p.deckTouchStart(touch(d.id));p.deckTouchMove(touch(d.id,50,-50));assert.equal(p._paperLatest.action,'share');assert.deepEqual(actions,[]);p.deckTouchEnd();assert.deepEqual(actions,['share']);
- p.deckTouchStart(touch(d.id));t.mock.timers.tick(1000);p.deckTouchMove(touch(d.id,50,450));p.deckTouchEnd();assert.deepEqual(actions,['share','confirm-delete']);assert.equal(model.readJournals().length,1);
+ p.deckTouchStart(touch(d.id));p.deckTouchMove(touch(d.id,50,-50));assert.equal(p._paperLatest.action,'share');assert.deepEqual(actions,[]);p.deckTouchEnd();assert.deepEqual(actions,[]);t.mock.timers.tick(360);assert.deepEqual(actions,['share']);p.closePaperAction();
+ p.deckTouchStart(touch(d.id));t.mock.timers.tick(1000);p.deckTouchMove(touch(d.id,50,450));p.deckTouchEnd();t.mock.timers.tick(360);assert.deepEqual(actions,['share','confirm-delete']);p.closePaperAction();assert.equal(model.readJournals().length,1);
  p.deckTouchStart(touch(d.id));t.mock.timers.tick(1000);p.deckTouchMove(touch(d.id,200,205));assert.equal(p.data.paperArmedId,'');p.deckTouchEnd();assert.equal(actions.length,2);p.onUnload();
 });
 

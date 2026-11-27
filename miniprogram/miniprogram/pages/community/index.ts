@@ -9,20 +9,21 @@ import {journalDateTime} from '../../services/journal-library';
 import {readJournals,JournalDocument} from '../../services/journal-model';
 import {getCanvas,exportCanvas} from '../../services/canvas';
 import {renderJournal} from '../../services/journal-render';
-import {api,community,hub,imageUrl,setCompose} from '../../services/community';
+import {api,community,hub,imageUrl,setCompose,takeForumTab} from '../../services/community';
 import {cleanPhotoDetails,PhotoDetails} from '../../services/photo-details';
 import {layout} from '../../services/layout';
 import {forumPost} from '../../services/forum';
 import { selectTab,syncNavigation } from '../../services/tabs';
 import { errorText } from '../../services/media';
-import { resetPageScroll } from '../../services/navigation';
+import { navigate,resetPageScroll } from '../../services/navigation';
 import { postWritingBrief, POST_WRITING_PURPOSES } from '../../services/post-writing';
 import {startJournalAi,journalAiAvailable,JournalAiSuggestion} from '../../services/journal-ai';
 import {teamWritingTransport} from '../../services/writing-network';
 const reactionSets=new WeakMap<object,Set<string>>();
 function reactions(page:object){let active=reactionSets.get(page);if(!active){active=new Set();reactionSets.set(page,active);}return active;}
 Page({
-  data:{sheetHeights:{} as Record<string,number>,draftId:'',draftStatus:'',draftRows:[] as Array<{id:string;title:string;excerpt:string;date:string;created:string;modified:string;count:number;missing:number;cover:string}>,draftCount:0,latestDraftId:'',latestDraftTitle:'',writingPhotoIds:[] as string[],writingPhotos:[] as Array<{id:string;path:string;label:string;selected:boolean}>,writingPhotoCount:0,writingHistoryOpen:false,writingHistory:[] as ReturnType<typeof readWritingHistory>,writingHistoryNotice:'',writingVoice:false,writingSpeechApplied:'',activeMetadata:null as LocalPhotoMetadata|null,attachments:[] as PostImage[],activeAttachment:'',activeKind:'photo',journalPicker:false,journalChoices:[] as Array<{id:string;title:string;cover:string;selected:boolean}>,journalChosen:0,mediaLimit:POST_IMAGE_LIMIT,journalLimit:POST_JOURNAL_LIMIT,picking:false,feedHeight:600,refreshing:false,pullReady:false,pullProgress:0,manualCamera:{} as PhotoDetails,moreOpen:false,moreItems:[{id:'library',label:'鸟种资料库',icon:'journal',hint:'查阅与对比'},{id:'external',label:'外部鸟讯',icon:'pin',hint:'发现公开观察'},{id:'friends',label:'找鸟友',icon:'user',hint:'认识同行的人'},{id:'inbox',label:'消息',icon:'chat',hint:'继续一段对话'},{id:'groups',label:'群聊',icon:'leaf',hint:'一起聊聊观鸟'},{id:'draft',label:'本机草稿箱',icon:'image',hint:'查看、编辑与删除'}],feedTotal:0,writingBusy:false,writingSuggestion:null as JournalAiSuggestion|null,remotePosts:[] as any[],feedLoading:false,more:false,view:'feed',title:'',body:'',image:'',error:'',busy:false,writingOpen:false,writingPurposes:POST_WRITING_PURPOSES,writingPurpose:1,writingInstructions:'',writingIncludeImage:false,writingSummary:'',writingError:''},
+  data:{feedTab:'all',feedTabIndex:0,feedScrollTop:0,feedTabs:[{id:'all',name:'最新讨论'},{id:'mine',name:'我的发布'},{id:'bookmarks',name:'我的收藏'}],sheetHeights:{} as Record<string,number>,draftId:'',draftStatus:'',draftRows:[] as Array<{id:string;title:string;excerpt:string;date:string;created:string;modified:string;count:number;missing:number;cover:string}>,draftCount:0,latestDraftId:'',latestDraftTitle:'',writingPhotoIds:[] as string[],writingPhotos:[] as Array<{id:string;path:string;label:string;selected:boolean}>,writingPhotoCount:0,writingHistoryOpen:false,writingHistory:[] as ReturnType<typeof readWritingHistory>,writingHistoryNotice:'',writingVoice:false,writingSpeechApplied:'',activeMetadata:null as LocalPhotoMetadata|null,attachments:[] as PostImage[],activeAttachment:'',activeKind:'photo',journalPicker:false,journalChoices:[] as Array<{id:string;title:string;cover:string;selected:boolean}>,journalChosen:0,mediaLimit:POST_IMAGE_LIMIT,journalLimit:POST_JOURNAL_LIMIT,picking:false,feedHeight:600,refreshing:false,pullReady:false,pullProgress:0,manualCamera:{} as PhotoDetails,moreOpen:false,moreItems:[{id:'library',label:'鸟种资料库',icon:'journal',hint:'查阅与对比'},{id:'external',label:'外部鸟讯',icon:'pin',hint:'发现公开观察'},{id:'friends',label:'找鸟友',icon:'user',hint:'认识同行的人'},{id:'inbox',label:'消息',icon:'chat',hint:'继续一段对话'},{id:'groups',label:'群聊',icon:'leaf',hint:'一起聊聊观鸟'},{id:'draft',label:'本机草稿箱',icon:'image',hint:'查看、编辑与删除'}],feedTotal:0,writingBusy:false,writingSuggestion:null as JournalAiSuggestion|null,remotePosts:[] as any[],feedLoading:false,more:false,view:'feed',title:'',body:'',image:'',error:'',busy:false,writingOpen:false,writingPurposes:POST_WRITING_PURPOSES,writingPurpose:1,writingInstructions:'',writingIncludeImage:false,writingSummary:'',writingError:''},
+  _feedCache:new Map<string,{posts:any[];more:boolean;total:number;top:number}>(),
   _composeGeneration:0,
   _restoringDraft:false,_draftCreatedAt:'',_draftDirty:false,_draftRevision:0,_draftTimer:0 as unknown as ReturnType<typeof setTimeout>,_draftSave:null as Promise<boolean>|null,
   _failedThumbnails:null as Set<string>|null,
@@ -39,18 +40,24 @@ Page({
   async pullRefresh(){if(this.data.refreshing)return;const token=++this._refreshSeq;this.setData({refreshing:true});try{await this.loadFeed(false,true);}finally{if(token===this._refreshSeq)this.setData({refreshing:false,pullReady:false,pullProgress:0});}},
   onHide(){this.cacheCurrentDraft();void this.persistPostDraft(true);this._refreshSeq++;this._visible=false;this._feedSeq++;this.setData({feedLoading:false,refreshing:false,pullReady:false,pullProgress:0,moreOpen:false});this.closeWriting();},onUnload(){stopAdaptiveSheets(this);this.cacheCurrentDraft();clearTimeout(this._draftTimer);void this.persistPostDraft(true);this._composeGeneration++;this._refreshSeq++;this._visible=false;this._feedSeq++;this.closeWriting();reactionSets.delete(this);},
   _writingBrief:null as ReturnType<typeof postWritingBrief>|null,
-  onShow(){this._visible=true;const queuedDraft=takePostDraft();if(queuedDraft)this.loadDraft(queuedDraft);this.refreshDrafts();this.resizeFeed();selectTab(this,3);if(this.data.view==='feed')void this.loadFeed();},
+  onShow(){this._visible=true;const target=takeForumTab(),queuedDraft=takePostDraft();if(target){this.setData({view:'feed'});this.switchFeed({currentTarget:{dataset:{tab:target}}} as unknown as WechatMiniprogram.TouchEvent);}else if(queuedDraft)this.loadDraft(queuedDraft);this.refreshDrafts();this.resizeFeed();selectTab(this,3);if(this.data.view==='feed')void this.loadFeed();},
   async onPullDownRefresh(){try{if(this.data.view==='feed')await this.loadFeed(false,true);}finally{wx.stopPullDownRefresh?.();}},
   onReachBottom(){if(this.data.view==='feed'&&this.data.more)void this.loadFeed(true);},
   async loadFeed(append=false,force=false){
     if(this.data.feedLoading&&!force)return;
     if(force)this._failedThumbnails?.clear();const token=++this._feedSeq,previous=append?this.data.remotePosts:[];this.setData({feedLoading:true,error:''});
-    try{const result=await api(community+'/posts','GET',{limit:30,offset:previous.length});
+    const source=this.data.feedTab;try{const result=await api(community+(source==='mine'?'/mine':source==='bookmarks'?'/bookmarks':'/posts'),'GET',{limit:30,offset:previous.length,...(source==='all'?{}:{channel:'post'})});
       if(token!==this._feedSeq||!this._visible)return;
-      const unique=new Map(previous.map((row:any)=>[row.id,row]));for(const post of result.items)unique.set(post.id,{...forumPost(post),image:imageUrl(post.image),gallery:postGallery(post).map(item=>{const url=imageUrl(item.image);return {...item,image:this._failedThumbnails?.has(post.id+'|'+url)?'':url};})});
-      this.setData({remotePosts:Array.from(unique.values()),feedTotal:result.total??unique.size,more:result.hasMore??result.items.length===30});
+      const unique=new Map(previous.map((row:any)=>[row.id,row]));for(const post of result.items.filter((row:any)=>source==='all'||row.channel==='post'))unique.set(post.id,{...forumPost(post),image:imageUrl(post.image),gallery:postGallery(post).map(item=>{const url=imageUrl(item.image);return {...item,image:this._failedThumbnails?.has(post.id+'|'+url)?'':url};})});
+      this.setData({remotePosts:Array.from(unique.values()),feedTotal:result.total??unique.size,more:result.hasMore??(source==='all'&&result.items.length===30)});
     }catch(error){if(token===this._feedSeq&&this._visible)this.setData({error:errorText(error)});}finally{if(token===this._feedSeq&&this._visible)this.setData({feedLoading:false});}
   },
+  feedScroll(event:WechatMiniprogram.CustomEvent<{scrollTop:number}>){this.data.feedScrollTop=event.detail.scrollTop;},
+  switchFeed(event:WechatMiniprogram.TouchEvent){const tab=String(event.currentTarget.dataset.tab),index=this.data.feedTabs.findIndex(item=>item.id===tab);if(index<0||tab===this.data.feedTab)return;
+    this._feedCache.set(this.data.feedTab,{posts:this.data.remotePosts,more:this.data.more,total:this.data.feedTotal,top:this.data.feedScrollTop});const cached=this._feedCache.get(tab);this._feedSeq++;this.closeMore();
+    this.setData({feedTab:tab,feedTabIndex:index,remotePosts:cached?.posts||[],feedTotal:cached?.total||0,more:cached?.more||false,feedScrollTop:cached?.top||0,feedLoading:false,error:''});void this.loadFeed(false,true);
+  },
+  openPostPoll(event:WechatMiniprogram.TouchEvent){const id=String(event.currentTarget.dataset.id);navigate({url:'/field/hub/index?screen=record&poll=1&id='+encodeURIComponent(id)});},
   refreshFeed(){void this.loadFeed(false,true);},nextPage(){void this.loadFeed(true);},
   patchPost(id:string,patch:Record<string,unknown>){this.setData({remotePosts:this.data.remotePosts.map((row:any)=>row.id===id?{...row,...patch}:row)});},
   async react(event:WechatMiniprogram.TouchEvent){

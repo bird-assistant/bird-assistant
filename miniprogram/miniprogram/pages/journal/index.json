@@ -2,6 +2,8 @@
   "navigationBarTitleText": "手帐",
   "usingComponents": {
     "app-header": "/components/app-header/index",
-    "speech-note": "../../components/speech-note/index"
+    "speech-note": "../../components/speech-note/index",
+    "choice-sheet": "/components/choice-sheet/index",
+    "date-calendar": "/components/date-calendar/index"
   }
 }

@@ -2,6 +2,7 @@
   "navigationBarTitleText": "识别与记录",
   "usingComponents": {
     "bird-crop": "/components/bird-crop/index",
-    "app-header": "/components/app-header/index"
+    "app-header": "/components/app-header/index",
+    "photo-editor": "/components/photo-editor/index"
   }
 }

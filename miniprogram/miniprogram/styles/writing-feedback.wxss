@@ -1,0 +1,14 @@
+.ai-validation,.notice-error{padding:14px 15px;margin:14px 0;border:1px solid #d9a68d;border-left:4px solid #a65e40;border-radius:12px;background:#fff1e8;color:#82462f;font-size:13px;line-height:1.75;overflow-wrap:break-word}
+.ai-validation .strong{margin-bottom:5px;color:#75412d}
+.writing-history-backdrop{position:fixed;inset:0;z-index:180;background:#17352b65}
+.writing-history-sheet{position:fixed;z-index:181;bottom:0;left:0;right:0;height:76vh;border-radius:24px 24px 0 0;background:#fafbf5;overflow:hidden}
+.writing-history-body{padding:14px 18px calc(26px + env(safe-area-inset-bottom));box-sizing:border-box}
+.writing-history-card{padding:16px 14px;border:1px solid #dce5d7;border-radius:14px;background:#fffef9;margin-top:14px}
+.writing-history-card .strong{margin:9px 0;color:#285b49;line-height:1.6}
+.history-prompt{font-size:12px;line-height:1.8;color:#71816c;white-space:pre-wrap;margin:8px 0}
+.history-answer{font-size:14px;line-height:1.85;color:#385444;white-space:pre-wrap;margin:10px 0 14px}
+.writing-history-card .row{gap:12px}.writing-history-card button{flex:1;min-width:0;font-size:12px}
+
+.sheet-header-fixed .ai-history-entry{flex:none;width:76px;max-width:76px;min-height:32px;padding:5px 0;font-size:11px;white-space:nowrap}.sheet-header-fixed .row>.section-title{width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.writing-history-body .empty{padding:18px 14px;min-height:0;font-size:13px;line-height:1.8;margin:12px 0 0}.writing-history-body>.tiny{margin-top:4px}

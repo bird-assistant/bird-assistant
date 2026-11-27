@@ -16,6 +16,6 @@ export function clusterMarker(group:{latitude:number;longitude:number;count:numb
   const cluster=group.count>1||zoom<INDIVIDUAL_PIN_ZOOM;
   return {id:index+1,latitude:group.latitude,longitude:group.longitude,
     iconPath:cluster?'/assets/icons/map-cluster.png':'/assets/icons/pin.png',width:cluster?40:26,height:cluster?40:30,
-    ...(cluster?{anchor:{x:.5,y:.5},label:{content:String(group.count),color:'#ffffff',fontSize:group.count>=10000?10:12,textAlign:'center',anchorX:0,anchorY:-8}}:{}),
+    ...(cluster?{anchor:{x:.5,y:.5}}:{}),
     callout:{content:group.count+' 条',display:'BYCLICK' as const,padding:6,borderRadius:10,color:'#285b49',bgColor:'#fffef9'}};
 }

@@ -41,14 +41,14 @@ test('a photo flips both ways, shows missing metadata feedback and resets when i
   definition.methods.flip.call(card);assert.equal(card.data.flipped,false);
   card.data.flipped=true;definition.observers.src.call(card);assert.equal(card.data.flipped,false);
 });
-test('import dispatch selects the photo independently of the last audio import and never sends an unsupported combined request',async()=>{
+test('import dispatch keeps photo and audio attempts separate, independent of the last previewed asset',async()=>{
   let definition;global.Page=d=>definition=d;global.wx={canIUse:()=>false,pageScrollTo:()=>{}};
   require('../.test-build/pages/identify/index.js');
   const page={data:structuredClone(definition.data),setData(v){Object.assign(this.data,v);}};
   for(const [key,value] of Object.entries(definition))if(key!=='data')page[key]=typeof value==='function'?value.bind(page):structuredClone(value);
-  page.data.view='import';const photo=page.addEvidence('photo.jpg','photo','album'),audio=page.addEvidence('audio.mp3','audio','album');
+  page.data.view='review';const photo=page.addEvidence('photo.jpg','photo','album'),audio=page.addEvidence('audio.mp3','audio','album');
   assert.equal(page.data.currentId,audio.id);assert.equal(photo.selected,true);
   const sent=[];page.analyse=async()=>{sent.push(page.data.currentId);return true;};page.review=()=>page.setData({view:'review'});
-  page.data.importMode='both';await page.sendImported();assert.deepEqual(sent,[]);assert.match(page.data.error,/尚未接入/);assert.equal(page.data.assets.length,2);
-  page.data.importMode='media';page.setData({error:''});await page.sendImported();assert.deepEqual(sent,[photo.id]);assert.equal(page.data.view,'import');assert.match(page.data.batchProgress,/已完成 1/);
+  page.data.importMode='both';await page.analyseSelected();assert.deepEqual(sent,[photo.id,audio.id]);assert.equal(page.data.assets.length,2);assert.equal(page.data.view,'review');
+  sent.length=0;page.data.importMode='media';page.setData({error:''});await page.analyseSelected();assert.deepEqual(sent,[photo.id]);assert.equal(page.data.view,'review');assert.match(page.data.batchProgress,/已完成 1/);
 });

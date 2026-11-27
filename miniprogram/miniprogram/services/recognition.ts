@@ -113,7 +113,7 @@ export function recognitionFailure(response:RecognitionResponse):RecognitionErro
   const retryKey=Object.keys(headers).find(key=>key.toLowerCase()==='retry-after');
   const retryRaw=retryKey?headers[retryKey]:'';
   const retry=/^\d{1,5}$/.test(retryRaw)?Number(retryRaw):null;
-  const message=status===401||status===403?'识别授权不可用，请稍后重新进入或联系管理员。':status===429||status===503?'识别服务繁忙，请稍后手动重试。':ERROR_COPY[code]||'识别未完成，原素材与笔记仍保留，可稍后重试。';
+  const message=status===401||status===403?'识别授权不可用，请稍后重新进入或联系管理员。':status===502||status===504?'识别服务暂不可用（HTTP '+status+'），原素材仍保留，请稍后手动重试。':status===429||status===503?'识别服务繁忙，请稍后手动重试。':ERROR_COPY[code]||'识别未完成，原素材与笔记仍保留，可稍后重试。';
   return new RecognitionError(code,message,requestId,retry);
 }
 export function recognitionUpload(input:RecognitionInput):RecognitionUpload {

@@ -1,3 +1,4 @@
+import {installAdaptiveSheets,fitAdaptiveSheets,stopAdaptiveSheets} from '../../services/adaptive-sheets';
 import { round2 } from '../../services/numbers';
 import { layout } from '../../services/layout';
 import { flightFrame, placeAnchor, MAP_FLIGHT_MS, MapView } from '../../services/map-motion';
@@ -6,13 +7,15 @@ import { places, currentPoint, mapRecords, clamp, markers, offsetFor, centerAt, 
 const tiles=Array.from({length:9},(_,i)=>({id:i,x:(i%3-1)*100,y:(Math.floor(i/3)-1)*100}));
 type Touch = WechatMiniprogram.TouchEvent;
 Page({
-  data: {mapMoving:false,searchFocused:false,screenMarkers:[] as Array<ReturnType<typeof markers>[number]&{screenX:number;screenY:number}>,focusPin:null as {screenX:number;screenY:number}|null,height:600,viewportW:390,sheetHeight:390,tiles,focusPoint:null as {x:number;y:number}|null,selectedMarkerIds:[] as string[],worldW:400,worldH:640,x:0,y:0,zoom:1,invZoom:1,markers:markers(mapRecords,400,640,1),query:'',searchOpen:false,results:places,visibility:0,date:0,species:0,visibilityOptions:['公开与我的','公开鸟讯','我的标记'],dateOptions:['所有示例日期','10月21日'],speciesOptions:['所有鸟种','树麻雀','大山雀','普通翠鸟'],region:'lake',regionName:'湖畔公园',focused:'',sheet:false,detail:null as typeof mapRecords[number]|null,sheetRecords:mapRecords.slice(0,1),saved:false,checked:false },
+  holdSheet(){},
+  data: {sheetHeights:{} as Record<string,number>,mapMoving:false,searchFocused:false,screenMarkers:[] as Array<ReturnType<typeof markers>[number]&{screenX:number;screenY:number}>,focusPin:null as {screenX:number;screenY:number}|null,height:600,viewportW:390,sheetHeight:390,tiles,focusPoint:null as {x:number;y:number}|null,selectedMarkerIds:[] as string[],worldW:400,worldH:640,x:0,y:0,zoom:1,invZoom:1,markers:markers(mapRecords,400,640,1),query:'',searchOpen:false,results:places,visibility:0,date:0,species:0,visibilityOptions:['公开与我的','公开鸟讯','我的标记'],dateOptions:['所有示例日期','10月21日'],speciesOptions:['所有鸟种','树麻雀','大山雀','普通翠鸟'],region:'lake',regionName:'湖畔公园',focused:'',sheet:false,detail:null as typeof mapRecords[number]|null,sheetRecords:mapRecords.slice(0,1),saved:false,checked:false },
   _gesture:null as {x:number;y:number;offsetX:number;offsetY:number;distance:number;zoom:number;moved:boolean}|null,
   _flight:null as {from:MapView;to:MapView;startedAt:number|null}|null,
   _flightTimer:null as ReturnType<typeof setTimeout>|null,
-  onLoad(){const box=layout(),w=Math.max(box.width,box.height*.625);this.setData({height:box.height,viewportW:box.width,sheetHeight:Math.min(420,box.height*.65),worldW:w,worldH:w*1.6});this.updateMap();},
+  onLoad(){installAdaptiveSheets(this,()=>this.data.sheet);const box=layout(),w=Math.max(box.width,box.height*.625);this.setData({height:box.height,viewportW:box.width,sheetHeight:Math.min(420,box.height*.65),worldW:w,worldH:w*1.6});this.updateMap();},
+  onResize(){fitAdaptiveSheets(this);},
   onShow(){this.resetGesture();this.stopFlight();selectTab(this,0);},
-  onHide(){this.resetGesture();this.stopFlight();this.closeSearch();},onUnload(){this.resetGesture();this.stopFlight();},
+  onHide(){this.resetGesture();this.stopFlight();this.closeSearch();},onUnload(){stopAdaptiveSheets(this);this.resetGesture();this.stopFlight();},
   resetGesture(){this._gesture=null;},
   stopFlight(){
     if(this._flightTimer!==null){clearTimeout(this._flightTimer);this._flightTimer=null;}

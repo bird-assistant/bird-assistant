@@ -1,12 +1,13 @@
 <view class="photo-card" style="width:{{width}}px">
-  <view class="photo-stage {{flipped ? 'photo-flipped' : ''}}" style="height:{{height < 220 ? 220 : height}}px" bindtap="flip" aria-label="{{canFlip ? flipped ? '再次轻点返回照片' : '轻点查看拍摄参数' : '照片，未附拍摄参数'}}">
+  <view class="photo-stage {{flipped ? 'photo-flipped' : ''}}" style="height:{{height < 220 ? 220 : height}}px" bindtouchstart="touchStart" bindtouchmove="touchMove" bindtap="tapCard" aria-label="{{canFlip ? flipped ? '拍摄参数，可上下滚动；轻点返回照片' : '轻点查看拍摄参数' : '照片，未附拍摄参数'}}">
     <view class="photo-face photo-front" aria-hidden="{{flipped}}"><image class="photo-image" src="{{src}}" mode="aspectFit" bindload="loaded" binderror="failed"/><view wx:if="{{canFlip}}" class="photo-hint">轻点查看拍摄参数</view></view>
-    <view class="photo-face photo-back" aria-hidden="{{!flipped}}"><image class="photo-watermark" src="{{src}}" mode="aspectFill"/><scroll-view class="photo-data" scroll-y style="height:{{height < 220 ? 220 : height}}px">
+    <view class="photo-face photo-back" aria-hidden="{{!flipped}}"><image class="photo-watermark" src="{{src}}" mode="aspectFill"/><scroll-view class="photo-data" scroll-y catchtap="tapCard" bindscroll="parametersScrolled" style="height:{{height < 220 ? 220 : height}}px">
       <view class="photo-back-heading"><image class="photo-camera" src="/assets/icons/camera.png"/><text>拍摄参数</text></view>
       <block wx:if="{{fileInfo}}"><text class="photo-provenance">{{fileInfo.source}}</text><text class="photo-device">{{fileInfo.title}}</text><text wx:if="{{fileInfo.subtitle}}" class="photo-model">{{fileInfo.subtitle}}</text><view class="photo-parameters"><view wx:for="{{fileInfo.settings}}" wx:key="key" class="photo-parameter"><text class="photo-param-label">{{item.label}}</text><text class="photo-param-value">{{item.value}}</text></view></view></block>
       <block wx:if="{{manualInfo}}"><text class="photo-provenance manual-provenance">作者填写</text><text class="photo-device">{{manualInfo.title}}</text><view class="photo-parameters"><view wx:for="{{manualInfo.settings}}" wx:key="key" class="photo-parameter"><text class="photo-param-label">{{item.label}}</text><text class="photo-param-value">{{item.value}}</text></view></view></block>
-      <text wx:if="{{resolution}}" class="photo-copy">显示副本 · {{resolution}}</text><text class="photo-return">再次轻点返回照片</text>
+      <text wx:if="{{resolution}}" class="photo-copy">显示副本 · {{resolution}}</text>
     </scroll-view></view>
+    <button wx:if="{{flipped}}" class="photo-return" catchtap="flip" aria-label="返回照片">返回照片</button>
   </view>
-  <view class="photo-caption"><text>{{flipped ? '摄影参数' : '照片'}}</text><button class="photo-expand" catchtap="preview" aria-label="放大查看照片">放大查看 <image class="photo-expand-icon" src="/assets/icons/scan.png"/></button></view>
+  <view class="photo-caption {{canSave ? 'photo-caption-save' : ''}}"><text class="photo-caption-label">{{flipped ? '摄影参数' : '照片'}}</text><button wx:if="{{canSave}}" class="photo-expand photo-save" catchtap="save" disabled="{{saving}}" loading="{{saving}}">保存图片</button><button class="photo-expand photo-preview" catchtap="preview" aria-label="放大查看照片">放大查看 <image class="photo-expand-icon" src="/assets/icons/scan.png"/></button></view>
 </view>

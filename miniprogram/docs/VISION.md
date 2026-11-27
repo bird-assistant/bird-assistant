@@ -1,23 +1,62 @@
-# 小程序视觉识别
+# 小程序视觉识别与连接方式
 
-## 在开发者工具里运行
+0.4.7候选 · 2026-11-26 · [English](en/VISION.md) · [验收队列](BACKLOG.md)
 
-在仓库根目录的 WSL 终端运行以下命令，并保持终端开启。脚本使用现有的 `bird-gpu-new` SSH 配置。开发者工具通过本机的 18000 端口访问云端 GPU，通过 18001 获取一小时有效的视觉凭证。
+用户当前0.4.6测试版本保持不变。本说明对应独立评阅候选；0.4.6模拟器默认本机联调的历史行为不由文档修改自动改变。
 
-```sh
-python3 miniprogram/scripts/vision-dev.py
+## 正常使用：公共HTTPS
+
+0.4.7候选的手机和DevTools默认都使用 `https://api.auroraliu.cn:8080`，通过正常微信身份取得短期凭证。用户不需要WSL、GPU SSH别名或个人终端持续运行。实际GPU服务仍由部署维护者常驻运行；客户端切到公网不能修复服务端502。
+
+在现有工程完整编译，或用手机Preview进行验收。公网request/socket域名按[现行部署说明](https://github.com/bird-assistant/bird-assistant/blob/main/backend/deploy/course/README.md)配置，实际HTTPS/WSS请求使用8080。保留原AppID和本机资料。
+
+先在Windows PowerShell检查状态与响应：
+
+```powershell
+curl.exe --noproxy "*" --max-time 15 -i "https://api.auroraliu.cn:8080/api/v1/vision/readyz"
 ```
 
-微信开发者工具导入外层 `miniprogram/`，在“详情 → 本地设置”勾选“不校验合法域名”，编译后打开“识别”。新检出的工程先在该目录执行 `npm ci` 和 `npm run setup`。
+HTTP200且模型ready后再测试识别。Caddy502是视觉上游连接故障，需维护者检查；空响应也必须保留HTTP状态。2026-11-26用户已确认公网502，不能继续引用前一天午间的ready快照作当前证明。该GET不上传照片、不做推理。
 
-- **照片**　进入“相册 / 文件”，选择照片，点击“复核所选素材 → 上传并分析照片”。可以在“观察时间与地点”里确认照片的 EXIF 或手动填写。每个目标单独显示检测框和候选。点击“选用”填写鸟名，最后保存到本机。
-- **实时**　相机就绪后点击“开启实时识别”。展开“画面线索”可以查看各目标的状态、候选分数和范围。点击“保留本帧并复核”保存对应帧与候选。等候模式降低取帧频率。暂停、切换页面或进入后台会释放会话。
-- **连接检查**　在 WSL 执行 `curl --noproxy '*' http://127.0.0.1:18000/readyz`。如 Windows 侧访问超时，在 Clash 中让 `127.0.0.1` 和 `localhost` 直连。云容器重建后可先执行仓库根目录的 `./test-cloud-vision.sh` 同步代码并启动模型。
-- **复测**　在 `miniprogram/` 内执行 `npm run verify`，然后执行 `node scripts/vision-smoke.cjs <测试鸟图.jpg>`。选择已缩放至模型尺寸限制内的照片。该脚本经识别页的 TypeScript 控制器发送照片和帧，使用真实 HTTP 和 WebSocket，模拟相机、编码器和 wx 网络接口。
+- 照片：识别→相册/文件→选择照片→仅照片→开始识别；每份结果独立。也可在素材复核直接点“上传并分析照片”。识别不确定时保留原图/草稿，结果须人工复核。
+- 实时：相机就绪后展开画面线索，点开启；可保留本帧或用高清快门分析。暂停/后台/离页结束会话，等候模式降低频率。
+- 历史照片：时间/地点未知保持未知；可以主动读取原片信息并确认使用，不套用当前定位或天气。
+- 声音/视频：当前音频provider未接入，组合模式上传前明确提示；视频目前私人保留，不宣称已完成推理。
 
-## 手机与体验版
+## 可选开发模式：本机SSH桥
 
-1. 按[课程机 8080 部署说明](../../backend/deploy/course/README.md)启动公网入口、业务和推理服务。课程机保存微信 AppSecret 并签发登录凭证，GPU 验证短期凭证并推理。
-2. 在微信公众平台将 `https://api.auroraliu.cn:8080` 加入 request 合法域名，将 `wss://api.auroraliu.cn` 加入 socket 合法域名。根据实际使用的相机和位置能力完善小程序隐私设置。
-3. 真机默认连接 `https://api.auroraliu.cn:8080`。开发者工具默认连接本机联调服务。使用第三方平台的项目可以通过 `extConfig.visionOrigin` 指定自己的 HTTPS 源地址。
-4. 在手机上验证相机授权、横竖屏检测框、网络重连、切后台再返回，以及拒绝定位时的识别。开发者工具的摄像头不可用时，可以先验证照片链路。
+仅对已有正确SSH配置、需要直接联调GPU的开发者使用。普通验收不要求设置此模式。`bird-gpu-new` 是本机SSH配置别名，不是可猜测的公共DNS；缺少别名/认证时先联系部署维护者，不能照抄另一台机器的凭据。
+
+以下命令均在含package.json的小程序工程根执行（团队仓库的miniprogram目录，或私人客户端仓库根）。WSL终端运行并保持开启：
+
+```bash
+python3 scripts/vision-dev.py
+```
+
+脚本在本机18000转发GPU8000，本机18001提供短期凭证。仅在SSH进程存活且18000就绪后输出“已启动”；失败明确报错并退出。该桥只绑定127.0.0.1。
+
+在DevTools Console显式启用本机模式，然后重新编译：
+
+```javascript
+wx.setStorageSync('bird-assistant.vision.devtools-local.v1', true)
+```
+
+本机HTTP测试需要DevTools“详情→本地设置→不校验合法域名…”；这不是正式发布的域名配置。回到正常公网模式：
+
+```javascript
+wx.removeStorageSync('bird-assistant.vision.devtools-local.v1')
+```
+
+随后重新编译。此选择只在DevTools生效，手机忽略该标志；合法的HTTPS visionOrigin显式配置仍优先。
+
+`node scripts/vision-smoke.cjs <测试鸟图.jpg>` 明确使用本机桥，需先启动桥，且会执行真实推理；它不是普通用户操作，也不能用mock结果宣称实际识别通过。启动器的独立无网络回归可运行：
+
+```bash
+python3 -m unittest discover -s tests -p test_vision_dev.py -v
+```
+
+## 服务端排查与恢复验收
+
+按实际活动Caddy上游决定检查直连或旧机过渡路径，先查课程机18000/readyz和GPU8000/readyz、vision/campus-tunnel监督进程及错误日志。网页/admin/是社区审核工具，不提供这些进程控制。切换配置前验证/备份，沿用团队既有回滚流程，不盲跑历史部署覆盖路由或数据库。
+
+恢复后要求公网readyz200，并在手机Wi-Fi/移动数据、关闭个人WSL后测试实际照片与实时；同时检查GPU实例重启后的服务恢复。模型ready、源码测试和照片正确识别是三类独立证据。

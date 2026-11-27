@@ -18,11 +18,11 @@ export function zoomFromDrag(start:number,deltaX:number,max:number) {
 export function cameraZoomProfile(device:{brand?:string;model?:string}|undefined){
   // A shortcut preference, never a claim that CameraContext selects a lens.
   const name=((device?.brand||'')+' '+(device?.model||'')).replace(/[\s_-]/g,'').toLowerCase();
-  return /pura70pro(?:\+|plus)/.test(name)?'pura70proplus':'default';
+  return /pura70pro(?:\+|plus)/.test(name)?'pura70proplus':/huawei|华为/.test(name)?'huawei':'default';
 }
 export function zoomShortcuts(max:number,profile='default') {
   // Unknown device names still offer 3.5×, without guessing their lens layout.
-  const presets=profile==='pura70proplus'?[1,2,3.5,5,10]:[1,2,3,3.5,5,10];
+  const presets=profile==='pura70proplus'||profile==='huawei'?[1,2,3.5,5,10]:[1,2,3,3.5,5,10];
   const limit=cameraZoomMax(max),values=presets.filter(value=>value<=limit);
   // Give small ranges (for example 1–1.8) a reachable upper endpoint too.
   if(values.length===1&&limit>1)values.push(limit);

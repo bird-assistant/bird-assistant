@@ -59,7 +59,7 @@ test('home touch ownership leaves controls, search and all sheet exits outside t
     if(!tag.endsWith('/>'))stack.push(node);
   }
   assert.equal(stack.length,0);
-  const touchKeys=a=>Object.keys(a).filter(k=>/^(bind|catch)(:)?touch/.test(k));
+  const touchKeys=a=>Object.keys(a).filter(k=>/^(bind|catch)(:)?touch/.test(k)&&!(k==='catchtouchmove'&&a[k]==='holdSheet'));
   const surfaces=nodes.filter(n=>touchKeys(n.attrs).length);assert.equal(surfaces.length,1);assert.equal(surfaces[0].attrs.class,'map-gesture');
   const actions=nodes.filter(n=>['button','input','picker','scroll-view','app-header'].includes(n.tag)||n.attrs.catchtap==='closeSheet');assert.ok(actions.length>=17);
   for(const action of actions)for(const ancestor of [action,...action.parents])assert.equal(touchKeys(ancestor.attrs).length,0,action.tag+' must not be trapped by '+ancestor.attrs.class);
@@ -140,9 +140,12 @@ test('composition changes keep captions with photos and undo restores both; resi
   p.rearrange();assert.equal(photo.x,caption.x);assert.notEqual(photo.x,oldX);p.undo();assert.equal(p.data.doc.elements.find(e=>e.id===photo.id).x,oldX);
   const before=structuredClone(p.data.doc.elements.find(e=>e.id===photo.id));p.dragStart({currentTarget:{dataset:{id:photo.id,resize:'yes'}},touches:[{clientX:50,clientY:50}]});p.dragMove({touches:[{clientX:70,clientY:80}]});p.dragEnd();const resized=p.data.doc.elements.find(e=>e.id===photo.id);assert.ok(resized.w>before.w&&resized.h>before.h);p.undo();assert.deepEqual(p.data.doc.elements.find(e=>e.id===photo.id),before);
 });
-test('AI writing brief includes only explicitly checked photos and sends no network request',t=>{
-  const warnings=[];t.mock.method(console,'warn',(_message,error)=>warnings.push(error));
-  const {p}=page('journal');p.sample();p.generate();p.openAi();for(const image of p.data.aiPhotos.slice(1))p.aiPhoto(tap(image.id));p.prepareAi();assert.match(p.data.bundleSummary,/1 张关联图片/);assert.match(p.data.error,/补充写作要求/);assert.ok(warnings.some(e=>/补充写作要求/.test(e.message)));
+test('photo-only AI waits for Generate and includes only explicitly checked photos',async t=>{
+  const ai=require('../.test-build/services/journal-ai.js');let sent,calls=0;
+  ai.installJournalAiTransport({generate:request=>{calls++;sent=request;return {result:Promise.resolve({version:1,requestId:request.requestId,title:'Observation',body:'Visible details only.',design:{style:'nature',variant:1}}),cancel(){}};}});
+  t.after(()=>ai.installJournalAiTransport(null));
+  const {p}=page('journal');p.sample();p.generate();p.openAi();for(const image of p.data.aiPhotos.slice(1))p.aiPhoto(tap(image.id));
+  assert.equal(calls,0);await p.prepareAi();assert.equal(calls,1);assert.equal(p.data.aiPhotoCount,1);assert.equal(sent.images.length,1);assert.equal(sent.images[0].id,p.data.aiPhotos[0].id);assert.equal(p.data.prompt,'');assert.equal(p.data.error,'');
 });
 test('a failed autosave retains the current journal instead of replacing it',async t=>{
   const warnings=[];t.mock.method(console,'warn',(_message,error)=>warnings.push(error));
@@ -160,7 +163,7 @@ test('autosaved text survives navigation and a fresh page resumes the last opene
   const {p}=page('journal',390,844,extra);p.sample();p.generate();await p.save();const id=p.data.doc.id,text=p.data.doc.elements.find(e=>e.type==='text');p.select(tap(text.id));
   p.text({currentTarget:{dataset:{key:'text'}},detail:{value:'Automatically durable observation'}});p.back();await new Promise(resolve=>setImmediate(resolve));
   assert.equal(p.data.view,'home');assert.equal(p.data.dirty,false);assert.ok(p._past.length>0);assert.equal(storage.get(journal.JOURNAL_KEY).length,1);
-  const fresh=page('journal',390,844,extra).p;fresh.onShow();assert.equal(fresh.data.doc.id,id);fresh.resume();assert.equal(fresh.data.doc.elements.find(e=>e.id===text.id).text,'Automatically durable observation');assert.equal(fresh._past.length,0);assert.equal(fresh.data.dirty,false);
+  const fresh=page('journal',390,844,extra).p;fresh.onShow();assert.equal(fresh.data.doc.id,id);fresh.resume();assert.equal(fresh.data.doc.elements.find(e=>e.id===text.id).text,'Automatically durable observation');assert.ok(fresh._past.length>0,'saved editing history must survive a fresh page');assert.equal(fresh.data.canUndo,true);assert.equal(fresh.data.dirty,false);
   p.onUnload();fresh.onUnload();
 });
 test('background touch dismisses search and keyboard while marker targets are outside the gesture catcher',()=>{
@@ -271,9 +274,9 @@ test('forum writing preparation keeps the draft unchanged and associates only an
 });
 test('forum writing validation rejects empty or impossible polish requests and draft settings survive saving',async()=>{
   const brief=require('../.test-build/services/post-writing.js'),base={title:'',body:'',instructions:'',purpose:1,image:'',includeImage:false};assert.throws(()=>brief.postWritingBrief(base),/先写一点/);assert.throws(()=>brief.postWritingBrief({...base,instructions:'polish',purpose:0}),/已有标题或正文/);
-  let saved;const {p}=page('community',390,844,{setStorageSync:(key,value)=>{if(key==='bird-assistant.post-draft.v1')saved=value;},showToast:()=>{}});p.compose();p.setData({title:'Title',body:'Draft',writingInstructions:'Natural wording',writingPurpose:2});p.saveDraft();await Promise.resolve();assert.equal(saved.body,'Draft');assert.equal(saved.writing.instructions,'Natural wording');assert.equal(p.data.busy,false);
-  const restored=page('community',390,844,{getStorageSync:()=>saved}).p;restored.loadDraft();assert.equal(restored.data.writingPurpose,2);assert.equal(restored.data.writingInstructions,'Natural wording');
-  const legacy=page('community',390,844,{getStorageSync:()=>({title:'Old title',body:'Old draft',image:''})}).p;legacy.loadDraft();assert.equal(legacy.data.body,'Old draft');assert.equal(legacy.data.writingInstructions,'');assert.equal(legacy.data.writingPurpose,1);
+  let saved;const {p}=page('community',390,844,{setStorageSync:(key,value)=>{if(key==='bird-assistant.post-draft.v2')saved=value;},getStorageSync:()=>'',removeStorageSync:()=>{},showToast:()=>{}});p.compose();p.setData({title:'Title',body:'Draft',writingInstructions:'Natural wording',writingPurpose:2});await p.saveDraft();assert.equal(saved.body,'Draft');assert.equal(saved.writing.instructions,'Natural wording');assert.equal(p.data.busy,false);
+  const restored=page('community',390,844,{getStorageSync:key=>key==='bird-assistant.post-draft.v2'?saved:''}).p;restored.loadDraft();assert.equal(restored.data.writingPurpose,2);assert.equal(restored.data.writingInstructions,'Natural wording');
+  const legacy=page('community',390,844,{getStorageSync:key=>key==='bird-assistant.post-draft.v1'?{title:'Old title',body:'Old draft',image:''}:''}).p;legacy.loadDraft();assert.equal(legacy.data.body,'Old draft');assert.equal(legacy.data.writingInstructions,'');assert.equal(legacy.data.writingPurpose,1);
 });
 
 test('free deformation stretches each image axis, preserves the source and exports the same preview',async()=>{

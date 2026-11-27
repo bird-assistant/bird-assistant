@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const service=require('../.test-build/services/community.js');
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
 function page(name,extra={}){
-  global.wx={getWindowInfo:()=>({windowWidth:390,windowHeight:844,screenHeight:844,statusBarHeight:24,safeArea:{bottom:810}}),getMenuButtonBoundingClientRect:()=>({top:30,bottom:62}),createCameraContext:()=>({}),pageScrollTo:()=>{},...extra};
+  global.wx={getStorageSync:()=>'',setStorageSync(){},removeStorageSync(){},nextTick:f=>f(),getWindowInfo:()=>({windowWidth:390,windowHeight:844,screenHeight:844,statusBarHeight:24,safeArea:{bottom:810}}),getMenuButtonBoundingClientRect:()=>({top:30,bottom:62}),createCameraContext:()=>({}),pageScrollTo:()=>{},...extra};
   let definition;global.Page=value=>definition=value;
   const path=require.resolve('../.test-build/pages/'+name+'/index.js');delete require.cache[path];require(path);
   const p={data:structuredClone(definition.data),setData(patch){Object.assign(this.data,patch);}};
@@ -33,7 +33,7 @@ test('vertical zoom gestures reveal and hide the ruler without sending zoom comm
   p.onHide();p.zoomStart(touch(100,120));p.zoomMove(touch(-300,120));p.zoomEnd();assert.equal(requests.length,1);p.onUnload();
 });
 test('the styled forum menu preserves every destination, dismisses on back and hides with the page',t=>{
-  const visits=[];t.mock.method(service,'hub',id=>visits.push(id));const p=page('community');let drafts=0;p.loadDraft=()=>drafts++;
+  const visits=[];t.mock.method(service,'hub',id=>visits.push(id));const p=page('community');let drafts=0;p.openDrafts=()=>drafts++;
   for(const item of p.data.moreItems){p.moreSections();assert.equal(p.data.moreOpen,true);p.moreSection(tap(item.id));assert.equal(p.data.moreOpen,false);}
   assert.deepEqual(visits,['library','external','friends','inbox','groups']);assert.equal(drafts,1);
   p.moreSections();p.back();assert.equal(p.data.moreOpen,false);assert.equal(p.data.view,'feed');

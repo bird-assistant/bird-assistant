@@ -93,7 +93,7 @@ test('the pull header appears during the gesture and a hidden stale refresh cann
 });
 test('optional camera settings survive a durable compose draft and the unchanged old-server preview contract',async t=>{
   const storage=new Map();global.wx={...windowFake(),setStorageSync:(key,value)=>storage.set(key,structuredClone(value)),getStorageSync:key=>storage.get(key)};
-  t.mock.method(service,'hub',()=>{});const p=page('pages/community');p.onLoad();p.data.title='观察';p.data.body='我的笔记';p.data.image='/assets/bird.jpg';p.photoDetails({detail:{device:'Nikon Z8',iso:'1600',focusMode:'AF-C'}});p.saveDraft();await settle();
+  t.mock.method(service,'hub',()=>{});const p=page('pages/community');p.onLoad();p.data.title='观察';p.data.body='我的笔记';p.setImages([require('../.test-build/services/post-media.js').postImage('/assets/bird.jpg')]);p.photoDetails({detail:{device:'Nikon Z8',iso:'1600',focusMode:'AF-C'}});p.saveDraft();await settle();
   const fresh=page('pages/community');fresh.onLoad();fresh.loadDraft();assert.equal(fresh.data.manualCamera.iso,'1600');fresh.publish();
   const h=page('field/hub');h.onLoad({screen:'publish',id:'compose'});h.data.shareCamera=true;
   t.mock.method(service,'uploadPhoto',async()=>({id:'photo',camera:{model:'Nikon Z8',iso:'1600',exposure:'0.0005'}}));

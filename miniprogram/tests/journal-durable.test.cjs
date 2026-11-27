@@ -56,7 +56,7 @@ test('template previews do not mutate the journal, and paper/ratio choices are s
 test('autosave timestamps cannot stale an AI suggestion but a real document edit does',async()=>{
   let resolve;ai.installJournalAiTransport({generate:input=>({result:new Promise(r=>{resolve=()=>r({version:1,requestId:input.requestId,title:'Suggestion',body:'User-provided observation, polished.',design:{style:'nature',variant:2}});}),cancel(){}})});
   try{
-    const {p}=page();p.openDocument(journal.makeJournal(assets(),'Before'),true);p.openAi();p.prompt({detail:{value:'Polish what is visible'}});const pending=p.prepareAi();await p.persistDraft();resolve();await pending;p.applyAi({currentTarget:{dataset:{}}});assert.equal(p.data.doc.title,'Suggestion');assert.equal(p.data.ai,false);p.onUnload();
+    const {p}=page();p.openDocument(journal.makeJournal(assets(),'Before'),true);p.openAi();p.prompt({detail:{value:'Polish what is visible'}});const pending=p.prepareAi();await p.persistDraft();resolve();await pending;p.applyAi({currentTarget:{dataset:{}}});assert.equal(p.data.doc.title,'Before');assert.ok(p.data.doc.elements.some(e=>e.text==='User-provided observation, polished.'));assert.equal(p.data.ai,false);p.onUnload();
   }finally{ai.installJournalAiTransport(null);}
 });
 test('a malformed older journal is retained and never overwritten by autosave',async t=>{

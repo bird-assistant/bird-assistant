@@ -1,3 +1,4 @@
+import {acceptPickedMedia} from './media-import';
 export class MediaError extends Error {
   constructor(message: string, readonly detail: { errMsg: string; errno?: number }) { super(message); this.name = 'MediaError'; }
 }
@@ -8,7 +9,10 @@ export function choosePhoto(sourceType: Array<'album' | 'camera'>): Promise<stri
       count: 1,
       sizeType: ['original'],
       sourceType,
-      success: result => result.tempFilePaths[0] ? resolve(result.tempFilePaths[0]) : reject(new MediaError('没有读取到图片，请重新选择。', { errMsg: 'empty photo selection' })),
+      success: result => {
+        const path=result.tempFilePaths[0];if(!path){reject(new MediaError('没有读取到图片，请重新选择。',{errMsg:'empty photo selection'}));return;}
+        void acceptPickedMedia([{path,kind:'photo'}]).then(files=>resolve(files[0]?.path||null),reject);
+      },
       fail: error => /cancel/i.test(error.errMsg) ? resolve(null) : reject(new MediaError('图片选择未完成，请重试或使用另一种输入。', error))
     });
   });

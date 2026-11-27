@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "手帐",
   "usingComponents": {
-    "app-header": "/components/app-header/index"
+    "app-header": "/components/app-header/index",
+    "speech-note": "../../components/speech-note/index"
   }
 }

@@ -6,10 +6,31 @@ import subprocess
 import sys
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.request import ProxyHandler, build_opener
 
 HOST = sys.argv[1] if len(sys.argv) > 1 else "bird-gpu-new"
 ISSUE = ("cd /root/shared-nvme/bird-assistant/backend && "
          "PYTHONPATH=src /root/venvs/bird-vision/bin/python -m bird_vision.mobile_auth")
+
+
+def wait_ready(tunnel, timeout=15):
+    """Report success only after both the SSH child and forwarded model respond."""
+    opener = build_opener(ProxyHandler({}))
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if tunnel.poll() is not None:
+            raise RuntimeError("SSH联调未启动，请检查上方的主机别名、认证或网络错误。")
+        try:
+            with opener.open("http://127.0.0.1:18000/readyz", timeout=1) as response:
+                ready = json.load(response)
+            if isinstance(ready, dict) and ready.get("status") == "ready":
+                if tunnel.poll() is not None:
+                    raise RuntimeError("SSH连接已退出，本机联调没有运行。")
+                return
+        except (OSError, ValueError):
+            pass
+        time.sleep(0.2)
+    raise RuntimeError("视觉联调尚未就绪，请检查SSH转发与GPU服务；未启动识别。")
 
 
 class Login(BaseHTTPRequestHandler):
@@ -36,22 +57,40 @@ class Login(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-if __name__ == "__main__":
+def main():
     with HTTPServer(("127.0.0.1", 18001), Login) as server:
         forward = "127.0.0.1:18000:127.0.0.1:8000"
         tunnel = subprocess.Popen(["ssh", "-o", "ExitOnForwardFailure=yes", "-o", "ControlMaster=auto",
                                    "-T", "-L", forward, "--", HOST, "cat"], stdin=subprocess.PIPE)
         try:
             server.timeout = 1
-            time.sleep(0.4)
+            wait_ready(tunnel)
             print("视觉联调已启动，打开开发者工具的识别页。按 Ctrl+C 关闭。", flush=True)
             while tunnel.poll() is None:
                 server.handle_request()
-            sys.exit(tunnel.returncode)
+            return tunnel.returncode or 1
         except KeyboardInterrupt:
-            pass
+            return 0
+        except RuntimeError as error:
+            print(str(error), file=sys.stderr, flush=True)
+            return 1
         finally:
-            tunnel.stdin.close()
-            subprocess.run(["ssh", "-O", "cancel", "-L", forward, "--", HOST], capture_output=True)
-            tunnel.terminate()
-            tunnel.wait()
+            try:
+                tunnel.stdin.close()
+            except OSError:
+                pass
+            try:
+                subprocess.run(["ssh", "-O", "cancel", "-L", forward, "--", HOST], capture_output=True, timeout=5)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+            if tunnel.poll() is None:
+                tunnel.terminate()
+            try:
+                tunnel.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                tunnel.kill()
+                tunnel.wait()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

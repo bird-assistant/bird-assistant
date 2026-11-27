@@ -1,0 +1,7 @@
+<view class="speech-note">
+  <view class="speech-notice">录音先留在本机；点「转成文字」发送至国内千问转写。最长30秒。</view>
+  <view class="speech-hold {{state !== 'idle' ? 'speech-recording' : ''}}" catchtouchstart="start" catchtouchmove="move" catchtouchend="end" catchtouchcancel="cancelRecording" role="button" aria-label="按住说话，左滑或系统中断取消录音"><text class="speech-text">{{state === 'starting' ? '正在准备 · 松开取消' : state === 'stopping' ? '正在结束录音' : state === 'recording' ? cancelled ? '松开取消' : '松开保留 · 左滑取消' : busy ? '正在转写' : '按住说话'}}</text></view>
+  <view wx:if="{{clipPath}}" class="speech-actions"><text class="speech-text">已保留 {{duration}} 秒</text><button class="speech-button" bindtap="transcribe" disabled="{{busy || state !== 'idle'}}" loading="{{busy}}">转成文字</button><button class="speech-button" wx:if="{{busy}}" bindtap="cancelTranscription">取消转写</button><button class="speech-button" wx:else bindtap="discard" disabled="{{state !== 'idle'}}">移除</button></view>
+  <view wx:if="{{transcript}}" class="speech-preview"><text class="speech-text">核对鸟名、地名与英文术语，必要时修改：</text><textarea class="speech-input" value="{{transcript}}" maxlength="2000" bindinput="edit" disabled="{{busy}}" auto-height/><button class="speech-button" bindtap="confirm" disabled="{{busy || acceptedId === proposalId}}">{{acceptedId === proposalId ? '已加入文字' : '加入文字要求'}}</button></view>
+  <text wx:if="{{error}}" class="speech-text speech-error">{{error}}</text>
+</view>

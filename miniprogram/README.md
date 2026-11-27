@@ -1,23 +1,11 @@
-# 羽迹原生微信小程序 · 0.4.14候选
+# 羽迹原生微信小程序 · 0.4.15候选
 
-[真机修订与复测](docs/PHONE-REVIEW-0.4.14.md) · [English](docs/en/README.md) · [下一步](docs/NEXT-STEPS.md)
+[本轮交互与我的页修订](docs/INTERACTION-0.4.15.md) · [English](docs/en/README.md) · [下一步](docs/NEXT-STEPS.md)
 
-包含首页地图、手帐、识别、讨论、我的五个原生Tab。基于团队已合并0.4.13；本候选尚未原生Compile、上传体验版或部署服务。
+基于团队最新main a6a3f88，保留PR27及队友的投票／采纳、鸟种选单、原图网关、懂鸟兜底、帧恢复与底栏动效。手帐改为原卡1秒长按、阻尼上下划、仅3卡挂载与自定义整页分享；修复定位／按钮／发现面板，开发我的分组、真实地点收藏、预览缓存保护清理和手机写作检查，完善私信群聊呈现及迟到回执保护。
 
-## 运行
+在含package.json的外层miniprogram目录运行 `npm ci`、`npm run setup`、`npm run verify`，然后在现有DevTools工程完整Compile。setup保留已有AppID；新clone需开发者配置有效AppID。保留本机手帐、历史、草稿及原图。原Windows写作助手终端保持，手机使用线上HTTPS。
 
-需要Node.js22.18+或24。在包含package.json的**外层miniprogram目录**依次运行 `npm ci`、`npm run setup`、`npm run verify`，再由开发者工具导入该外层目录。内层miniprogram是打包根，不是工程根。setup保留已有AppID；新克隆先用tourist模板占位，维护者再设置有效AppID及开发者权限。原生Compile和复测通过后再上传。
+客户端**360通过，0失败／跳过**。66组源码布局投影无稳定帧溢出／面板越界；不是原生编译或FPS证据，仍需原生Compile和两台手机验收。本轮未部署、合并团队PR或上传体验版。最新只读线上检查：视觉200 ready、地点排序契约已更新；写作404／404、音频404。手机Qwen仍需维护者更新活动服务／代理，见修订交接。原生鉴权网络／null异常仍未定位。
 
-升级不清存储，保留手帐、编辑历史、草稿和原照片。本机配置、依赖、生成JS、测试缓存、gallery、环境文件和密钥不提交。现有Windows写作助手无需因本轮客户端修订重启；手机使用共享HTTPS服务。
-
-## 本轮范围及限制
-
-本轮增加轻量手帐牌组与整页PNG缩略图、原图导入／快门及持久私人复核、地图定位与稳定排序选项、内容测量弹层、出行折叠、独立收藏卡、常规分享及受保护的纸张手势、布局预算和手机写作就绪检查。
-
-公网手帐路由仍404、视觉readyz502、音频404。全局地图分页需当前业务服务。实际相机尺寸、手势冲突、热量／电量和真机流畅度待验收。等候已实现自适应采样及有限返回帧恢复；完整预拍缓存、连续声音与融合未完成。
-
-客户端329项通过、0失败／跳过；团队后端493通过／51跳过，覆盖率87.02%，模型调用为mock。浏览器布局投影及渲染数据量代理测量不代表原生FPS或Compile通过。用户已上传的是0.4.13，不能作为0.4.14打包成功证据。
-
-源码在 `miniprogram/pages/`、`components/`、`services/` 及field分包；验证工具在tests和scripts。本轮证据见 `docs/PHONE-REVIEW-0.4.14.evidence.json`；`docs/SOURCE-CHECKPOINT.json`只记录历史0.2.9导出。
-
-团队后端部署交接见仓库根目录 `backend/deploy/course/JOURNAL-WRITING.md`。通过任务分支和PR评阅，不直接改团队main。公开团队交接用中文，英文工作说明同步；原48项及R系列继续跟踪。
+代码在内层miniprogram/，验证和复现工具在tests/与scripts/。新证据见docs/INTERACTION-0.4.15.evidence.json；历史验收保留在原文档。团队交接用中文，英文工作说明及原48项／R系列均保留。

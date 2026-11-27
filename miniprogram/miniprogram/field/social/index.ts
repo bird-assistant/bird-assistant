@@ -1,4 +1,4 @@
-import {api, community, hub, key, sessionState, setSession} from '../../services/community';
+import {api, community, hub, key, sessionState, sessionRevision, setSession} from '../../services/community';
 import {beijingDateTime} from '../../services/observation-context';
 import {connectBusiness} from '../../services/vision-network';
 
@@ -24,17 +24,17 @@ function merged(history:ChatLine[], incoming:ChatLine[]) {
 }
 
 Page({
-  data:{screen:'account',id:'',self:'',active:false,ready:false,working:false,editing:false,error:'',
+  data:{pageTitle:'社区账号',screen:'account',id:'',self:'',active:false,ready:false,working:false,editing:false,error:'',
     registered:false,form:{...defaults},account:null as (Card & typeof defaults)|null,
     avatars:['owl','finch','leaf','mountain','water','letter'],visibilities:['private','friends','public'],
     visibilityNames:['仅自己','好友','公开'], term:'', searched:false, matches:[] as Card[],friends:[] as Friend[],
     incoming:[] as Friend[],outgoing:[] as Friend[],accepted:[] as Friend[],blocked:[] as Card[],
     inbox:[] as any[],activity:[] as any[],identifications:[] as any[],groups:[] as any[],invites:[] as any[],group:null as any,
     member:null as any, lines:[] as ChatLine[], earlier:false, text:'',groupName:'', invitees:[] as Friend[]},
-  _timer:0,_generation:0,_pending:false,_visible:false,_reference:'',_groupReference:'',_seen:'',
+  _timer:0,_generation:0,_operation:0,_pending:false,_visible:false,_reference:'',_groupReference:'',_seen:'',
   onLoad(options:Record<string,string|undefined>){
     const screen=options.screen && screens[options.screen]?options.screen:'account';
-    this.setData({screen,id:options.id || ''});
+    this.setData({screen,id:options.id || '',pageTitle:screens[screen]});
     wx.setNavigationBarTitle({title:screens[screen]});
   },
   onShow(){
@@ -46,10 +46,10 @@ Page({
     }
   },
   onHide(){this.stop();},onUnload(){this.stop();},
-  stop(){this._visible=false;this._generation++;this._pending=false;clearInterval(this._timer);},
+  stop(){this._visible=false;this._generation++;this._operation++;this._pending=false;clearInterval(this._timer);this.setData({working:false});},
   onPullDownRefresh(){void this.start().finally(()=>wx.stopPullDownRefresh());},
-  clearPrivate(){this._generation++;this._pending=false;this._reference='';this._groupReference='';this._seen='';
-    this.setData({active:false,ready:true,registered:false,self:'',account:null,editing:false,form:{...defaults},
+  clearPrivate(){this._generation++;this._operation++;this._pending=false;this._reference='';this._groupReference='';this._seen='';
+    this.setData({active:false,ready:true,working:false,registered:false,self:'',account:null,editing:false,form:{...defaults},
       friends:[],incoming:[],outgoing:[],accepted:[],matches:[],blocked:[],inbox:[],activity:[],identifications:[],groups:[],invites:[],
       member:null,group:null,invitees:[],lines:[],earlier:false,text:'',groupName:'',term:'',searched:false,error:''});},
   async start(){
@@ -75,18 +75,20 @@ Page({
   async save(){
     const form=this.data.form;
     if(!form.nickname.trim() || !/^[A-Za-z0-9_]{3,24}$/.test(form.handle)){this.setData({error:'请填写昵称，鸟友号需为 3–24 位字母、数字或下划线。'});return;}
-    await this.run(async()=>{
+    await this.run(async current=>{
       await call('/account','PUT',{nickname:form.nickname,handle:form.handle,bio:form.bio,avatar:form.avatar,
         discoverable:!!form.discoverable,dm:form.dm,bookmarks:form.bookmarks});
-      this.setData({editing:false});await this.start();
+      if(current()){this.setData({editing:false});await this.start();}
     });
   },
+  back(){wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/community/index'})});},
   go(event:Tap){hub(String(event.currentTarget.dataset.screen),String(event.currentTarget.dataset.id||''));},
   input(event:Input){const field=String(event.currentTarget.dataset.field);this.setData({[field]:event.detail.value});
     if(field==='text')this._reference='';if(field==='groupName')this._groupReference='';},
-  async run(action:()=>Promise<void>){
-    if(this.data.working)return;this.setData({working:true,error:''});
-    try{await action();}catch(error){if(this._visible)this.setData({error:explain(error)});}finally{this.setData({working:false});}
+  async run(action:(current:()=>boolean)=>Promise<void>){
+    if(this.data.working)return;const operation=++this._operation,revision=sessionRevision();this.setData({working:true,error:''});
+    const current=()=>this._visible&&operation===this._operation&&revision===sessionRevision()&&sessionState()==='active';
+    try{await action(current);}catch(error){if(current())this.setData({error:explain(error)});}finally{if(current())this.setData({working:false});}
   },
   async refresh(older=false){
     if(!this.data.registered || sessionState()!=='active' || this._pending)return;
@@ -103,14 +105,14 @@ Page({
       }
       if(screen==='member'||screen==='chat'){
         const member=await call('/members/'+peer);if(!valid())return;this.setData({member});
-        if(screen==='chat')wx.setNavigationBarTitle({title:member.profile.nickname});
+        if(screen==='chat'){wx.setNavigationBarTitle({title:member.profile.nickname});this.setData({pageTitle:member.profile.nickname});}
       }
       if(screen==='inbox'||screen==='groups'){
         const groups=(await call('/groups')).items;if(!valid())return;
         this.setData({groups:groups.filter((item:any)=>item.state==='joined'),invites:groups.filter((item:any)=>item.state==='invited')});
         if(screen==='inbox'){
           const result=await Promise.all([call('/inbox'),call('/activity')]);if(!valid())return;
-          this.setData({inbox:result[0].items,activity:result[1].items,identifications:result[1].identifications||[]});
+          this.setData({inbox:result[0].items.map((item:any)=>({...item,timeLabel:beijingDateTime(item.created)})),activity:result[1].items.map((item:any)=>({...item,timeLabel:beijingDateTime(item.created)})),identifications:result[1].identifications||[]});
         }
       }
       if(screen==='blocked'){const result=await call('/blocks');if(valid())this.setData({blocked:result.items});}
@@ -124,7 +126,7 @@ Page({
         if(screen==='group'){
           const members=new Set(result.members.map((member:Card)=>member.id));
           this.setData({group:result,invitees:this.data.accepted.filter(friend=>!members.has(friend.id))});
-          wx.setNavigationBarTitle({title:result.name});
+          wx.setNavigationBarTitle({title:result.name});this.setData({pageTitle:result.name});
         }
         const received=incoming.filter(line=>line.sender!==this.data.self);
         const last=received[received.length-1];
@@ -134,29 +136,32 @@ Page({
     finally{if(valid())this._pending=false;}
   },
   older(){void this.refresh(true);},
-  async search(){if(!this.data.term.trim())return;await this.run(async()=>{
-    const result=await call('/members?q='+encoded(this.data.term.trim()));this.setData({matches:result.items,searched:true});});},
+  async search(){const term=this.data.term.trim();if(!term)return;await this.run(async current=>{
+    const result=await call('/members?q='+encoded(term));if(current()&&this.data.term.trim()===term)this.setData({matches:result.items,searched:true});});},
   async mutate(event:Tap){
     const op=String(event.currentTarget.dataset.op), id=encoded(String(event.currentTarget.dataset.id||this.data.id));
     const confirmations:Record<string,string>={remove:'解除好友关系？',block:'屏蔽后将解除好友关系并停止私信。',leave:'退出这个群聊？',disband:'解散后将删除该群和聊天记录。'};
     if(confirmations[op] && !await confirmAction(confirmations[op]))return;
-    await this.run(async()=>{
+    await this.run(async current=>{
       if(['request','accept','decline','cancel','remove'].includes(op))await call('/friends/'+id+'/'+op,'PUT');
       else if(op==='block'||op==='unblock')await call('/blocks/'+id,op==='block'?'PUT':'DELETE');
       else if(op==='invite')await call('/groups/'+encoded(this.data.id)+'/invites/'+id,'PUT');
       else if(['join','reject','leave','disband'].includes(op))await call('/groups/'+id+'/membership/'+({join:'accept',reject:'decline'}[op]||op),'PUT');
       else if(op==='report')await call('/reports/'+id,'POST',{reason:'举报不当聊天内容，请审核'});
-      wx.showToast({title:'已处理',icon:'success'});
+      if(!current())return;wx.showToast({title:'已处理',icon:'success'});
       if(['leave','disband','block'].includes(op)){wx.navigateBack();return;}
       await this.start();
     });
   },
   async createGroup(){const name=this.data.groupName.trim();if(!name)return;
-    await this.run(async()=>{if(!this._groupReference)this._groupReference=key();
-      const result=await call('/groups','POST',{name,reference:this._groupReference});
-      this._groupReference='';this.setData({groupName:''});hub('group',result.id);});},
-  async send(){const body=this.data.text.trim();if(!body)return;
-    await this.run(async()=>{if(!this._reference)this._reference=key();
+    await this.run(async current=>{if(!this._groupReference)this._groupReference=key();const reference=this._groupReference;
+      const result=await call('/groups','POST',{name,reference});if(!current())return;
+      if(this._groupReference===reference)this._groupReference='';
+      if(this.data.groupName.trim()===name){this.setData({groupName:''});hub('group',result.id);}else{wx.showToast({title:'群聊已创建，可从群聊列表查看',icon:'none'});await this.refresh();}
+    });},
+  async send(){const draft=this.data.text,body=draft.trim();if(!body)return;
+    await this.run(async current=>{if(!this._reference)this._reference=key();const reference=this._reference;
       const path=this.data.screen==='group'?'/groups/'+encoded(this.data.id)+'/messages':'/messages/'+encoded(this.data.id);
-      await call(path,'POST',{body,reference:this._reference});this._reference='';this.setData({text:''});await this.start();});}
+      await call(path,'POST',{body,reference});if(!current())return;
+      if(this._reference===reference)this._reference='';if(this.data.text===draft)this.setData({text:''});await this.refresh();});}
 });

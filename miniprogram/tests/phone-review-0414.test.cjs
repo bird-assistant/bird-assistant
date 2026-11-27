@@ -130,12 +130,14 @@ test('thumbnail preparation downsizes only temporary copies and cleans them with
  const d=model.makeJournal([{...assets(1)[0],src:'/private/original.jpg'}],'Original'),before=JSON.stringify(d),prepared=await shelf.prepareThumbnailDocument(d);assert.equal(JSON.stringify(d),before);assert.equal(prepared.document.elements.find(e=>e.type==='photo').src,'/tmp/derivative.jpg');prepared.release();assert.deepEqual(e.deleted,['/tmp/derivative.jpg']);
 });
 
-test('paper gestures require a hold, cancel horizontal motion and open options or deletion confirmation only after release',()=>{
+test('paper gestures arm after one second, resist short drags, cancel sideways and act only on deliberate release',t=>{
+ t.mock.timers.enable({apis:['Date','setTimeout'],now:0});
  const e=environment(),p=page('pages/journal');p.onLoad();const d=model.makeJournal(assets(1),'Paper');e.values.set(model.JOURNAL_KEY,[d]);p.data.libraryRows=[{id:d.id}];const actions=[];p.shareJournal=()=>actions.push('share');p.deleteJournal=()=>actions.push('confirm-delete');
- p.deckTouchStart(touch(d.id));p.deckTouchMove(touch(d.id,50,50));p.deckTouchEnd();assert.deepEqual(actions,[]);
- p.deckTouchStart(touch(d.id));p.startDeckGesture(touch(d.id));p.deckTouchMove(touch(d.id,50,80));assert.equal(p.data.paperDragAction,'share');assert.deepEqual(actions,[]);p.deckTouchEnd();assert.deepEqual(actions,['share']);
- p.deckTouchStart(touch(d.id));p.startDeckGesture(touch(d.id));p.deckTouchMove(touch(d.id,50,320));p.deckTouchEnd();assert.deepEqual(actions,['share','confirm-delete']);assert.equal(model.readJournals().length,1);
- p.deckTouchStart(touch(d.id));p.startDeckGesture(touch(d.id));p.deckTouchMove(touch(d.id,200,205));assert.equal(p.data.paperActionOpen,false);p.deckTouchEnd();assert.equal(actions.length,2);p.onUnload();
+ p.deckTouchStart(touch(d.id));t.mock.timers.tick(999);assert.equal(p.data.paperArmedId,'');p.deckTouchEnd();assert.deepEqual(actions,[]);
+ p.deckTouchStart(touch(d.id));t.mock.timers.tick(1000);assert.equal(p.data.paperArmedId,d.id);p.deckTouchMove(touch(d.id,50,110));p.deckTouchEnd();assert.deepEqual(actions,[]);assert.equal(p.data.paperArmedId,d.id);
+ p.deckTouchStart(touch(d.id));p.deckTouchMove(touch(d.id,50,-50));assert.equal(p._paperLatest.action,'share');assert.deepEqual(actions,[]);p.deckTouchEnd();assert.deepEqual(actions,['share']);
+ p.deckTouchStart(touch(d.id));t.mock.timers.tick(1000);p.deckTouchMove(touch(d.id,50,450));p.deckTouchEnd();assert.deepEqual(actions,['share','confirm-delete']);assert.equal(model.readJournals().length,1);
+ p.deckTouchStart(touch(d.id));t.mock.timers.tick(1000);p.deckTouchMove(touch(d.id,200,205));assert.equal(p.data.paperArmedId,'');p.deckTouchEnd();assert.equal(actions.length,2);p.onUnload();
 });
 
 test('sharing a composed journal creates a local forum draft and never publishes or alters the editable journal',async t=>{

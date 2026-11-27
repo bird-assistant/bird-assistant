@@ -1,8 +1,9 @@
 {
-  "navigationStyle": "default",
+  "navigationStyle": "custom",
   "navigationBarTitleText": "鸟友社区",
   "enablePullDownRefresh": true,
   "usingComponents": {
+    "app-header": "/components/app-header/index",
     "profile-avatar": "/components/profile-avatar/index"
   }
 }

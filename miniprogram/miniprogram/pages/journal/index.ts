@@ -1,13 +1,13 @@
 import {queuePostDraft} from '../../services/draft-navigation';
 import {newPostDraft,savePostDraft} from '../../services/post-draft';
 import {postImage} from '../../services/post-media';
-import {paperDrag} from '../../services/paper-gesture';
+import {paperDrag,PAPER_HOLD_MS,PAPER_HOLD_SLOP} from '../../services/paper-gesture';
 import {installAdaptiveSheets,fitAdaptiveSheets,stopAdaptiveSheets} from '../../services/adaptive-sheets';
 import {readJournalShelf,readJournalPreview,saveJournalThumbnail,persistJournalThumbnail,prepareThumbnailDocument,discardThumbnail,ShelfRow} from '../../services/journal-shelf';
 import {journalThumbnail} from '../../services/journal-thumbnail';
 import {acceptPickedMedia} from '../../services/media-import';
 import {renderJournal} from '../../services/journal-render';
-import { selectTab } from '../../services/tabs';
+import { selectTab,syncNavigation } from '../../services/tabs';
 import { layout, editorPanes, EDITOR_CHROME_HEIGHT } from '../../services/layout';
 import { localRepository, isSampleObservation } from '../../services/repository';
 import { errorText, persistImage } from '../../services/media';
@@ -34,7 +34,7 @@ function projectElement(e:JournalElement,d:JournalDocument,scale:number) {
   return {...e,...photoCrop(e,scale),label:elementLabel(e,d),left:e.x/d.width*100,top:e.y/d.height*100,width:e.w/d.width*100,height:e.h/d.height*100,fontPx:e.fontSize*scale,rows:text?text.rows.map(r=>({...r,size:r.size*scale,y:r.y*scale})):[],overflow:!!text?.overflow};
 }
 Page({
-  data:{paperActionOpen:false,paperActionId:'',paperActionImage:'',paperDragStyle:'',paperDragAction:'',resumeRow:null as ShelfRow|null,deckThumbnails:{} as Record<string,string>,previewErrors:{} as Record<string,boolean>,sheetHeights:{} as Record<string,number>,deckPreviews:{} as Record<string,ReturnType<typeof journalThumbnail>>,libraryText:'',libraryFrom:'',libraryTo:'',libraryOrder:0,libraryOrders:['最近修改','创建时间'],libraryRatio:0,libraryRatios:['全部比例','3:4','1:1','4:3'],libraryRows:[] as ReturnType<typeof journalLibrary>,deckIndex:0,libraryTotal:0,aiDestination:'new' as WritingDestination,aiDestinations:[{id:'new',name:'新增文字框'},{id:'selected',name:'所选文本框'},{id:'overview',name:'页首概述'}],aiSelectedAvailable:false,aiIncludeTitle:false,aiIncludeCaptions:false,aiPhotoCount:0,aiTargetLabel:'',aiCaptionPreviews:[] as Array<{id:string;label:string;text:string}>,aiHistoryOpen:false,aiHistory:[] as ReturnType<typeof readWritingHistory>,aiHistoryNotice:'',templateWidth:150,saveStatus:'',ratioLocks,ratioMode:'current',pixels:{w:0,h:0,fontSize:0},papers,paperColors,paperSource:'',templateOpen:false,templateOptions:[] as Array<{id:number;name:string;photos:Array<{src:string;style:string;imageStyle:string}>}>,composition:'',aiBusy:false,aiSuggestion:null as JournalAiSuggestion|null,backgroundSelected:false,layersOpen:false,selectedName:'',numberEditing:'',numberDrafts:{} as Record<string,string>,cropOpen:false,cropDraft:null as JournalElement|null,cropPreview:null as (ReturnType<typeof photoCrop>&{width:number;height:number})|null,editorChromeHeight:EDITOR_CHROME_HEIGHT,maxWidth:900,maxHeight:1200,assetImageHeight:114,from:'',to:'',unknown:true,picked:[] as JournalAsset[],period:0,periods:['自选素材','每日','每周','每月','每年'],includeNotes:false,aiPhotos:[] as Array<{id:string;src:string;label:string;selected:boolean}>,exporting:false,editorHeight:650,controlsHeight:200,overview:false,paperScale:1,paperLeft:0,shownHeight:400,view:'home',headerTitle:'羽迹',drafts:[] as ReturnType<typeof journalLibrary>,assets:[] as JournalAsset[],source:'observations',chosen:0,title:'沿着鸟鸣，慢慢走',ratio:'3:4',style:'nature',styles:[{id:'nature',name:'自然留白'},{id:'magazine',name:'纸上故事'},{id:'minimal',name:'极简图鉴'}],ratios:['3:4','1:1','4:3'],doc:null as JournalDocument|null,renderElements:[] as Array<Record<string,unknown>>,selected:null as JournalElement|null,labels:[] as Array<{id:string;label:string}>,selectedId:'',canUndo:false,canRedo:false,dirty:false,stageWidth:320,stageHeight:390,docHeight:427,focusY:0,headerHeight:88,scale:1,error:'',busy:false,ai:false,inputMode:'text',prompt:'',purpose:0,purposes:['观察正文','鸟类介绍','分享文案','照片手帐','概述与总结','照片说明'],placement:1,placements:['照片区上方','照片区下方','自由放置'],speechApplied:'',bundleSummary:'',decorations:[{id:'leaf',name:'叶子'},{id:'flower',name:'小花'},{id:'star',name:'星星'},{id:'feather',name:'羽毛'},{id:'stamp',name:'邮戳'},{id:'tape',name:'纸胶带'},{id:'sprig',name:'枝叶'},{id:'grass',name:'芦苇'},{id:'sun',name:'日光'},{id:'moon',name:'月相'},{id:'waves',name:'水纹'},{id:'compass',name:'方位'}],exportPath:''},
+  data:{deckSlots:[] as Array<ReturnType<typeof journalLibrary>[number]&{slot:number;index:number}>,deckOffset:0,deckSettling:false,paperArmedId:'',paperDragDown:false,paperDragStyle:'',paperDragAction:'',shareOpen:false,shareId:'',shareTitle:'',shareRatio:'',shareBitmap:'',sharePreview:null as ReturnType<typeof journalThumbnail>|null,shareError:'',resumeRow:null as ShelfRow|null,deckThumbnails:{} as Record<string,string>,previewErrors:{} as Record<string,boolean>,sheetHeights:{} as Record<string,number>,deckPreviews:{} as Record<string,ReturnType<typeof journalThumbnail>>,libraryText:'',libraryFrom:'',libraryTo:'',libraryOrder:0,libraryOrders:['最近修改','创建时间'],libraryRatio:0,libraryRatios:['全部比例','3:4','1:1','4:3'],libraryRows:[] as ReturnType<typeof journalLibrary>,deckIndex:0,libraryTotal:0,aiDestination:'new' as WritingDestination,aiDestinations:[{id:'new',name:'新增文字框'},{id:'selected',name:'所选文本框'},{id:'overview',name:'页首概述'}],aiSelectedAvailable:false,aiIncludeTitle:false,aiIncludeCaptions:false,aiPhotoCount:0,aiTargetLabel:'',aiCaptionPreviews:[] as Array<{id:string;label:string;text:string}>,aiHistoryOpen:false,aiHistory:[] as ReturnType<typeof readWritingHistory>,aiHistoryNotice:'',templateWidth:150,saveStatus:'',ratioLocks,ratioMode:'current',pixels:{w:0,h:0,fontSize:0},papers,paperColors,paperSource:'',templateOpen:false,templateOptions:[] as Array<{id:number;name:string;photos:Array<{src:string;style:string;imageStyle:string}>}>,composition:'',aiBusy:false,aiSuggestion:null as JournalAiSuggestion|null,backgroundSelected:false,layersOpen:false,selectedName:'',numberEditing:'',numberDrafts:{} as Record<string,string>,cropOpen:false,cropDraft:null as JournalElement|null,cropPreview:null as (ReturnType<typeof photoCrop>&{width:number;height:number})|null,editorChromeHeight:EDITOR_CHROME_HEIGHT,maxWidth:900,maxHeight:1200,assetImageHeight:114,from:'',to:'',unknown:true,picked:[] as JournalAsset[],period:0,periods:['自选素材','每日','每周','每月','每年'],includeNotes:false,aiPhotos:[] as Array<{id:string;src:string;label:string;selected:boolean}>,exporting:false,editorHeight:650,controlsHeight:200,overview:false,paperScale:1,paperLeft:0,shownHeight:400,view:'home',headerTitle:'羽迹',drafts:[] as ReturnType<typeof journalLibrary>,assets:[] as JournalAsset[],source:'observations',chosen:0,title:'沿着鸟鸣，慢慢走',ratio:'3:4',style:'nature',styles:[{id:'nature',name:'自然留白'},{id:'magazine',name:'纸上故事'},{id:'minimal',name:'极简图鉴'}],ratios:['3:4','1:1','4:3'],doc:null as JournalDocument|null,renderElements:[] as Array<Record<string,unknown>>,selected:null as JournalElement|null,labels:[] as Array<{id:string;label:string}>,selectedId:'',canUndo:false,canRedo:false,dirty:false,stageWidth:320,stageHeight:390,docHeight:427,focusY:0,headerHeight:88,scale:1,error:'',busy:false,ai:false,inputMode:'text',prompt:'',purpose:0,purposes:['观察正文','鸟类介绍','分享文案','照片手帐','概述与总结','照片说明'],placement:1,placements:['照片区上方','照片区下方','自由放置'],speechApplied:'',bundleSummary:'',decorations:[{id:'leaf',name:'叶子'},{id:'flower',name:'小花'},{id:'star',name:'星星'},{id:'feather',name:'羽毛'},{id:'stamp',name:'邮戳'},{id:'tape',name:'纸胶带'},{id:'sprig',name:'枝叶'},{id:'grass',name:'芦苇'},{id:'sun',name:'日光'},{id:'moon',name:'月相'},{id:'waves',name:'水纹'},{id:'compass',name:'方位'}],exportPath:''},
   _past:[] as Snapshot[],_future:[] as Snapshot[],_drag:null as {before:Snapshot;x:number;y:number;element:JournalElement;resize:boolean}|null,_editBefore:null as Snapshot|null,
   _adjustment:null as {before:Snapshot;key:string;id:string}|null,
   _previews:null as ReturnType<typeof previewQueue>|null,
@@ -43,7 +43,9 @@ Page({
   _aiContext:null as JournalWritingContext|null,
   _aiOriginSelection:'',
   _documents:[] as ShelfRow[],
-  _paperTouch:null as {x:number;y:number;id:string;active:boolean}|null,_paperSuppressTap:false,
+  _paperTouch:null as {x:number;y:number;lastX:number;lastY:number;id:string;active:boolean;started:number}|null,_paperSuppressTap:false,_deckSlideTimer:0 as ReturnType<typeof setTimeout>,_deckWidth:360,
+  _paperHoldTimer:0 as ReturnType<typeof setTimeout>,_paperViewport:900,_paperLatest:null as ReturnType<typeof paperDrag>|null,
+  _paperPreviews:null as ReturnType<typeof previewQueue>|null,_shareGeneration:0,_shareBefore:'',_shareSnapshot:null as JournalDocument|null,
   _thumbTimer:0 as ReturnType<typeof setTimeout>,_thumbGeneration:0,_thumbBusy:false,
   _failedPhotos:null as Map<string,string>|null,
   _failedCovers:null as Map<string,string>|null,
@@ -59,7 +61,7 @@ Page({
     else {patch.selected=original;patch.pixels=pixelValues(original);patch.dirty=true;patch.exportPath='';}
     this.setData(patch);
   },
-  onUnload(){clearTimeout(this._thumbTimer);this._thumbGeneration++;stopAdaptiveSheets(this);this._assetPickToken++;this.selectComponent?.('#journal-speech')?.stopWork?.();this._active=false;clearTimeout(this._autosave);this.finishAdjustment();this.endTextEdit();if(this._saveJob)this.cacheEditorState();void this.persistDraft();this._previews?.cancel();this._aiGeneration++;this._aiJob?.cancel();this._aiJob=null;},
+  onUnload(){this.closePaperAction();this._shareGeneration++;clearTimeout(this._thumbTimer);this._thumbGeneration++;stopAdaptiveSheets(this);this._assetPickToken++;this.selectComponent?.('#journal-speech')?.stopWork?.();this._active=false;clearTimeout(this._autosave);this.finishAdjustment();this.endTextEdit();if(this._saveJob)this.cacheEditorState();void this.persistDraft();this._previews?.cancel();this._aiGeneration++;this._aiJob?.cancel();this._aiJob=null;},
   _autosave:0 as unknown as ReturnType<typeof setTimeout>,
   _saveJob:null as Promise<boolean>|null,
   _revision:0,_savedRevision:-1,_savedDocumentId:'',_deletingJournal:'',
@@ -126,26 +128,28 @@ Page({
   openLayers(){this.finishAdjustment();this.endTextEdit();this.setData({layersOpen:true});},
   closeLayers(){this.setData({layersOpen:false});},
   onEditorScroll(e:WechatMiniprogram.CustomEvent<{scrollTop:number}>){this._scrollTop=round2(e.detail.scrollTop);},
-  onLoad(){installAdaptiveSheets(this,()=>this.data.ai||this.data.aiHistoryOpen||this.data.cropOpen||this.data.layersOpen||this.data.templateOpen);this._failedPhotos=new Map();this._failedCovers=new Map();this.resizeEditor();},
-  onResize(){this.resizeEditor();this.projectDeck();fitAdaptiveSheets(this);},
+  onLoad(){installAdaptiveSheets(this,()=>this.data.shareOpen||this.data.ai||this.data.aiHistoryOpen||this.data.cropOpen||this.data.layersOpen||this.data.templateOpen);this._failedPhotos=new Map();this._failedCovers=new Map();this.resizeEditor();},
+  onResize(){this.closePaperAction();this.resizeEditor();this.projectDeck();fitAdaptiveSheets(this);},
   resizeEditor(){const box=layout();this.setData({templateWidth:Math.min(150,Math.floor((box.width-48)/2-22)),headerHeight:box.headerHeight,assetImageHeight:round2((box.width-86)*.375),editorHeight:layout(true).height,stageWidth:box.width-52,scale:(box.width-52)/900});this.refresh();},
   onShow(){this._active=true;selectTab(this,1);this.loadDrafts();if(this.data.doc&&this.data.view==='editor')this.refresh();},
-  onHide(){this.closePaperAction();clearTimeout(this._thumbTimer);this._thumbGeneration++;this._active=false;clearTimeout(this._autosave);this._aiGeneration++;this._aiJob?.cancel();this._aiJob=null;this.setData({aiBusy:false});this.finishAdjustment();this.endTextEdit();if(this._saveJob)this.cacheEditorState();void this.persistDraft();this.selectComponent?.('#journal-speech')?.stopWork?.();},
+  onHide(){this.closePaperAction();this.closeShare();clearTimeout(this._thumbTimer);this._thumbGeneration++;this._active=false;clearTimeout(this._autosave);this._aiGeneration++;this._aiJob?.cancel();this._aiJob=null;this.setData({aiBusy:false});this.finishAdjustment();this.endTextEdit();if(this._saveJob)this.cacheEditorState();void this.persistDraft();this.selectComponent?.('#journal-speech')?.stopWork?.();},
   loadDrafts(){try{
     this._documents=readJournalShelf();const id=wx.getStorageSync('bird-assistant.journal.last.v1');
     this.setData({resumeRow:this._documents.find(row=>row.id===id)||(typeof id==='string'&&id?{id,title:'上次编辑的手帐',ratio:'',updatedAt:'',revision:'',cover:'',thumbnail:''}:null),drafts:journalLibrary(this._documents,{text:'',ratio:'',order:'updated',from:'',to:''}),libraryTotal:this._documents.length});this.filterLibrary(false);
   }catch(e){this.setData({error:errorText(e)});}},
-  filterLibrary(reset=true){const d=this.data,rows=journalLibrary(this._documents,{text:d.libraryText,ratio:d.libraryRatio?d.libraryRatios[d.libraryRatio]:'',order:d.libraryOrder===1?'created':'updated',from:d.libraryFrom,to:d.libraryTo});
+  filterLibrary(reset=true){this.closePaperAction();const d=this.data,rows=journalLibrary(this._documents,{text:d.libraryText,ratio:d.libraryRatio?d.libraryRatios[d.libraryRatio]:'',order:d.libraryOrder===1?'created':'updated',from:d.libraryFrom,to:d.libraryTo});
     const thumbnails:Record<string,string>={};for(const row of this._documents)if(row.thumbnail)thumbnails[row.id]=row.thumbnail;
     this.setData({libraryRows:rows,deckThumbnails:thumbnails,deckIndex:reset?0:Math.min(this.data.deckIndex,Math.max(0,rows.length-1))});this.projectDeck();
   },
   projectDeck(){
     clearTimeout(this._thumbTimer);this._thumbGeneration++;if(this.data.view!=='home')return;
+    this._deckWidth=Math.min(620,wx.getWindowInfo?.().windowWidth||360)-10;
+    this.setData({deckSlots:this.data.libraryRows.slice(Math.max(0,this.data.deckIndex-1),this.data.deckIndex+2).map((row,index)=>({...row,index:index+Math.max(0,this.data.deckIndex-1),slot:index+Math.max(0,this.data.deckIndex-1)-this.data.deckIndex}))});
     // The animation only moves existing bitmap nodes. Decode/compose after it settles.
     this._thumbTimer=setTimeout(()=>void this.prepareDeckThumbnail(),320);
   },
   async prepareDeckThumbnail(){
-    if(this._thumbBusy||!this._active||this.data.view!=='home')return;
+    if(this._thumbBusy||!this._active||this.data.view!=='home'||this._paperTouch||this.data.deckSettling)return;
     const generation=this._thumbGeneration,rows=this.data.libraryRows.slice(Math.max(0,this.data.deckIndex-1),this.data.deckIndex+2);
     const row=rows.find(row=>!this.data.deckThumbnails[row.id]&&!this.data.previewErrors[row.id]);if(!row)return;
     const source=this._documents.find(item=>item.id===row.id),document=readJournalPreview(row.id);if(!source||!document){this.setData({previewErrors:{...this.data.previewErrors,[row.id]:true}});return;}
@@ -166,42 +170,115 @@ Page({
   librarySearch(e:Input){this.setData({libraryText:e.detail.value});this.filterLibrary();},
   libraryChoice(e:Input){const key=String(e.currentTarget.dataset.key);if(key==='libraryOrder'||key==='libraryRatio')this.setData({[key]:Number(e.detail.value)});else if(key==='libraryFrom'||key==='libraryTo')this.setData({[key]:e.detail.value});this.filterLibrary();},
   clearLibraryFilters(){this.setData({libraryText:'',libraryFrom:'',libraryTo:'',libraryOrder:0,libraryRatio:0});this.filterLibrary();},
-  deckChange(e:WechatMiniprogram.CustomEvent<{current:number}>){if(Number.isInteger(e.detail.current)&&e.detail.current!==this.data.deckIndex){this.setData({deckIndex:e.detail.current});this.projectDeck();}},
-  deckCard(e:Touch){if(this._paperSuppressTap){this._paperSuppressTap=false;return;}const index=Number(e.currentTarget.dataset.index);if(index!==this.data.deckIndex){this.setData({deckIndex:index});this.projectDeck();}else this.openDraft(e);},
-  deckTouchStart(e:Touch){this._paperSuppressTap=false;const touch=e.touches[0];if(touch)this._paperTouch={x:touch.clientX,y:touch.clientY,id:String(e.currentTarget.dataset.id),active:false};},
-  startDeckGesture(e:Touch){const id=String(e.currentTarget.dataset.id);if(id!==this.data.libraryRows[this.data.deckIndex]?.id||this.data.busy)return;
-    if(!this._paperTouch){const point=e.touches[0];if(!point)return;this._paperTouch={x:point.clientX,y:point.clientY,id,active:true};}
-    this._paperTouch.active=true;this._paperSuppressTap=true;this.setData({paperActionOpen:true,paperActionId:id,paperActionImage:this.data.deckThumbnails[id]||'',paperDragStyle:'',paperDragAction:''});
+  deckChange(e:WechatMiniprogram.CustomEvent<{current:number}>){const index=e.detail.current;if(Number.isInteger(index)&&index>=0&&index<this.data.libraryRows.length&&index!==this.data.deckIndex){this.closePaperAction();this.setData({deckIndex:index});this.projectDeck();}},
+  deckCard(e:Touch){if(this._paperSuppressTap){this._paperSuppressTap=false;return;}if(this.data.deckSettling)return;const index=Number(e.currentTarget.dataset.index);if(index!==this.data.deckIndex)this.slideDeck(Math.sign(index-this.data.deckIndex));else this.openDraft(e);},
+  slideDeck(direction:number){
+    const next=this.data.deckIndex+direction;if(this.data.deckSettling||next<0||next>=this.data.libraryRows.length)return;
+    this.setData({deckSettling:true,deckOffset:-direction*this._deckWidth*.84});
+    clearTimeout(this._deckSlideTimer);this._deckSlideTimer=setTimeout(()=>{
+      if(!this._active||this.data.view!=='home')return;
+      this.setData({deckIndex:next,deckSettling:false,deckOffset:0});this.projectDeck();
+    },220);
   },
-  paperTouchStart(e:Touch){const touch=e.touches[0];if(touch)this._paperTouch={x:touch.clientX,y:touch.clientY,id:this.data.paperActionId,active:true};},
-  deckTouchMove(e:Touch){const start=this._paperTouch,touch=e.touches[0];if(!start?.active||!touch)return;
-    const drag=paperDrag(touch.clientX-start.x,touch.clientY-start.y);if(drag.cancel){this.closePaperAction();return;}
-    this.setData({paperDragStyle:drag.style,paperDragAction:drag.action});
+  settleDeck(){
+    this.setData({deckSettling:true,deckOffset:0});clearTimeout(this._deckSlideTimer);
+    this._deckSlideTimer=setTimeout(()=>{if(this._active){this.setData({deckSettling:false});this.projectDeck();}},220);
   },
-  deckTouchEnd(){const start=this._paperTouch;if(!start?.active){this._paperTouch=null;return;}const action=this.data.paperDragAction,id=start.id;this._paperTouch=null;
+  deckTouchStart(e:Touch){
+    clearTimeout(this._paperHoldTimer);this._paperSuppressTap=false;
+    const touch=e.touches[0],id=String(e.currentTarget.dataset.id);
+    if(e.touches.length!==1){this.closePaperAction();return;}
+    if(!touch||this.data.deckSettling||id!==this.data.libraryRows[this.data.deckIndex]?.id||this.data.busy||this.data.exporting||this.data.shareOpen)return;
+    clearTimeout(this._thumbTimer);
+    const active=this.data.paperArmedId===id;
+    this._paperTouch={x:touch.clientX,y:touch.clientY,lastX:touch.clientX,lastY:touch.clientY,id,active,started:Date.now()};
+    if(active){this._paperSuppressTap=true;return;}
+    const pending=this._paperTouch;
+    this._paperHoldTimer=setTimeout(()=>{if(this._paperTouch===pending&&Math.hypot(pending.lastX-pending.x,pending.lastY-pending.y)<=PAPER_HOLD_SLOP)this.startDeckGesture(e);},PAPER_HOLD_MS);
+  },
+  startDeckGesture(e:Touch){
+    const start=this._paperTouch,id=String(e.currentTarget.dataset.id);
+    if(!this._active||this.data.view!=='home'||!start||start.id!==id||start.active||Date.now()-start.started<PAPER_HOLD_MS||id!==this.data.libraryRows[this.data.deckIndex]?.id||this.data.busy||this.data.shareOpen)return;
+    start.active=true;start.x=start.lastX;start.y=start.lastY;this._paperViewport=wx.getWindowInfo?.().windowHeight||900;
+    this._paperSuppressTap=true;this._paperLatest=null;
+    this.setData({paperArmedId:id,paperDragStyle:'',paperDragAction:'',paperDragDown:false});
+    wx.vibrateShort?.({type:'light',fail:()=>{}});
+  },
+  deckTouchMove(e:Touch){
+    const start=this._paperTouch,touch=e.touches[0];if(!start)return;
+    if(e.touches.length!==1||!touch){this.closePaperAction();return;}
+    start.lastX=touch.clientX;start.lastY=touch.clientY;
+    const dx=touch.clientX-start.x,dy=touch.clientY-start.y;
+    if(!start.active){
+      if(Math.hypot(dx,dy)>PAPER_HOLD_SLOP){clearTimeout(this._paperHoldTimer);this._paperSuppressTap=true;}
+      if(Math.abs(dx)>Math.abs(dy)*1.25){
+        const edge=dx>0?this.data.deckIndex===0:this.data.deckIndex===this.data.libraryRows.length-1;
+        this.setData({deckOffset:Math.max(-this._deckWidth*.75,Math.min(this._deckWidth*.75,dx*(edge?.22:.85)))});
+      }
+      return;
+    }
+    const drag=paperDrag(dx,dy,this._paperViewport);if(drag.cancel){this.closePaperAction();return;}
+    this._paperLatest=drag;
+    if(!this._paperPreviews)this._paperPreviews=previewQueue(()=>{const latest=this._paperLatest;if(latest&&this.data.paperArmedId)this.setData({paperDragStyle:latest.style,paperDragAction:latest.action,paperDragDown:latest.down});},20);
+    this._paperPreviews.request();
+  },
+  deckTouchEnd(){
+    clearTimeout(this._paperHoldTimer);const start=this._paperTouch;
+    if(!start?.active){
+      this._paperTouch=null;if(!start)return;
+      const dx=start.lastX-start.x,dy=start.lastY-start.y,step=dx<0?1:-1,next=this.data.deckIndex+step;
+      if(Math.hypot(dx,dy)<=PAPER_HOLD_SLOP){this.projectDeck();return;}
+      if(Math.abs(dx)>=Math.max(54,this._deckWidth*.16)&&Math.abs(dx)>Math.abs(dy)*1.3&&next>=0&&next<this.data.libraryRows.length)this.slideDeck(step);
+      else this.settleDeck();return;
+    }
+    this._paperPreviews?.flush();const action=this._paperLatest?.action||'',id=start.id;this._paperTouch=null;this._paperSuppressTap=true;
     if(action==='share'){this.closePaperAction();this.shareJournal({currentTarget:{dataset:{id}}} as unknown as Touch);}
     else if(action==='delete'){this.closePaperAction();this.deleteJournal({currentTarget:{dataset:{id}}} as unknown as Touch);}
-    else this.setData({paperDragStyle:'',paperDragAction:''});
+    else {this._paperLatest=null;this.setData({paperDragStyle:'',paperDragAction:'',paperDragDown:false});}
   },
-  closePaperAction(){this._paperTouch=null;this.setData({paperActionOpen:false,paperDragStyle:'',paperDragAction:''});},
-  paperShare(){const id=this.data.paperActionId;this.closePaperAction();this.shareJournal({currentTarget:{dataset:{id}}} as unknown as Touch);},
-  paperDelete(){const id=this.data.paperActionId;this.closePaperAction();this.deleteJournal({currentTarget:{dataset:{id}}} as unknown as Touch);},
+  closePaperAction(){
+    clearTimeout(this._paperHoldTimer);clearTimeout(this._deckSlideTimer);this._paperPreviews?.cancel();this._paperTouch=null;this._paperLatest=null;
+    if(this.data.deckSettling||this.data.deckOffset)this.setData({deckSettling:false,deckOffset:0});
+    if(this.data.paperArmedId||this.data.paperDragStyle)this.setData({paperArmedId:'',paperDragStyle:'',paperDragAction:'',paperDragDown:false});
+  },
   shareJournal(e?:Touch){
-    if(this.data.busy||this.data.exporting)return;const id=String(e?.currentTarget?.dataset?.id||this.data.doc?.id||'');if(!id)return;
-    wx.showActionSheet({itemList:['保存PNG成品图到相册','作为手帐成品加入帖子草稿','打开微信图片分享菜单'],success:reply=>{if(Number.isInteger(reply.tapIndex)&&reply.tapIndex>=0&&reply.tapIndex<=2)void this.shareJournalImage(id,reply.tapIndex);}});
-  },
-  async shareJournalImage(id:string,destination:number){
     if(this.data.busy||this.data.exporting)return;
-    if(this.data.doc?.id===id&&this.data.dirty&&!await this.persistDraft())return;
-    const document=readJournals().find(item=>item.id===id);if(!document)return;
-    this.setData({exporting:true,error:''});
+    this.closePaperAction();this.finishAdjustment();this.endTextEdit();
+    const id=String(e?.currentTarget?.dataset?.id||this.data.doc?.id||'');if(!id)return;
     try{
-      const canvas=await getCanvas(this,'#journal-export',document.width,document.height);await renderJournal(canvas,document);const path=await exportCanvas(canvas);
-      if(destination===0){await wx.saveImageToPhotosAlbum({filePath:path});wx.showToast({title:'已保存PNG成品图',icon:'success'});}
-      else if(destination===1){const draft=newPostDraft();draft.title=document.title;draft.images=[postImage(path,'journal',document.title,document.id)];const saved=await savePostDraft(draft);queuePostDraft(saved.id!);wx.switchTab({url:'/pages/community/index',fail:()=>this.setData({error:'手帐已放入本机帖子草稿，可从讨论页的草稿箱继续。'})});}
-      else if(typeof wx.showShareImageMenu==='function')wx.showShareImageMenu({path,needShowEntrance:false,fail:()=>{if(this._active)this.setData({error:'分享菜单未打开，可先保存PNG成品图后分享。'});}});
-      else{wx.previewImage({urls:[path]});this.setData({error:'当前微信版本未提供图片分享菜单，可先保存成品图。'});}
-    }catch(error){this.setData({error:errorText(error)});}finally{this.setData({exporting:false});}
+      const doc=this.data.doc?.id===id?journalContent(this.data.doc):readJournals().find(item=>item.id===id);if(!doc)return;
+      this._shareGeneration++;this._shareSnapshot=journalContent(doc);this._shareBefore=journalFingerprint(doc);
+      const bitmap=this.data.doc?.id===id&&this.data.dirty?'':this.data.deckThumbnails[id]||'';
+      this.setData({shareOpen:true,shareId:id,shareTitle:doc.title,shareRatio:doc.ratio,shareBitmap:bitmap,sharePreview:bitmap?null:journalThumbnail(doc,128),shareError:''});syncNavigation(this);
+    }catch(error){this.setData({error:errorText(error)});}
+  },
+  closeShare(){this._shareGeneration++;this._shareSnapshot=null;if(this.data.shareOpen){this.setData({shareOpen:false,sharePreview:null,shareBitmap:'',shareError:''});syncNavigation(this);}},
+  sharePreviewFailed(){try{const document=this.data.doc?.id===this.data.shareId?this.data.doc:readJournals().find(item=>item.id===this.data.shareId);this.setData({shareBitmap:'',sharePreview:document?journalThumbnail(document,128):null});}catch{this.setData({shareBitmap:'',shareError:'预览暂不可读，手帐仍保留。请关闭后重新打开。'});}},
+  chooseShare(e:Touch){const destination=Number(e.currentTarget.dataset.destination);if(this.data.shareOpen&&[0,1,2].includes(destination))void this.shareJournalImage(this.data.shareId,destination);},
+  async shareJournalImage(id:string,destination:number){
+    if(this.data.busy||this.data.exporting||![0,1,2].includes(destination))return;
+    const generation=this._shareGeneration;
+    this.setData({exporting:true,shareError:'',error:''});
+    const current=()=>generation===this._shareGeneration&&this._active;
+    try{
+      if(this.data.doc?.id===id&&this.data.dirty&&!await this.persistDraft())throw new Error('手帐保存尚未完成，请先保存后再分享。');
+      if(!current())return;
+      const document=readJournals().find(item=>item.id===id);if(!document)throw new Error('手帐未找到，请重新打开。');
+      if(this.data.shareOpen&&this._shareBefore!==journalFingerprint(document))throw new Error('手帐内容已更新，请关闭分享后重新预览。');
+      const canvas=await getCanvas(this,'#journal-export',document.width,document.height);if(!current())return;
+      await renderJournal(canvas,document);if(!current())return;const path=await exportCanvas(canvas);if(!current())return;
+      if(destination===0){await wx.saveImageToPhotosAlbum({filePath:path});if(current())wx.showToast({title:'已保存PNG成品图',icon:'success'});}
+      else if(destination===1){
+        const draft=newPostDraft();draft.title=document.title;draft.images=[postImage(path,'journal',document.title,document.id)];
+        const saved=await savePostDraft(draft);
+        if(!current())return;queuePostDraft(saved.id!);
+        wx.switchTab({url:'/pages/community/index',fail:()=>{if(this._active)this.setData({error:'手帐已放入本机帖子草稿，可从讨论页的草稿箱继续。'});}});
+      }else if(typeof wx.showShareImageMenu==='function'){
+        await new Promise<void>((resolve,reject)=>wx.showShareImageMenu({path,needShowEntrance:false,success:()=>resolve(),fail:reject}));
+      }else throw new Error('当前微信版本暂不支持图片分享菜单，可选择保存到相册后分享。');
+      if(current())this.closeShare();
+    }catch(error){if(current()&&!/cancel/i.test(String((error as {errMsg?:string})?.errMsg||'')))this.setData({shareError:error instanceof Error?error.message:'分享未完成，手帐和原图仍保留。'});}
+    finally{if(this._active)this.setData({exporting:false});else this.data.exporting=false;}
   },
   deckImageFailed(e:Touch){const id=String(e.currentTarget.dataset.doc),partId=String(e.currentTarget.dataset.id),preview=this.data.deckPreviews[id],part=preview?.elements.find(e=>e.id===partId);if(!part?.src)return;const key=id+':'+partId;(this._failedCovers||(this._failedCovers=new Map())).set(key,part.src);this.setData({deckPreviews:{...this.data.deckPreviews,[id]:{...preview,elements:preview.elements.map(e=>e.id===partId?{...e,src:''}:e)}}});},
   coverFailed(e:Touch){const id=String(e.currentTarget.dataset.id),row=this.data.libraryRows.find(row=>row.id===id);if(row?.cover&&this._failedCovers?.get(id)!==row.cover){(this._failedCovers||(this._failedCovers=new Map())).set(id,row.cover);this.filterLibrary(false);}},
@@ -380,6 +457,8 @@ Page({
   rememberMedia(oldPath:string,newPath:string){
     const replace=(d:JournalDocument)=>{for(const e of d.elements)if(e.type==='photo'&&e.src===oldPath){e.src=newPath;e.persisted=true;}};
     if(this.data.doc)replace(this.data.doc);
+    // Saving an original changes its local path, not the composition the user previewed.
+    if(this.data.shareOpen&&this._shareSnapshot){replace(this._shareSnapshot);this._shareBefore=journalFingerprint(this._shareSnapshot);}
     const patch:Record<string,unknown>={};
     this.data.renderElements.forEach((e,i)=>{if(e.src===oldPath){const value={...e,src:newPath,persisted:true};this.data.renderElements[i]=value;patch['renderElements['+i+']']=value;}});
     if(this.data.cropDraft?.src===oldPath){this.data.cropDraft.src=newPath;patch.cropDraft=this.data.cropDraft;}

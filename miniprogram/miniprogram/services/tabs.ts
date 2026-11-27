@@ -7,7 +7,7 @@ export const TABS = [
 ];
 
 export interface NavigationPage {
-  data: { view?: string; sheet?: boolean };
+  data: { view?: string; sheet?: boolean; moreOpen?:boolean; shareOpen?:boolean };
   getTabBar?: () => WechatMiniprogram.Component.TrivialInstance;
   setData: (data: Record<string, unknown>) => void;
 }
@@ -24,8 +24,11 @@ export function playTabArrival(bar: WechatMiniprogram.Component.TrivialInstance 
   bar.pulseTab(index);
 }
 
+export function navigationFocused(data:NavigationPage['data']){
+  return !!data.sheet||!!data.moreOpen||!!data.shareOpen||!!data.view&&!['home','live','feed','profile'].includes(data.view);
+}
 export function syncNavigation(page: NavigationPage): void {
-  const focused = !!page.data.sheet || !!page.data.view && !['home','live','feed','profile'].includes(page.data.view);
+  const focused = navigationFocused(page.data);
   page.getTabBar?.()?.setData({ hidden: focused });
   page.setData({ focusedPage: focused });
 }

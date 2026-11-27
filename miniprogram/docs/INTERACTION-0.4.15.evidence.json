@@ -1,0 +1,132 @@
+{
+  "version": "0.4.15",
+  "baseTeamCommit": "a6a3f88f028836278dfa91620e5f080b0cfff426",
+  "scope": "miniprogram/ only; backend and other root entries preserved",
+  "client": {
+    "command": "npm run verify",
+    "passed": 360,
+    "failed": 0,
+    "skipped": 0,
+    "baselinePassed": 340,
+    "newRegressionCases": 20
+  },
+  "nativeCompile": "NOT RUN",
+  "experienceUpload": "NOT RUN",
+  "productionDeployment": "NOT RUN",
+  "providerCalls": "NOT CALLED",
+  "sourceLayoutProjection": {
+    "fixtures": 66,
+    "sizes": [
+      "320x568",
+      "412x931",
+      "768x1024"
+    ],
+    "horizontalOverflow": 0,
+    "offscreenSheetBounds": 0,
+    "nativeEmulation": false
+  },
+  "deckProxy": {
+    "scenario": "Warm shelf; 18 six-photo journals with eight extra text boxes and bounded edit history; open home then 100 deck changes",
+    "sourceBytes": 424941,
+    "baseline": {
+      "home": {
+        "fullLibraryReads": 1,
+        "fullLibraryBytes": 424941,
+        "setDataCalls": 5,
+        "serializedBridgeBytes": 52844
+      },
+      "swipes": {
+        "fullLibraryReads": 0,
+        "setDataCalls": 200,
+        "serializedBridgeBytes": 4743817
+      }
+    },
+    "updated": {
+      "home": {
+        "fullLibraryReads": 0,
+        "fullLibraryBytes": 0,
+        "setDataCalls": 4,
+        "serializedBridgeBytes": 10262
+      },
+      "swipes": {
+        "fullLibraryReads": 0,
+        "setDataCalls": 200,
+        "serializedBridgeBytes": 77340
+      }
+    },
+    "limits": "Node storage/bridge proxy; excludes first migration, thumbnail creation, native decoding and animation FPS."
+  },
+  "publicReadOnlyProbe": {
+    "checked": "2026-11-27T16:21:22.800Z",
+    "origin": "https://api.auroraliu.cn:8080",
+    "readOnly": true,
+    "vision": {
+      "status": 200,
+      "ready": true,
+      "models": [
+        {
+          "name": "yolo-bird-detector",
+          "backend": "ultralytics-yolo",
+          "device": "cuda:0",
+          "ready": true
+        },
+        {
+          "name": "bioclip-2-zero-shot",
+          "backend": "open-clip",
+          "device": "cuda:0",
+          "ready": true
+        },
+        {
+          "name": "inference-runtime",
+          "backend": "session-manager",
+          "device": "cuda:0",
+          "ready": true
+        }
+      ]
+    },
+    "audio": {
+      "status": 404,
+      "ready": false,
+      "actualRecognition": "NOT TESTED"
+    },
+    "writing": {
+      "suggestionsStatus": 404,
+      "capabilitiesStatus": 404,
+      "routePresent": false,
+      "configured": "NOT CHECKED WITHOUT A USER SESSION",
+      "action": "Deploy the active business checkout and journal proxy route; a working trip endpoint does not establish writing readiness."
+    },
+    "trip": {
+      "status": 405,
+      "routePresent": true
+    },
+    "privateMapProtection": {
+      "status": 401,
+      "passed": true
+    },
+    "placesOrdering": {
+      "status": 200,
+      "current": true,
+      "action": "current"
+    },
+    "acceptance": {
+      "realIdentification": "NOT TESTED",
+      "wechatLogin": "NOT TESTED",
+      "qwen": "NOT CALLED",
+      "publications": "NOT CREATED"
+    }
+  },
+  "teamBaselineCI": {
+    "client": "https://github.com/bird-assistant/bird-assistant/actions/runs/46020396226",
+    "backendAndCpuCompatibility": "https://github.com/bird-assistant/bird-assistant/actions/runs/46020396185",
+    "conclusion": "success; backend unchanged by this patch"
+  },
+  "open": [
+    "Native Compile and device gesture/permissions/FPS acceptance",
+    "Hosted journal capabilities and suggestions still404",
+    "Actual user-selected recognition/writing and two-account social acceptance",
+    "R34 native auth/network and null-promise root cause",
+    "Audio readyz404",
+    "Full pre-capture/audio-vision fusion, native resource measurement, media bundle and broader adaptation"
+  ]
+}

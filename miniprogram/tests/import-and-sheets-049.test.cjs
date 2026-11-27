@@ -62,8 +62,8 @@ test('vertical scrolling and its trailing tap do not flip the card; an explicit 
 });
 test('every custom sheet keeps its close header outside the bounded scrolling body',()=>{
   let total=0;
-  for(const name of ['community','journal','home']){const markup=fs.readFileSync('miniprogram/pages/'+name+'/index.wxml','utf8'),headers=[...markup.matchAll(/class="sheet-header-fixed"/g)],bodies=[...markup.matchAll(/<scroll-view\b[^>]*class="sheet-scroll"[^>]*>([\s\S]*?)<\/scroll-view>/g)];assert.equal(headers.length,bodies.length,name);for(const body of bodies){assert.doesNotMatch(body[1],/sheet-header-fixed|aria-label="关闭/);}total+=headers.length;}
-  assert.equal(total,9);
+  for(const name of ['community','journal','home']){const markup=fs.readFileSync('miniprogram/pages/'+name+'/index.wxml','utf8'),headers=[...markup.matchAll(/class="[^"]*\bsheet-header-fixed\b[^"]*"/g)],bodies=[...markup.matchAll(/<scroll-view\b[^>]*class="[^"]*\bsheet-scroll\b[^"]*"[^>]*>([\s\S]*?)<\/scroll-view>/g)];assert.equal(headers.length,bodies.length,name);for(const body of bodies){assert.doesNotMatch(body[1],/sheet-header-fixed|aria-label="关闭/);}total+=headers.length;}
+  assert.equal(total,11);
 });
 test('post image validation preserves the existing draft and excludes unreadable selections',async()=>{
   const {dialogs}=environment(),{p}=page('pages/community');p.data.body='Keep my observation';let picker;global.wx.chooseImage=o=>picker=o;p.attach();await picker.success({tempFilePaths:['bad.pdf','bird.jpg']});assert.equal(p.data.body,'Keep my observation');assert.deepEqual(p.data.attachments.map(a=>a.path),['bird.jpg']);assert.equal(dialogs.length,1);assert.equal(p.data.picking,false);

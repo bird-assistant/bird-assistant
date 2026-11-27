@@ -1,6 +1,10 @@
+import {readSavedPlaces,savePlace,removeSavedPlace,SavedPlace} from '../../services/saved-places';
+import {previewCacheInfo,clearPreviewCache,PreviewCacheInfo} from '../../services/preview-cache';
+import {connectBusiness} from '../../services/vision-network';
+import {writingReadiness} from '../../services/writing-network';
 import {diagnosticText} from '../../services/diagnostics';
 import {queueObservationReview} from '../../services/draft-navigation';
-import {api,community,Draft,hub,sessionState,setDraft} from '../../services/community';
+import {api,community,Draft,hub,openMap,sessionState,sessionRevision,setDraft} from '../../services/community';
 import {LocalAudioPlayback} from '../../services/audio-playback';
 import { localRepository, Observation, isSampleObservation, observationStats } from '../../services/repository';
 import { choosePhoto, errorText, persistImage } from '../../services/media';
@@ -19,16 +23,23 @@ const avatars = [
   { id: 'mountain', name: '山岚' }, { id: 'water', name: '湖光' }, { id: 'letter', name: '字母 / 姓名' }
 ];
 
+const menuGroups=[
+  {title:'记录与手帐',ids:['journal','history','collection','places','tripHistory']},
+  {title:'鸟友社区',ids:['publications','saved','friends','chat','groups','cloud']},
+  {title:'账号与偏好',ids:['account','badges','settings']}
+];
+const menu=[{id:'journal',icon:'journal',name:'我的手帐'},{id:'account',icon:'user',name:'社区账号与隐私'},{id:'groups',icon:'chat',name:'观鸟群聊'},{id:'cloud',icon:'pin',name:'云端私人观察'},{id:'publications',icon:'leaf',name:'我的社区发布'},{id:'history',icon:'clock',name:'观察与识别历史'},{id:'tripHistory',icon:'leaf',name:'观鸟咨询记录'},{id:'collection',icon:'collection',name:'收藏的本机观察'},{id:'saved',icon:'collection',name:'社区内容书签'},{id:'places',icon:'pin',name:'收藏地点'},{id:'friends',icon:'user',name:'我的好友'},{id:'chat',icon:'chat',name:'私信与通知'},{id:'badges',icon:'leaf',name:'徽章与成长'},{id:'settings',icon:'settings',name:'设置与缓存'}];
 Page({
-  data: {localCloudId:'',localChannels:[] as {channel:string;status:string;reason:string;id:string}[],localStatusError:'',communityName:'',communityAvatar:'',numberEditing:'',numberDrafts:{} as Record<string,string>,cropBusy:false,name:'观鸟者',avatar:'/assets/avatars/owl.png',draftName:'',draftAvatar:'',edit:false,busy:false,avatarPersisted:true,error:'',records:[] as RecordView[],avatars,nativeAvatar:wx.canIUse('button.open-type.chooseAvatar'),view:'profile',observationCount:0,speciesCount:0,favoriteCount:0,favorites:[] as string[],shownRecords:[] as RecordView[],detail:null as RecordView|null,crop:false,cropPath:'',cropWidth:0,cropHeight:0,cropDisplayW:220,cropDisplayH:220,cropZoom:1,cropRotation:0,cropX:0,cropY:0,storageKB:0,menu:[{id:'account',icon:'user',name:'社区账号与隐私'},{id:'groups',icon:'chat',name:'观鸟群聊'},{id:'cloud',icon:'pin',name:'云端私人观察'},{id:'publications',icon:'leaf',name:'我的社区发布'},{id:'history',icon:'clock',name:'观察与识别历史'},{id:'tripHistory',icon:'leaf',name:'观鸟咨询记录'},{id:'collection',icon:'collection',name:'我的收藏'},{id:'saved',icon:'collection',name:'保存的他人内容'},{id:'places',icon:'pin',name:'地点收藏与打卡'},{id:'friends',icon:'user',name:'我的好友'},{id:'chat',icon:'chat',name:'私信与通知'},{id:'badges',icon:'leaf',name:'徽章与成长'},{id:'settings',icon:'settings',name:'设置与缓存'}],pageTitle:'羽迹',savedPlaces:[] as Array<{name:string;saved:boolean;checked:boolean}>,savedPosts:[] as Array<{id:string;title:string}>},
-  _pickToken: 0,
+  data: {localCloudId:'',localChannels:[] as {channel:string;status:string;reason:string;id:string}[],localStatusError:'',communityName:'',communityAvatar:'',numberEditing:'',numberDrafts:{} as Record<string,string>,cropBusy:false,name:'观鸟者',avatar:'/assets/avatars/owl.png',draftName:'',draftAvatar:'',edit:false,busy:false,avatarPersisted:true,error:'',records:[] as RecordView[],avatars,nativeAvatar:wx.canIUse('button.open-type.chooseAvatar'),view:'profile',observationCount:0,speciesCount:0,favoriteCount:0,favorites:[] as string[],shownRecords:[] as RecordView[],detail:null as RecordView|null,crop:false,cropPath:'',cropWidth:0,cropHeight:0,cropDisplayW:220,cropDisplayH:220,cropZoom:1,cropRotation:0,cropX:0,cropY:0,storageKB:0,menu,menuGroups:menuGroups.map(group=>({title:group.title,items:group.ids.map(id=>menu.find(item=>item.id===id)!)})),pageTitle:'羽迹',savedPlaces:[] as Array<SavedPlace&{dateLabel:string}>,placesBusy:false,cacheInfo:null as PreviewCacheInfo|null,cacheError:'',cacheNotice:'',writingChecking:false,writingStatus:'',writingReady:false,savedPosts:[] as Array<{id:string;title:string}>},
+  _pickToken: 0,_visible:false,_profileGeneration:0,_writingCheck:0,
   _player:null as LocalAudioPlayback|null,
   _cropDrag:null as {x:number;y:number;offsetX:number;offsetY:number}|null,
   onShow() {
+    this._visible=true;const generation=++this._profileGeneration,revision=sessionRevision();
     selectTab(this, 4);
     this.setData({communityName:'',communityAvatar:''});
     if(sessionState()==='active')void api(community+'/account').then(account=>{
-      if(sessionState()==='active' && account.profile)this.setData({communityName:account.profile.nickname,communityAvatar:'/assets/avatars/'+account.profile.avatar+'.png'});
+      if(this._visible&&generation===this._profileGeneration&&revision===sessionRevision()&&sessionState()==='active'&&account.profile)this.setData({communityName:account.profile.nickname,communityAvatar:'/assets/avatars/'+account.profile.avatar+'.png'});
     }).catch(()=>{});
     if (this.data.edit) return;
     try {
@@ -38,9 +49,11 @@ Page({
       this.setData({name:profile.name,avatar:profile.avatar,records,favorites,...observationStats(records,favorites),shownRecords:this.data.view==='collection'?records.filter(r=>favorites.includes(r.id)):records,detail:this.data.detail?records.find(r=>r.id===this.data.detail?.id)||null:null,error:''});
       if(this.data.view==='detail' && this.data.detail)void this.loadLocalStatus(this.data.detail);
     } catch (error) { this.setData({ error: errorText(error) }); }
+    if(this.data.view==='places')this.loadPlaces();
+    if(this.data.view==='settings')this.refreshSettings();
   },
-  onHide(){this._player?.stop();},
-  onUnload() { this._player?.stop();this._pickToken++; },
+  onHide(){this._visible=false;this._profileGeneration++;this._writingCheck++;if(this.data.writingChecking)this.setData({writingChecking:false,writingStatus:'检查已暂停，可返回后重新检查。'});this._player?.stop();},
+  onUnload() { this._visible=false;this._profileGeneration++;this._writingCheck++;this._player?.stop();this._pickToken++; },
   edit() { this.setData({edit:true,view:'edit',pageTitle:'编辑资料',draftName:this.data.name,draftAvatar:this.data.avatar,avatarPersisted:true,error:''});resetPageScroll(this); },
   changeName(event: WechatMiniprogram.CustomEvent<{ value: string }>) { this.setData({ draftName: event.detail.value }); },
   chooseDefault(event: WechatMiniprogram.TouchEvent) {
@@ -77,7 +90,53 @@ Page({
     const record = this.data.records.find(item => item.id === event.currentTarget.dataset.id);
     if (record) wx.previewImage({ urls: [record.imagePath], fail: () => wx.showToast({ title: '照片暂时无法显示，记录仍保留', icon: 'none' }) });
   },
-  menu(e:WechatMiniprogram.TouchEvent){if(e.currentTarget.dataset.id==='tripHistory'){navigate({url:'/field/trip/index?history=1'});return;}const view=String(e.currentTarget.dataset.id),item=this.data.menu.find(m=>m.id===view);const destinations:Record<string,string>={friends:'friends',account:'account',groups:'groups',chat:'inbox',badges:'growth',saved:'bookmarks',cloud:'observations',publications:'mine'};if(destinations[view]){hub(destinations[view]);return;}if(!item)return;try{const shownRecords=view==='collection'?this.data.records.filter(r=>this.data.favorites.includes(r.id)):this.data.records,activity=wx.getStorageSync('bird-assistant.place-demo.v1')||{},names:Record<string,string>={lake:'湖畔公园',wood:'林间小径',reed:'芦苇栈道',lookout:'湖畔观鸟台',grove:'松林休憩点',gate:'林间入口'};this.setData({view,pageTitle:item.name,shownRecords,savedPlaces:Object.keys(activity).filter(k=>activity[k].saved||activity[k].checked).map(k=>({name:names[k]||k,saved:!!activity[k].saved,checked:!!activity[k].checked})),savedPosts:(wx.getStorageSync('bird-assistant.community-demo.v1')||[]).filter((p:{saved:boolean})=>p.saved),storageKB:wx.getStorageInfoSync().currentSize,error:''});resetPageScroll(this);}catch(error){this.setData({error:errorText(error)});}},
+  menu(e:WechatMiniprogram.TouchEvent){
+    const view=String(e.currentTarget.dataset.id);
+    if(view==='journal'){wx.switchTab({url:'/pages/journal/index'});return;}
+    if(view==='tripHistory'){navigate({url:'/field/trip/index?history=1'});return;}
+    const item=this.data.menu.find(m=>m.id===view),destinations:Record<string,string>={friends:'friends',account:'account',groups:'groups',chat:'inbox',badges:'growth',saved:'bookmarks',cloud:'observations',publications:'mine'};
+    if(destinations[view]){hub(destinations[view]);return;}if(!item)return;
+    this.setData({view,pageTitle:item.name,shownRecords:view==='collection'?this.data.records.filter(r=>this.data.favorites.includes(r.id)):this.data.records,error:''});
+    if(view==='places')this.loadPlaces();if(view==='settings')this.refreshSettings();resetPageScroll(this);
+  },
+  loadPlaces(){try{this.setData({savedPlaces:readSavedPlaces().map(place=>({...place,dateLabel:beijingDateTime(place.updatedAt)})),error:''});}catch(error){this.setData({error:errorText(error)});}},
+  async addPlace(){
+    if(this.data.placesBusy)return;const token=++this._pickToken;this.setData({placesBusy:true,error:''});
+    try{const place=await wx.chooseLocation({});if(token!==this._pickToken||this.data.view!=='places')return;
+      savePlace({name:place.name,address:place.address||'',latitude:place.latitude,longitude:place.longitude});this.loadPlaces();wx.showToast({title:'地点已收藏',icon:'success'});
+    }catch(error){if(token===this._pickToken&&!/cancel/i.test(String((error as {errMsg?:string})?.errMsg||'')))this.setData({error:errorText(error)});}
+    finally{if(token===this._pickToken)this.setData({placesBusy:false});}
+  },
+  openPlace(e:WechatMiniprogram.TouchEvent){
+    const place=this.data.savedPlaces.find(item=>item.id===e.currentTarget.dataset.id);if(!place)return;
+    openMap(place,'','所有鸟种',0,{scale:15,precisionLabel:'收藏地点 · '+place.name});
+  },
+  deletePlace(e:WechatMiniprogram.TouchEvent){
+    const place=this.data.savedPlaces.find(item=>item.id===e.currentTarget.dataset.id);if(!place)return;
+    wx.showModal({title:'移除收藏地点？',content:place.name,confirmText:'移除',success:reply=>{if(!reply.confirm||this.data.view!=='places')return;try{removeSavedPlace(place.id);this.loadPlaces();}catch(error){this.setData({error:errorText(error)});}}});
+  },
+  refreshSettings(){
+    try{this.setData({storageKB:wx.getStorageInfoSync().currentSize,cacheInfo:previewCacheInfo(),cacheError:''});}
+    catch(error){this.setData({cacheInfo:null,cacheError:errorText(error)});}
+  },
+  cleanPreviewCache(){
+    if(!this.data.cacheInfo)return;
+    wx.showModal({title:'清理手帐预览缓存？',content:'只移除可重新生成的缩略图与索引。手帐、撤销历史、帖子草稿、AI建议、观察原图和账号资料保留。',confirmText:'清理预览',success:reply=>{
+      if(!reply.confirm||this.data.view!=='settings')return;
+      try{const result=clearPreviewCache();this.setData({cacheNotice:result.failed?'已清理部分预览，有些缓存暂未释放，可稍后重试。':'预览缓存已清理，下次打开手帐时重新生成。'});this.refreshSettings();}
+      catch(error){this.setData({cacheError:errorText(error)});}
+    }});
+  },
+  async checkWriting(){
+    if(this.data.writingChecking)return;
+    if(sessionState()!=='active'){this.setData({writingStatus:'请先登录社区账号，再检查手机写作服务。',writingReady:false});return;}
+    const generation=++this._writingCheck,revision=sessionRevision();this.setData({writingChecking:true,writingStatus:'正在检查服务配置…',writingReady:false});
+    const current=()=>this._visible&&generation===this._writingCheck&&revision===sessionRevision()&&sessionState()==='active';
+    try{const connection=await connectBusiness();if(!current())return;await writingReadiness(connection.origin,connection.header.Authorization?.replace(/^Bearer /,'')||'');
+      if(current())this.setData({writingReady:true,writingStatus:'手机写作服务已就绪。可在手帐或帖子中生成建议。'});
+    }catch(error){if(current())this.setData({writingReady:false,writingStatus:errorText(error)});}
+    finally{if(current())this.setData({writingChecking:false});}
+  },
   async loadLocalStatus(detail:RecordView){
     this.setData({localCloudId:'',localChannels:[],localStatusError:''});
     if(detail.sample || (detail.mediaKind && detail.mediaKind!=='photo') || sessionState()==='out')return;

@@ -13,7 +13,7 @@ import {api,community,hub,imageUrl,setCompose} from '../../services/community';
 import {cleanPhotoDetails,PhotoDetails} from '../../services/photo-details';
 import {layout} from '../../services/layout';
 import {forumPost} from '../../services/forum';
-import { selectTab } from '../../services/tabs';
+import { selectTab,syncNavigation } from '../../services/tabs';
 import { errorText } from '../../services/media';
 import { resetPageScroll } from '../../services/navigation';
 import { postWritingBrief, POST_WRITING_PURPOSES } from '../../services/post-writing';
@@ -31,7 +31,7 @@ Page({
   _writingContext:'',
   writingContext(){const d=this.data;return JSON.stringify([d.draftId,d.title,d.body,d.attachments.map(p=>[p.id,p.path]),d.writingPurpose,d.writingInstructions,d.writingPhotoIds,d.writingIncludeImage,d.image]);},
   _refreshSeq:0,_feedSeq:0,_visible:true,
-  onLoad(){installAdaptiveSheets(this,()=>this.data.writingOpen||this.data.writingHistoryOpen||this.data.journalPicker);this._failedThumbnails=new Set();reactionSets.set(this,new Set());this.resizeFeed();this.refreshDrafts();},
+  onLoad(){installAdaptiveSheets(this,()=>this.data.moreOpen||this.data.writingOpen||this.data.writingHistoryOpen||this.data.journalPicker);this._failedThumbnails=new Set();reactionSets.set(this,new Set());this.resizeFeed();this.refreshDrafts();},
   resizeFeed(){this.setData({feedHeight:layout(this.data.view!=='feed').height});},onResize(){this.resizeFeed();fitAdaptiveSheets(this);},
   photoDetails(event:WechatMiniprogram.CustomEvent<PhotoDetails>){const manualCamera=cleanPhotoDetails(event.detail);this.setData({manualCamera,attachments:this.data.attachments.map(item=>item.id===this.data.activeAttachment?{...item,manualCamera}:item)});this.draftChanged();},
   pulling(event:WechatMiniprogram.CustomEvent<{dy:number}>){const dy=Number(event.detail.dy)||0;this.setData({pullReady:dy>=64,pullProgress:Math.min(1,dy/64)});},
@@ -66,8 +66,8 @@ Page({
       this.setData({feedLoading:false,error:''});
     }catch(error){if(this._visible)this.setData({error:errorText(error)});}finally{activeReactions.delete(lock);if(this._visible)this.patchPost(id,{[pending]:false});}
   },
-  moreSections(){this.setData({moreOpen:!this.data.moreOpen});},
-  closeMore(){this.setData({moreOpen:false});},
+  moreSections(){this.setData({moreOpen:!this.data.moreOpen});syncNavigation(this);},
+  closeMore(){this.setData({moreOpen:false});syncNavigation(this);},
   holdMenu(){},
   holdSheet(){},
   moreSection(event:WechatMiniprogram.TouchEvent){const id=String(event.currentTarget.dataset.id);if(!this.data.moreItems.some(item=>item.id===id))return;this.closeMore();if(id==='draft')void this.openDrafts();else hub(id);},

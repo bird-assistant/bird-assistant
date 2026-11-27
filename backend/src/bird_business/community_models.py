@@ -51,6 +51,7 @@ class Sighting(Input):
 
 
 class Preview(Input):
+    identification_help: bool = False
     species: Key | None = None
     external: Key | None = None
     sighting: Key | None = None
@@ -77,6 +78,7 @@ class Submit(Input):
 
 
 class Reply(Input):
+    identification_vote: bool = False
     body: Text
     reference: Key
     species: Key | None = None
@@ -98,3 +100,7 @@ class Decision(Input):
 
 class Adopt(Input):
     reply: Key
+
+
+class BirdChoice(Input):
+    species: Key

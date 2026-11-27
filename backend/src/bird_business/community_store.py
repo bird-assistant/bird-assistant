@@ -43,6 +43,10 @@ CREATE TABLE IF NOT EXISTS replies(id TEXT PRIMARY KEY, post TEXT NOT NULL, owne
 CREATE TABLE IF NOT EXISTS reactions(owner TEXT,post TEXT,kind TEXT, PRIMARY KEY(owner,post,kind));
 CREATE INDEX IF NOT EXISTS reactions_post_kind ON reactions(post,kind);
 CREATE INDEX IF NOT EXISTS replies_post_status ON replies(post,status,created);
+CREATE TABLE IF NOT EXISTS bird_polls(post TEXT PRIMARY KEY, result TEXT, updated TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS bird_votes(post TEXT NOT NULL, member TEXT NOT NULL, species TEXT NOT NULL,
+ PRIMARY KEY(post,member));
+CREATE INDEX IF NOT EXISTS bird_vote_totals ON bird_votes(post,species);
 CREATE TABLE IF NOT EXISTS messages(id TEXT PRIMARY KEY,sender TEXT,recipient TEXT,body TEXT,created TEXT,
  ref TEXT NOT NULL, UNIQUE(sender,ref));
 CREATE INDEX IF NOT EXISTS message_recipient ON messages(recipient,created);

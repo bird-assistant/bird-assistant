@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Query
 from pydantic import Field
 
+from bird_business.bird_polls import poll_summary
 from bird_business.community import DB, ROOT, Member, conflict, limited, public
 from bird_business.community_models import Input
 from bird_business.community_store import blocked, member_card, missing, now, one, relationship
@@ -171,8 +172,19 @@ def activity(database: DB, owner: Member):
             "(b.member=? AND b.owner=r.owner)) ORDER BY r.created DESC LIMIT 50",
             (owner, owner, owner, owner),
         )
+        polls = db.execute(
+            "SELECT p.* FROM bird_polls b JOIN publications p ON p.id=b.post "
+            "WHERE p.owner=? AND p.status='approved' "
+            "AND EXISTS (SELECT 1 FROM bird_votes v WHERE v.post=b.post) "
+            "ORDER BY b.updated DESC LIMIT 50",
+            (owner,),
+        )
         return {
-            "items": [{**dict(row), "nickname": member_card(db, row["owner"])["nickname"]} for row in rows]
+            "items": [{**dict(row), "nickname": member_card(db, row["owner"])["nickname"]} for row in rows],
+            "identifications": [
+                {"post": post["id"], "title": public(post)["title"], "poll": poll_summary(db, post, owner)}
+                for post in polls
+            ],
         }
 
 

@@ -45,6 +45,7 @@ function failure(status:number,body:any){
     TRIP_EXPIRED:'对话已过期，点击「新咨询」重新提问。',TRIP_IN_PROGRESS:'上次提问仍在处理，请稍后重试。',
     TRIP_QUOTA:'本小时出行咨询额度已用完，请稍后再试。',MAP_LOCATION_RESTRICTED:'地图发布需要有位置、已确认且允许公开位置的鸟种。可单独发布讨论。',
     HANDLE_TAKEN:'鸟友号已被使用，请换一个。',FRIENDS_ONLY:'请先成为好友。',REGISTRATION_REQUIRED:'请先完善社区账号资料。',
+    UNKNOWN_BIRD_REQUIRED:'请选择未知鸟种的社区讨论帖。',SPECIES_REQUIRED:'请选择名录中的鸟种。',POLL_CLOSED:'楼主已采纳鸟种。请刷新查看结果。',
     INVALID_IMAGE:'请选择 JPEG、PNG 或 WebP 照片。',MESSAGE_UNAVAILABLE:'当前无法向该用户发送消息。'};
   return new Error(reasons[code]||({401:'微信登录已失效。',403:'当前账号没有此权限。',404:'内容已撤回或不可见。',409:'内容已变化，请刷新后重试。',413:'照片超过上传大小限制。',422:'请检查必填项和坐标。',429:'操作频繁，请稍后重试。'} as Record<number,string>)[status]||'业务服务连接失败，请重试。');
 }

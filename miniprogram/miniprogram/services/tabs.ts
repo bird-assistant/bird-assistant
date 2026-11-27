@@ -12,6 +12,18 @@ export interface NavigationPage {
   setData: (data: Record<string, unknown>) => void;
 }
 
+let arrivingTab: number | undefined;
+
+export function markTabTap(index: number | undefined) {
+  arrivingTab = index;
+}
+
+export function playTabArrival(bar: WechatMiniprogram.Component.TrivialInstance | undefined, index: number) {
+  if (!bar || arrivingTab !== index || typeof bar.pulseTab !== 'function') return;
+  arrivingTab = undefined;
+  bar.pulseTab(index);
+}
+
 export function syncNavigation(page: NavigationPage): void {
   const focused = !!page.data.sheet || !!page.data.view && !['home','live','feed','profile'].includes(page.data.view);
   page.getTabBar?.()?.setData({ hidden: focused });
@@ -19,6 +31,8 @@ export function syncNavigation(page: NavigationPage): void {
 }
 
 export function selectTab(page: NavigationPage, selected: number): void {
-  page.getTabBar?.()?.setData({ selected });
+  const bar = page.getTabBar?.();
+  bar?.setData({ selected });
   syncNavigation(page);
+  playTabArrival(bar, selected);
 }

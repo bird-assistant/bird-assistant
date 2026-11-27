@@ -12,6 +12,16 @@
 DNS 生效前可在 WSL 用 `curl --noproxy '*' --resolve api.auroraliu.cn:8080:49.233.81.227 https://api.auroraliu.cn:8080/api/v1/vision/readyz` 对新入口做带证书校验的检查。新库在 `/var/lib/bird-business/observations.sqlite3`，迁移前课程机备份在 `/root/bird-migration/pre-8080.VvFI7V`。GPU 直连和真机验收完成前保持旧服务在线。下面是旧阿里云部署记录，重跑旧机安装会覆盖过渡路由。
 
 
+## 2.4 GB vGPU 与照片复核
+
+2.4 GB RTX 4090 上使用一个推理进程。BioCLIP 以 FP16 加载权重，照片和实时帧共用一个推理名额。GPU 原生进程因 `SIGBUS` 退出后，`vision-device-guard.sh` 记录 `/root/.local/share/bird-personal/vision-cpu-after-sigbus`，重启真实模型并切换到 CPU。`/api/v1/vision/readyz` 显示实际设备。平台修复 vGPU 后，管理员可清除该标记并用项目 Supervisor 重启 `vision`。并行云容器使用 `/root/supervisord/bird-recognition.conf` 随平台 Supervisor 启动项目模型和隧道。安装后用平台的 `supervisorctl reread` 和 `update bird-recognition` 加载。
+
+课程机的 `bird-photo.service` 监听 `127.0.0.1:8210`。服务从 `/opt/bird-assistant/photo/src` 加载代码，从同目录树的 `config/catalog` 加载名录，沿用业务机的微信签名配置。懂鸟密钥仅在课程机 `/etc/bird-assistant/dongniao.env` 配置为 `BIRD_DONGNIAO_API_KEY`，文件权限为 `0600`。轮换密钥后重启 `bird-photo`。
+
+新版小程序对 `POST /api/v1/vision/analyses` 发送 `X-Bird-Photo-Review: 1`。网关先请求本地 GPU 隧道，推理忙、不可用、鸟种相似度低或候选难以区分时，使用懂鸟复核。坐标和 EXIF 仅用于自己的模型，转交懂鸟的是重新编码的 JPEG。可信候选保留在原来的鸟框中，疑难目标按框的位置匹配外部结果，界面分别显示相似度和懂鸟置信度。实时取景使用自有模型，用户保留疑难帧时走照片复核。
+
+懂鸟 v2 的照片上传和结果查询共用本机 SQLite 滚动窗口 `/var/lib/bird-photo/calls.sqlite3`。上传一次、每次轮询各占一次请求，过去 60 秒最多 60 次。额度用尽时优先返回已有的本地结果，两边均无法识别时返回可重试的错误。旧版小程序继续使用原有照片接口。开发者工具默认使用直连 GPU 的本机隧道，联调完整复核链路时将 `extConfig.visionOrigin` 设为课程机 HTTPS 入口。[懂鸟官方接口说明](https://ai.open.hhodata.com/doc/)
+
 ## 历史部署 · 阿里云与 GPU 容器
 
 小程序使用 `https://api.auroraliu.cn`。在阿里云 DNS 把主机记录 `api` 的 A 记录改为 `39.103.59.117`。宝塔 Nginx 为该子域名运行独立站点。微信登录和观察记录转到本机 8200，识别请求经本机 18000 转到 GPU。

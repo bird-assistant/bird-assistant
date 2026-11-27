@@ -4,9 +4,10 @@ import asyncio
 import logging
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 from bird_vision.config import Settings
 from bird_vision.domain import FrameJob
@@ -17,6 +18,7 @@ from bird_vision.schemas import SessionResponse, SessionStats, StatusEvent
 from bird_vision.tracking import TrackManager
 
 LOGGER = logging.getLogger(__name__)
+Result = TypeVar("Result")
 
 
 @dataclass(slots=True)
@@ -92,6 +94,17 @@ class SessionManager:
         self.inference_healthy = True
         self.last_inference_error: str | None = None
         self._occurrence_prepares: dict[str, dict[tuple[Any, ...], dict[str, Any]]] = {}
+
+    async def run_photo(self, work: Callable[[], Result]) -> Result:
+        if self._inference_slots.locked():
+            raise ServiceError("VISION_BUSY", "inference device busy", 429)
+        async with self._inference_slots:
+            inference = asyncio.create_task(asyncio.to_thread(work))
+            try:
+                return await asyncio.shield(inference)
+            except asyncio.CancelledError:
+                await self._drain_native_task(inference)
+                raise
 
     async def start(self) -> None:
         self._cleanup_task = asyncio.create_task(self._cleanup_loop(), name="vision-session-cleanup")

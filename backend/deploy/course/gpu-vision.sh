@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -eu
+runner=$(dirname "$(realpath "${BASH_SOURCE[0]}")")/vision-device-guard.sh
 cd /root/shared-nvme/bird-assistant/backend
 IFS= read -r BIRD_VISION_MOBILE_SIGNING_KEY < /root/.config/bird-assistant/aliyun-signing-key
 [[ $BIRD_VISION_MOBILE_SIGNING_KEY =~ ^[a-f0-9]{64}$ ]]
@@ -11,4 +12,6 @@ if [[ -r /sys/fs/cgroup/cpu.max ]]; then
         export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
     fi
 fi
-exec /root/venvs/bird-vision/bin/python -m bird_vision.cli --host 127.0.0.1 --port 8000 --workers 1
+exec bash "$runner" \
+    /root/.local/share/bird-personal/vision-cpu-after-sigbus \
+    /root/venvs/bird-vision/bin/python -m bird_vision.cli --host 127.0.0.1 --port 8000 --workers 1

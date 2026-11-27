@@ -1,8 +1,37 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {LiveVision,overlay,frozenResult}=require('../.test-build/services/vision-live.js');
+const {LiveVision,overlay,frozenResult,liveLocation}=require('../.test-build/services/vision-live.js');
 const {historicalFields,jpegMetadata}=require('../.test-build/services/photo-context.js');
 const {photoBytes}=require('../.test-build/services/vision-network.js');
+
+test('live location falls back on denial, invalid coordinates or failure and accepts zero coordinates',async()=>{
+  global.wx={getSetting:async()=>({authSetting:{}}),getLocation:()=>assert.fail('unexpected location request')};
+  assert.deepEqual(await liveLocation(),{});
+  wx.getSetting=async()=>({authSetting:{'scope.userLocation':true}});
+  for(const point of [{latitude:91,longitude:1,accuracy:50},{latitude:1,longitude:NaN,accuracy:50},{latitude:0,longitude:0,accuracy:2000}]){
+    wx.getLocation=async()=>point;assert.deepEqual(await liveLocation(),{});
+  }
+  wx.getLocation=async()=>{throw new Error('unavailable');};assert.deepEqual(await liveLocation(),{});
+  wx.getLocation=async()=>({latitude:0,longitude:0,accuracy:20});assert.deepEqual(await liveLocation(),{latitude:0,longitude:0});
+});
+
+test('a stalled permission check cannot delay recognition or start GPS after the deadline',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  let finish, calls=0;
+  global.wx={getSetting:()=>new Promise(resolve=>{finish=resolve;}),getLocation:()=>{calls++;}};
+  const location=liveLocation();t.mock.timers.tick(2500);
+  assert.deepEqual(await location,{});
+  finish({authSetting:{'scope.userLocation':true}});await Promise.resolve();assert.equal(calls,0);
+});
+
+test('photo cleanup releases compression output after read errors and preserves the original',async()=>{
+  const deleted=[];
+  global.wx={getImageInfo:async()=>({width:400,height:300}),getFileSystemManager:()=>({unlinkSync:path=>deleted.push(path),readFile:options=>options.fail()})};
+  for(const path of ['temp.jpg','original.jpg']){
+    wx.compressImage=async()=>({tempFilePath:path});await assert.rejects(photoBytes('original.jpg'));
+  }
+  assert.deepEqual(deleted,['temp.jpg']);
+});
 
 test('next live upload waits from acknowledgment and a limited frame preserves the overlay',t=>{
   let now=10000,request;

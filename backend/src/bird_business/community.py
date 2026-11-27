@@ -10,8 +10,19 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query, Request, Response, UploadFile
 from PIL import Image, ImageOps, UnidentifiedImageError
 
+from bird_business.bird_polls import poll_summary, resolve_poll, vote
 from bird_business.community_geo import display_point
-from bird_business.community_models import Adopt, Decision, Message, Preview, Reply, Report, Sighting, Submit
+from bird_business.community_models import (
+    Adopt,
+    BirdChoice,
+    Decision,
+    Message,
+    Preview,
+    Reply,
+    Report,
+    Sighting,
+    Submit,
+)
 from bird_business.community_store import (
     CommunityStore,
     blocked,
@@ -379,6 +390,8 @@ def preview(body: Preview, database: DB, owner: Member):
             if not species:
                 species = taxon(db, source["species"])
         point = sighting.get("point")
+        if body.identification_help and (species or body.external or body.channels != {"post"}):
+            raise ServiceError("UNKNOWN_BIRD_REQUIRED", "求鉴定适用于未知鸟种的社区讨论帖", 422)
         if "map" in body.channels and (not point or species.get("sensitive") or not species):
             raise ServiceError(
                 "MAP_LOCATION_RESTRICTED", "map requires location and a non-sensitive confirmed species", 422
@@ -414,6 +427,8 @@ def preview(body: Preview, database: DB, owner: Member):
             }
             for channel in body.channels
         }
+        if body.identification_help:
+            displays["post"]["identificationHelp"] = True
         preview_id = uid("preview")
         limited(db, "previews", "owner", owner, 100)
         db.execute(
@@ -458,6 +473,8 @@ def publish(body: Submit, database: DB, owner: Member):
                     now(),
                 ),
             )
+            if display.get("identificationHelp"):
+                db.execute("INSERT INTO bird_polls VALUES(?,NULL,?)", (record, now()))
             result.append({"id": record, "channel": channel, "status": "pending"})
         return {"items": result}
 
@@ -528,6 +545,25 @@ def discussion_reply(db, row):
     return result
 
 
+def discussion_post(db, row, viewer):
+    item = {**public(row), **discussion_summary(db, row["id"], viewer)}
+    if item.get("identificationHelp"):
+        item["poll"] = poll_summary(db, row, viewer)
+    return item
+
+
+@router.put(ROOT + "/publications/{record}/identification/{action}")
+def identify(record: str, action: Literal["vote", "resolve"], body: BirdChoice, database: DB, owner: Member):
+    with database.transaction() as db:
+        db.execute("BEGIN IMMEDIATE")
+        post = visible(db, record)
+        if action == "vote":
+            vote(db, post, owner, body.species)
+        else:
+            resolve_poll(db, post, owner, body.species)
+        return poll_summary(db, post, owner)
+
+
 @router.get(ROOT + "/publications/{record}")
 def detail(
     record: str,
@@ -547,8 +583,7 @@ def detail(
             (record, owner),
         ).fetchone()[0]
         return {
-            **public(row),
-            **discussion_summary(db, record, owner),
+            **discussion_post(db, row, owner),
             "features": {"threadedReplies": True},
             "related": dict(related) if related else None,
             "ownedSighting": row["sighting"] if row["owner"] == owner else None,
@@ -581,7 +616,7 @@ def feed(
             "SELECT *" + where + " ORDER BY created DESC,id LIMIT ? OFFSET ?",
             (species, species, limit, offset),
         )
-        items = [{**public(row), **discussion_summary(db, row["id"], owner)} for row in rows]
+        items = [discussion_post(db, row, owner) for row in rows]
         return {
             "items": items,
             "total": total,
@@ -776,7 +811,9 @@ def map_detail(record: str, database: DB, owner: Member):
 @router.post(ROOT + "/publications/{record}/replies", status_code=201)
 def reply(record: str, body: Reply, database: DB, owner: Member):
     with database.transaction() as db:
-        visible(db, record)
+        if body.identification_vote:
+            db.execute("BEGIN IMMEDIATE")
+        post = visible(db, record)
         taxon(db, body.species)
         existing = db.execute(
             "SELECT * FROM replies WHERE owner=? AND ref=?", (owner, body.reference)
@@ -799,6 +836,8 @@ def reply(record: str, body: Reply, database: DB, owner: Member):
                 record,
             )
         limited(db, "replies", "owner", owner, 40)
+        if body.identification_vote:
+            vote(db, post, owner, body.species)
         key = uid("reply")
         db.execute(
             "INSERT INTO replies(id,post,owner,body,species,status,created,ref,parent) "

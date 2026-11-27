@@ -13,6 +13,50 @@ function page(name,data={}){
 }
 const tap=(op,id)=>({currentTarget:{dataset:{op,id}}});
 
+test('identification posts keep a failed ballot and submit species-only votes or moderated explanations',async t=>{
+  const requests=[];
+  let fail=true;
+  const poll={total:1,candidates:[{id:'owl',name:'短耳鸮',votes:1}],mine:'owl',result:null};
+  t.mock.method(service,'sessionState',()=> 'out');
+  t.mock.method(service,'api',async(path,method,body)=>{
+    if(method==='PUT'||method==='POST'){
+      requests.push({path,method,body});
+      if(fail)throw Error('offline');
+      return method==='PUT'?poll:{id:'r1',status:'pending'};
+    }
+    return {id:'post',channel:'post',poll,replies:[]};
+  });
+  const hub=page('field/hub',{screen:'record',id:'post',record:{poll},replySpecies:'owl',selectedSpecies:'短耳鸮'});
+  await hub.action(tap('reply'));
+  assert.equal(hub.data.replySpecies,'owl');
+  fail=false;
+  await hub.action(tap('reply'));
+  assert.equal(requests[1].path,'/api/v1/community/publications/post/identification/vote');
+  assert.deepEqual(requests[1].body,{species:'owl'});
+  assert.equal(hub.data.replySpecies,'');
+  assert.equal(hub.data.record.pollPreview,'短耳鸮 1票');
+  hub.chooseReplySpecies({detail:{id:'owl',name:'短耳鸮'}});
+  hub.setData({body:'脸盘圆，眼周深色'});
+  await hub.action(tap('reply'));
+  assert.equal(requests[2].body.identification_vote,true);
+  assert.equal(requests[2].body.body,'脸盘圆，眼周深色');
+  assert.match(hub.data.notice,/待审核/);
+  hub.onUnload();
+});
+
+test('a help request cannot silently become an ordinary post on an older server',async t=>{
+  t.mock.method(service,'api',async(_path,_method,payload)=>{
+    assert.equal(payload.identification_help,true);
+    return {id:'legacy',display:{post:{title:'芦苇里的鸟'}}};
+  });
+  const hub=page('field/hub',{screen:'publish',body:'请帮我辨认',identificationHelp:true});
+  await hub.prepare(tap(''));
+  assert.equal(hub.data.preview,null);
+  assert.match(hub.data.error,/尚未支持求鉴定帖/);
+  assert.equal(hub.data.body,'请帮我辨认');
+  hub.onUnload();
+});
+
 test('live search starts at the first nonempty edit, debounces and ignores superseded results',async t=>{
   t.mock.timers.enable({apis:['setTimeout']});const requests=[],states=[];
   t.mock.method(service,'api',(_path,_method,query)=>new Promise(resolve=>requests.push({query,resolve})));

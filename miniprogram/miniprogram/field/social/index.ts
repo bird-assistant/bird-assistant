@@ -29,7 +29,7 @@ Page({
     avatars:['owl','finch','leaf','mountain','water','letter'],visibilities:['private','friends','public'],
     visibilityNames:['仅自己','好友','公开'], term:'', searched:false, matches:[] as Card[],friends:[] as Friend[],
     incoming:[] as Friend[],outgoing:[] as Friend[],accepted:[] as Friend[],blocked:[] as Card[],
-    inbox:[] as any[],activity:[] as any[],groups:[] as any[],invites:[] as any[],group:null as any,
+    inbox:[] as any[],activity:[] as any[],identifications:[] as any[],groups:[] as any[],invites:[] as any[],group:null as any,
     member:null as any, lines:[] as ChatLine[], earlier:false, text:'',groupName:'', invitees:[] as Friend[]},
   _timer:0,_generation:0,_pending:false,_visible:false,_reference:'',_groupReference:'',_seen:'',
   onLoad(options:Record<string,string|undefined>){
@@ -50,7 +50,7 @@ Page({
   onPullDownRefresh(){void this.start().finally(()=>wx.stopPullDownRefresh());},
   clearPrivate(){this._generation++;this._pending=false;this._reference='';this._groupReference='';this._seen='';
     this.setData({active:false,ready:true,registered:false,self:'',account:null,editing:false,form:{...defaults},
-      friends:[],incoming:[],outgoing:[],accepted:[],matches:[],blocked:[],inbox:[],activity:[],groups:[],invites:[],
+      friends:[],incoming:[],outgoing:[],accepted:[],matches:[],blocked:[],inbox:[],activity:[],identifications:[],groups:[],invites:[],
       member:null,group:null,invitees:[],lines:[],earlier:false,text:'',groupName:'',term:'',searched:false,error:''});},
   async start(){
     if(sessionState()!=='active'){this.clearPrivate();return;}
@@ -110,7 +110,7 @@ Page({
         this.setData({groups:groups.filter((item:any)=>item.state==='joined'),invites:groups.filter((item:any)=>item.state==='invited')});
         if(screen==='inbox'){
           const result=await Promise.all([call('/inbox'),call('/activity')]);if(!valid())return;
-          this.setData({inbox:result[0].items,activity:result[1].items});
+          this.setData({inbox:result[0].items,activity:result[1].items,identifications:result[1].identifications||[]});
         }
       }
       if(screen==='blocked'){const result=await call('/blocks');if(valid())this.setData({blocked:result.items});}

@@ -1,4 +1,8 @@
 .featured{display:flex;flex-wrap:wrap;gap:2%;margin:12px 0}
+.bird-poll .discussion-heading{margin-top:0}
+.poll-count,.poll-row text{font-size:13px;color:#536b56;font-variant-numeric:tabular-nums}
+.poll-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #e0e8dc}
+.poll-row .reply-link{margin:0}.poll-row .reply-link:first-child{margin-right:auto}
 
 .featured button{width:49%;margin:0;padding:8px;background:#fffef7}
 

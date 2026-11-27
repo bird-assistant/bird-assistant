@@ -20,7 +20,7 @@ function message(error:unknown){return error instanceof Error?error.message:'请
 
 Page({
   data:{savingPhoto:false,publishAttachments:[] as PostImage[],recordGallery:[] as any[],reactionBusy:{like:false,bookmark:false},placesError:'',postsError:'',placeSort:'recent',placePoint:null as {latitude:number;longitude:number}|null,mapOpening:false,displayResolution:'',manualCamera:{} as PhotoDetails,manualPhotoInfo:null as ReturnType<typeof photoInfo>,photoInfo:null as ReturnType<typeof photoInfo>,postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
-    draft:null as Draft|null,anonymous:true,shareDate:false,shareCamera:false,sharePhoto:true,map:false,post:true,
+    draft:null as Draft|null,anonymous:true,shareDate:false,shareCamera:false,sharePhoto:true,map:false,post:true,identificationHelp:false,
     externalPage:0,externalNext:false,preview:null as any,previewLines:[] as string[],photo:'',replySpecies:'',self:'',selectedSpecies:'',matches:[] as any[]},
   _galleryUploads:null as unknown as Map<string,{id:string;camera:Record<string,string>}>,
   _placesSequence:0,_mapGeneration:0,_cameraDetails:{} as Record<string,string>,_media:'',_sighting:'',_generation:0,_submitKey:'',_replySignature:'',_path:'',_closed:false,_replyOffset:0,_replyLoading:false,
@@ -93,7 +93,7 @@ Page({
     const {width,height}=event.detail;if(width>0&&height>0)this.setData({displayResolution:width+' × '+height+' px',photoHeight:Math.max(60,Math.min(420,(Math.min(620,wx.getWindowInfo().windowWidth)-32)*height/width)),photoWidth:Math.min(Math.min(620,wx.getWindowInfo().windowWidth)-32,420*width/height)});
   },
   field(event:Input){const field=String(event.currentTarget.dataset.field);if(['keyword','title','body','replySpecies'].includes(field))this.setData({[field]:event.detail.value,preview:null});},
-  flag(event:Tap){if(this.data.busy)return;const field=event.currentTarget.dataset.field as 'post'|'map'|'anonymous'|'shareDate'|'shareCamera'|'sharePhoto';this.setData({[field]:!this.data[field],preview:null});},
+  flag(event:Tap){if(this.data.busy)return;const field=event.currentTarget.dataset.field as 'post'|'map'|'anonymous'|'shareDate'|'shareCamera'|'sharePhoto'|'identificationHelp';this.setData({[field]:!this.data[field],preview:null});},
   go(event:Tap){hub(event.currentTarget.dataset.screen,event.currentTarget.dataset.id||'');},
   sparrowPair(){compareBirds(['avibase-C22FBF8D','avibase-240E3390']);},
   compareSpecies(){compareBirds(this.data.screen==='species'?[this.data.id]:[]);},
@@ -114,6 +114,7 @@ Page({
   chooseReplySpecies(event:WechatMiniprogram.CustomEvent<{id:string;name:string}>){this.setData({replySpecies:event.detail.id,selectedSpecies:event.detail.name,replySuggestOpen:false});},
   clearReplySpecies(){this.setData({replySpecies:'',selectedSpecies:''});},
   toggleReplySpecies(){this.setData({replySuggestOpen:!this.data.replySuggestOpen});},
+  openIdentification(){this.setData({replySuggestOpen:true});wx.pageScrollTo({selector:'#reply-composer',duration:160});},
   replyTo(event:Tap){const id=String(event.currentTarget.dataset.id),row=this.data.record?.replies?.find((item:any)=>item.id===id);if(!row||row.status==='pending')return;
     if(!this.data.record.features?.threadedReplies){this.setData({notice:'当前服务需更新后才能回复指定楼层，你仍可发表普通回复。'});this.focusReplies();return;}
     this.setData({replyTarget:{id,name:row.publicName||'鸟友'},replyFocused:true});wx.pageScrollTo({selector:'#reply-composer',duration:160});},
@@ -191,6 +192,7 @@ Page({
         }
       }
       const privateOnly=!!draft&&event.currentTarget.dataset.mode==='private';
+      const help=d.identificationHelp&&d.post&&!d.map&&!d.sourceId&&!d.postSpecies&&!draft?.species;
       if(!privateOnly&&!d.post&&!d.map)throw new Error('请选择一个发布渠道。');
       if(!privateOnly&&d.map&&(!draft?.point||!draft.species))throw new Error('地图鸟讯需要选择鸟种和地点。');
       if(!draft&&!d.body.trim())throw new Error('请填写讨论内容。');
@@ -205,11 +207,13 @@ Page({
       }
       if(privateOnly){this.setData({screen:'record',id:this._sighting,notice:'已保存到云端私人观察。'});await this.load();return;}
       const preview=await api(community+'/previews','POST',{sighting:this._sighting||null,media:this._media||null,
+        ...(help?{identification_help:true}:{}),
         ...(d.postSpecies&&d.speciesSupported?{species:d.postSpecies}:{}),
         ...(gallery?{gallery}:{}),external:d.sourceId||null,title:d.title,body:withPhotoDetails(!draft&&d.shareCamera?withEmbeddedPhotoDetails(d.body,this._cameraDetails):d.body,gallery?{}:d.manualCamera),anonymous:d.anonymous,share_camera:d.shareCamera,share_photo:d.sharePhoto,share_date:d.shareDate,
         channels:[...(d.post?['post']:[]),...(d.map?['map']:[])]});
+      if(help&&!preview.display?.post?.identificationHelp)throw new Error('当前服务尚未支持求鉴定帖，请更新业务后端后重试。');
       const previewLines=Object.keys(preview.display).map(channel=>{const row=preview.display[channel];
-        return [channel==='map'?'地图鸟讯':'讨论帖',row.publicName,row.title,row.body,row.date,row.sourceRecord?'附外部鸟讯来源卡':'',row.media?(gallery?'含'+gallery.length+'张图片':'含照片'):'无照片',
+        return [channel==='map'?'地图鸟讯':row.identificationHelp?'鸟种求鉴定':'讨论帖',row.publicName,row.title,row.body,row.date,row.sourceRecord?'附外部鸟讯来源卡':'',row.media?(gallery?'含'+gallery.length+'张图片':'含照片'):'无照片',
           ...Object.values(row.camera||{}),row.displayLocation?'区域中心 '+row.displayLocation.latitude+', '+row.displayLocation.longitude:'隐藏位置'].filter(Boolean).join(' · ');});
       if(!this._closed)this.setData({preview,previewLines});
     }catch(error){this.setData({error:message(error)});}finally{this.setData({busy:false});}
@@ -237,16 +241,29 @@ Page({
     try{
       if(op==='withdraw'){if(!(await wx.showModal({title:'撤回发布？',content:'此渠道的内容和照片将从公开页面移除。'})).confirm)return;
         await api(community+'/publications/'+id,'DELETE');}
+      if(op==='vote'||op==='resolve'){
+        const candidate=this.data.record.poll.candidates.find((bird:{id:string})=>bird.id===id);
+        if(!candidate)return;
+        if(op==='resolve'&&!(await wx.showModal({title:'采纳'+candidate.name+'？',content:'采纳后结束投票，所有鸟友都能在帖子里看到结果。',confirmText:'采纳'})).confirm)return;
+        await api(community+'/publications/'+this.data.id+'/identification/'+op,'PUT',{species:id});
+        this.setData({notice:op==='vote'?'已记录你的鉴定票。':'已采纳'+candidate.name+'。'});
+      }
       if(op==='reply'||op==='send'){
-        if(!this.data.body.trim())throw new Error('请输入内容。');
         const text=this.data.body.trim(),parent=this.data.replyTarget;
+        const voting=op==='reply'&&!!this.data.record?.poll&&!this.data.record.poll.result&&!!this.data.replySpecies;
+        if(!text&&!voting)throw new Error('请输入内容。');
+        if(voting&&!text){
+          await api(community+'/publications/'+this.data.id+'/identification/vote','PUT',{species:this.data.replySpecies});
+          this.setData({replySpecies:'',selectedSpecies:'',replySuggestOpen:false,notice:'已记录你的鉴定票。'});
+          await this.load();return;
+        }
         const signature=JSON.stringify([this.data.id,text,this.data.replySpecies,parent?.id||'']);
         if(this._replySignature&&this._replySignature!==signature)this._submitKey=key();this._replySignature=signature;
         const result=await api(op==='reply'?community+'/publications/'+this.data.id+'/replies':community+'/messages/'+this.data.id,'POST',
-          {body:text,reference:this._submitKey,...(op==='reply'?{species:this.data.replySpecies||null,...(parent?{parentId:parent.id}:{})}:{})});
+          {body:text,reference:this._submitKey,...(op==='reply'?{species:this.data.replySpecies||null,...(voting?{identification_vote:true}:{}),...(parent?{parentId:parent.id}:{})}:{})});
         if(this._closed)return;
         if(op==='reply'&&result.id)this.setData({pendingReplies:this.data.pendingReplies.concat({id:result.id,body:text,publicName:'我',memberId:this.data.self,species:this.data.replySpecies||'',parentId:parent?.id||'',replyToName:parent?.name||'',status:'pending',created:new Date().toISOString()})});
-        this._submitKey=key();this._replySignature='';this.setData({body:'',replyTarget:null,replyFocused:false,replySuggestOpen:false,replySpecies:'',selectedSpecies:'',notice:op==='reply'?'回复已提交，审核通过后公开显示。':'已发送。'});wx.hideKeyboard?.();
+        this._submitKey=key();this._replySignature='';this.setData({body:'',replyTarget:null,replyFocused:false,replySuggestOpen:false,replySpecies:'',selectedSpecies:'',notice:voting?'鉴定票已计入，文字回复待审核。':op==='reply'?'回复已提交，审核通过后公开显示。':'已发送。'});wx.hideKeyboard?.();
       }
       if(op==='adopt'){await api('/api/v2/observations/'+this.data.record.ownedSighting+'/adopt','POST',{reply:id});this.setData({notice:'已更新私人观察的鸟种。'});}
       if(op==='unbookmark'){await api(community+'/publications/'+id+'/reactions/bookmark','DELETE');}

@@ -31,6 +31,73 @@ MAP = "/api/v1/map/observations"
 OBS = "/api/v2/observations"
 
 
+def test_unknown_bird_poll_votes_replies_result_and_author_feedback(field):
+    client, (author, reader, other), staff, _store = field
+    first, second = [row["id"] for row in client.get("/api/v1/species", params={"limit": 2}).json()["items"]]
+    draft = {"body": "在芦苇里看见的是什么鸟？", "channels": ["post"], "identification_help": True}
+    assert (
+        client.post(ROOT + "/previews", headers=author, json={**draft, "species": first}).status_code == 422
+    )
+
+    def publish(payload):
+        preview = client.post(ROOT + "/previews", headers=author, json=payload).json()
+        assert bool(preview["display"]["post"].get("identificationHelp")) == payload["identification_help"]
+        response = client.post(ROOT + "/publications", headers=author, json={"preview": preview["id"]})
+        assert response.status_code == 201
+        return response.json()["items"][0]["id"]
+
+    record = publish(draft)
+    path = ROOT + "/publications/" + record
+
+    def choose(species, user=reader, action="vote"):
+        return client.put(path + "/identification/" + action, headers=user, json={"species": species})
+
+    def approve(post):
+        response = client.post(ROOT + "/moderation/" + post, headers=staff, json={"status": "approved"})
+        assert response.status_code == 200
+
+    def updates(user):
+        return client.get(ROOT + "/activity", headers=user).json()["identifications"]
+
+    assert choose(first).status_code == 404
+    approve(record)
+    ordinary = publish({**draft, "identification_help": False})
+    approve(ordinary)
+    assert (
+        client.put(
+            ROOT + "/publications/" + ordinary + "/identification/vote",
+            headers=reader,
+            json={"species": first},
+        ).status_code
+        == 404
+    )
+    assert choose("unknown-species").status_code == 404
+    assert choose(first, author, "resolve").status_code == 404
+    assert not updates(author)
+    assert choose(first).json()["total"] == choose(first).json()["total"] == 1
+    assert choose(second).json()["mine"] == second
+    reply = {"body": "翼上有白斑", "species": first, "reference": "wing", "identification_vote": True}
+    sent = client.post(path + "/replies", headers=other, json=reply)
+    assert sent.status_code == 201 and sent.json()["status"] == "pending"
+    assert client.post(path + "/replies", headers=other, json=reply).json() == sent.json()
+    detail = client.get(path).json()
+    assert not detail["replies"] and not detail["poll"]["mine"] and not detail["poll"]["result"]
+    assert {item["id"]: item["votes"] for item in detail["poll"]["candidates"]} == {first: 1, second: 1}
+    assert choose(first, other, "resolve").status_code == 404
+    result = choose(first, author, "resolve").json()
+    assert result["result"]["id"] == first and result["total"] == 2
+    assert choose(first, author, "resolve").json() == result
+    assert choose(second, author, "resolve").status_code == choose(second).status_code == 409
+    assert (
+        client.post(path + "/replies", headers=reader, json={**reply, "reference": "late"}).status_code == 409
+    )
+    assert updates(author)[0]["poll"] == result and not updates(other)
+    posts = {row["id"]: row for row in client.get(ROOT + "/posts").json()["items"]}
+    assert posts[record]["poll"] == client.get(path).json()["poll"] and "poll" not in posts[ordinary]
+    assert client.delete(path, headers=author).is_success
+    assert not updates(author) and choose(first).status_code == 404
+
+
 def test_shared_photo_settings_are_allowlisted_and_standalone_posts_require_camera_consent(field):
     client, (author, _, _), _, _ = field
     buffer = BytesIO()

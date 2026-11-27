@@ -26,6 +26,7 @@ class Settings(BaseSettings):
 
     detector_backend: Literal["mock", "yolo"] = "mock"
     device: Literal["auto", "cpu", "cuda"] = "cpu"
+    allow_production_cpu: bool = False
     model_path: Path = Path("../鸟类识别预研/models/yolo11n.pt")
     model_sha256: str | None = None
     model_image_size: int = Field(default=640, ge=320, le=1920)
@@ -147,7 +148,8 @@ class Settings(BaseSettings):
             raise ValueError("production must set BIRD_VISION_DETECTOR_BACKEND=yolo")
         if self.environment == "production" and self.species_backend != "bioclip":
             raise ValueError("production must set BIRD_VISION_SPECIES_BACKEND=bioclip")
-        if self.environment == "production" and self.device != "cuda":
+        cpu_fallback = self.device == "cpu" and self.allow_production_cpu
+        if self.environment == "production" and self.device != "cuda" and not cpu_fallback:
             raise ValueError("production must set BIRD_VISION_DEVICE=cuda")
         if self.environment == "production" and self.tracker_backend == "motion":
             raise ValueError("production requires the ByteTrack tracker")

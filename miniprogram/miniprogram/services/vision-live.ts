@@ -51,13 +51,21 @@ export function frozenResult(frame:LiveFrame):RecognitionResult {
 }
 
 export async function liveLocation():Promise<Record<string,number>> {
-  try {
-    const settings=await wx.getSetting({});
-    if(!settings.authSetting['scope.userLocation']) return {};
-    const result=await wx.getLocation({type:'wgs84'});
-    if(Number.isFinite(result.accuracy)&&result.accuracy>0&&result.accuracy<=1000) return {latitude:result.latitude,longitude:result.longitude};
-  } catch {return {};}
-  return {};
+  let timer:ReturnType<typeof setTimeout> | undefined;
+  let expired = false;
+  const deadline = new Promise<Record<string,number>>(resolve => {
+    timer = setTimeout(() => { expired = true; resolve({}); }, 2500);
+  });
+  const locate = async ():Promise<Record<string,number>> => {
+    const settings = await wx.getSetting({});
+    if (expired || !settings.authSetting['scope.userLocation']) return {};
+    const {latitude, longitude, accuracy} = await wx.getLocation({type:'wgs84'});
+    if (!Number.isFinite(latitude) || Math.abs(latitude) > 90 || !Number.isFinite(longitude) || Math.abs(longitude) > 180) return {};
+    return Number.isFinite(accuracy) && accuracy > 0 && accuracy <= 1000 ? {latitude, longitude} : {};
+  };
+  try { return await Promise.race([locate(), deadline]); }
+  catch { return {}; }
+  finally { if (timer !== undefined) clearTimeout(timer); }
 }
 
 export class LiveVision {

@@ -35,7 +35,17 @@ for(const route of [...app.pages,...subpages,'custom-tab-bar/index','components/
 }
 for(const component of ['custom-tab-bar/index','components/app-header/index']){
   const stylesheet=readFileSync(resolve(root,'miniprogram',component+'.wxss'),'utf8');
-  for(const rule of stylesheet.split('}')){const selector=rule.split('{')[0].trim();if(selector)assert(selector.split(',').every(s=>s.trim().startsWith('.')),'Component styles must use class selectors: '+component+' '+selector);}
+  const blocks=[];
+  for(const match of stylesheet.matchAll(/([^{}]*)[{}]/g)){
+    if(match[0].endsWith('}')){blocks.pop();continue;}
+    const selector=match[1].trim();
+    const atRule=/^@(media\b|keyframes\s)/.test(selector);
+    const valid=blocks.at(-1)==='keyframes'
+      ? selector.split(',').every(part=>/^(?:from|to|\d+(?:\.\d+)?%)$/.test(part.trim()))
+      : atRule||selector.split(',').every(part=>part.trim().startsWith('.'));
+    assert(valid,'Component styles must use class selectors: '+component+' '+selector);
+    blocks.push(selector.startsWith('@keyframes ')?'keyframes':'rule');
+  }
 }
 function files(path){return readdirSync(path).flatMap(name=>{const full=join(path,name);return statSync(full).isDirectory()?files(full):[full];});}
 for(const path of files(resolve(root,'miniprogram'))){

@@ -10,7 +10,13 @@
   <view wx:if="{{libraryFrom && libraryTo && libraryFrom > libraryTo}}" class="notice-error">开始日期不能晚于结束日期。</view>
   <view wx:if="{{libraryRows.length}}" class="deck-position"><text>{{paperArmedId ? (paperDragDown ? (paperDragAction === 'delete' ? '松手，确认删除' : '继续下划，送入回收桶') : '') : paperPhase && paperPhase !== 'returning' ? '' : (deckIndex + 1)+' / '+libraryRows.length+' · 左右切换 · 长按1秒操作'}}</text></view>
   <view wx:if="{{paperArmedId || paperPhase === 'depart-share' || paperPhase === 'depart-delete'}}" class="paper-dismiss" catchtap="cancelPaper"/>
-  <view wx:if="{{paperFog > 0 && !paperDragDown || paperPhase === 'depart-share'}}" class="paper-cloud" style="top:{{headerHeight}}px;height:{{paperCloudHeight}}px;opacity:{{paperFog}}" aria-hidden="true"/>
+  <view wx:if="{{paperFog > 0 && !paperDragDown || paperPhase === 'depart-share'}}" class="paper-cloud" style="top:{{paperCloudTop}}px;height:{{paperCloudHeight}}px;opacity:{{paperFog}}" aria-hidden="true">
+    <image class="cloud-outline cloud-outline-left" src="/assets/sharing-cloud.png" mode="aspectFit"/>
+    <image class="cloud-outline cloud-outline-right" src="/assets/sharing-cloud.png" mode="aspectFit"/>
+    <view class="cloud-bird cloud-bird-one"/><view class="cloud-bird cloud-bird-two"/><view class="cloud-bird cloud-bird-three"/>
+    <view class="cloud-bird cloud-bird-four"/><view class="cloud-bird cloud-bird-five"/><view class="cloud-bird cloud-bird-six"/>
+    <view class="cloud-whisper">让这一页，乘风去见鸟友</view>
+  </view>
 
   <view wx:if="{{libraryRows.length}}" class="journal-deck-frame"><view class="journal-deck" style="height:{{deckHeight}}px;width:{{deckLaneWidth}}px"><view class="deck-track" style="transform:translateX({{deckOffset}}px);transition:{{deckSettling ? 'transform .22s cubic-bezier(.2,.7,.25,1)' : 'none'}}">
     <view wx:for="{{deckSlots}}" wx:key="id" class="deck-item {{item.slot === 0 ? 'deck-active' : item.slot < 0 ? 'deck-left' : 'deck-right'}}" style="left:{{8 + item.slot * 84}}%"><view class="deck-card {{paperArmedId === item.id ? 'paper-armed' : ''}} {{paperVisualId === item.id ? 'paper-flight paper-'+paperPhase : ''}} {{item.slot === 0 && deckArrival ? 'deck-arrival-'+deckArrival : ''}}" style="{{paperVisualId === item.id ? paperDragStyle : ''}}" data-id="{{item.id}}" data-index="{{item.index}}" catchtap="deckCard" bindtouchstart="deckTouchStart" bindtouchmove="deckTouchMove" bindtouchend="deckTouchEnd" bindtouchcancel="closePaperAction">

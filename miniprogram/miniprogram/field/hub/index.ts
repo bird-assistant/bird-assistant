@@ -8,10 +8,13 @@ import {cleanPhotoDetails,withPhotoDetails,withEmbeddedPhotoDetails,PhotoDetails
 import {forumReadStamp,rememberForumPost,patchForumPost,patchForumReaction} from '../../services/forum-state';
 import {installAdaptiveSheets,stopAdaptiveSheets} from '../../services/adaptive-sheets';
 import {navigate} from '../../services/navigation';
-import {api,community,Draft,getDraft,hub,imageUrl,key,openMap,Point,privatePhoto,sessionState,setCompose,setDraft,takeCompose,uploadPhoto} from '../../services/community';
+import {api,community,Draft,getDraft,hub,imageUrl,key,openMap,Point,privatePhoto,sessionRevision,sessionState,setCompose,setDraft,takeCompose,uploadPhoto} from '../../services/community';
 
 import {forumPost,forumThreads,ReplyView} from '../../services/forum';
-import {compareBirds,picture} from '../../services/field-guide';
+import {readReplyDraft,saveReplyDraft,ReplyDraft} from '../../services/reply-drafts';
+import {publicGuidePhoto} from '../../services/public-guide-photos';
+import {GuideSummary,guideSummary,readGuideShelf,rememberGuide,bookmarkGuide,guideGroups,externalExplore} from '../../services/guide-shelf';
+import {compareBirds} from '../../services/field-guide';
 import {chinesePlace} from '../../services/place-names';
 import {readMapView} from '../../services/map-view';
 import {photoInfo} from '../../services/photo-info';
@@ -24,13 +27,14 @@ function message(error:unknown){return error instanceof Error?error.message:'请
 
 Page({
   sheetDragStart(event:WechatMiniprogram.TouchEvent){beginSheetDrag(this,event);},sheetDragMove(event:WechatMiniprogram.TouchEvent){moveSheetDrag(this,event);},sheetDragEnd(){endSheetDrag(this);},sheetDragCancel(){resetSheetDrag(this);},
-  data:{sheetDragStyle:'',pollOpen:false,pollBusy:false,pollError:'',pollSelection:'',pollSelectionName:'',sheetHeights:{} as Record<string,number>,savingPhoto:false,publishAttachments:[] as PostImage[],recordGallery:[] as any[],reactionBusy:{like:false,bookmark:false},placesError:'',postsError:'',placeSort:'recent',placePoint:null as {latitude:number;longitude:number}|null,mapOpening:false,displayResolution:'',manualCamera:{} as PhotoDetails,manualPhotoInfo:null as ReturnType<typeof photoInfo>,photoInfo:null as ReturnType<typeof photoInfo>,postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
+  data:{replyDraftBlocked:false,replyDraftError:'',replyDraftSaved:'',expandedThreads:{} as Record<string,boolean>,guideShelf:'catalogue',guidePage:0,guideQuery:'',guideTotal:0,guideHasMore:false,guideBookmarked:false,guideSavedIds:[] as string[],guideGroups:[] as Array<{family:string;items:GuideSummary[]}>,guideLocalError:'',externalSource:'',externalQuery:'',externalPhotos:false,externalView:'gallery',externalSources:[] as Array<{name:string;count:number}>,externalShown:[] as any[],externalDays:[] as Array<{day:string;items:any[]}>,sheetDragStyle:'',pollOpen:false,pollBusy:false,pollError:'',pollSelection:'',pollSelectionName:'',sheetHeights:{} as Record<string,number>,savingPhoto:false,publishAttachments:[] as PostImage[],recordGallery:[] as any[],reactionBusy:{like:false,bookmark:false},placesError:'',postsError:'',placeSort:'recent',placePoint:null as {latitude:number;longitude:number}|null,mapOpening:false,displayResolution:'',manualCamera:{} as PhotoDetails,manualPhotoInfo:null as ReturnType<typeof photoInfo>,photoInfo:null as ReturnType<typeof photoInfo>,postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
     draft:null as Draft|null,anonymous:true,shareDate:false,shareCamera:false,sharePhoto:true,map:false,post:true,identificationHelp:false,
     externalPage:0,externalNext:false,preview:null as any,previewLines:[] as string[],photo:'',replySpecies:'',self:'',selectedSpecies:'',matches:[] as any[]},
+  _replyPrevious:null as ReplyDraft|null,_replyOwner:'',_replyRevision:0,_replyTimer:0,_sessionSeen:0,
   _galleryUploads:null as unknown as Map<string,{id:string;camera:Record<string,string>}>,
   _pollGeneration:0,_pollNeedsRefresh:false,
   _placesSequence:0,_mapGeneration:0,_cameraDetails:{} as Record<string,string>,_media:'',_sighting:'',_generation:0,_submitKey:'',_replySignature:'',_path:'',_closed:false,_replyOffset:0,_replyLoading:false,
-  onLoad(options:Record<string,string|undefined>){resetSheetDrag(this);
+  onLoad(options:Record<string,string|undefined>){this._sessionSeen=sessionRevision();resetSheetDrag(this);
     installAdaptiveSheets(this,()=>this.data.pollOpen);this.setData({pollOpen:options.poll==='1'});this._galleryUploads=new Map();
     const screen=options.screen&&names[options.screen]?options.screen:'feed';
     this._submitKey=key();
@@ -41,11 +45,12 @@ Page({
       const compose=options.id==='compose'?takeCompose():null;
       this.setData({publishAttachments:compose?.attachments||[],manualCamera:cleanPhotoDetails(compose?.attachments?.[0]?.manualCamera||compose?.manualCamera),draft,sourceId:compose?.sourceId||'',title:compose?.title||'',photo:draft?.path||compose?.attachments?.[0]?.path||compose?.photo||'',body:draft?.note||compose?.body||'',sharePhoto:!!(draft?.path||compose?.photo),postSpecies:compose?.speciesId||'',postSpeciesName:compose?.speciesName||'',speciesSupported:compose?.speciesSupported===true});
     }
+    if(screen==='library')this.projectGuide();
     void this.load();
   },
-  onShow(){if(this._pollNeedsRefresh){this._pollNeedsRefresh=false;void this.load();}},
-  onHide(){resetSheetDrag(this);this._pollNeedsRefresh=this.data.pollBusy;this._pollGeneration++;this.setData({pollBusy:false,pollOpen:false});this._mapGeneration++;this.setData({mapOpening:false});},
-  onUnload(){stopAdaptiveSheets(this);this._pollGeneration++;this._mapGeneration++;this._closed=true;this._generation++;},
+  onShow(){if(this._sessionSeen!==sessionRevision()){this._sessionSeen=sessionRevision();this._generation++;this._replyOwner='';this._replyPrevious=null;this._submitKey=key();this._replySignature='';this.setData({record:null,photo:'',recordGallery:[],items:[],self:'',body:'',replySpecies:'',selectedSpecies:'',replyTarget:null,replyThreads:[],pendingReplies:[],replyDraftBlocked:false,replyDraftError:'',replyDraftSaved:'',busy:false});void this.load();}if(this.data.screen==='library')this.projectGuide();if(this._pollNeedsRefresh){this._pollNeedsRefresh=false;void this.load();}},
+  onHide(){this.storeReplyDraft();resetSheetDrag(this);this._pollNeedsRefresh=this.data.pollBusy;this._pollGeneration++;this.setData({pollBusy:false,pollOpen:false});this._mapGeneration++;this.setData({mapOpening:false});},
+  onUnload(){this.storeReplyDraft();clearTimeout(this._replyTimer);stopAdaptiveSheets(this);this._pollGeneration++;this._mapGeneration++;this._closed=true;this._generation++;},
   copyCredit(event:Tap){void wx.setClipboardData({data:event.currentTarget.dataset.url});},
   onShareAppMessage(){
     const record=this.data.record;
@@ -58,18 +63,25 @@ Page({
     if(this.data.busy||page<0)return;this.setData({externalPage:page});void this.load();},
   async onPullDownRefresh(){try{await this.load();}finally{wx.stopPullDownRefresh();}},
   async load(){
-    const {screen,id,keyword}=this.data;const generation=++this._generation;
+    const {screen,id}=this.data;const generation=++this._generation,revision=sessionRevision();
     const routes:Record<string,string>={external:community+'/external',feed:community+'/posts',mine:community+'/mine',inbox:community+'/inbox',
-      bookmarks:community+'/bookmarks',observations:'/api/v2/observations',library:'/api/v1/species?featured=true&q='+encodeURIComponent(keyword),
+      bookmarks:community+'/bookmarks',observations:'/api/v2/observations',library:'/api/v1/species?featured=true&limit=30&offset='+(this.data.guidePage*30)+'&q='+encodeURIComponent(this.data.guideQuery),
       species:'/api/v1/species/'+id,record:id.startsWith('obs_')?'/api/v1/map/observations/'+id:community+'/publications/'+id,
       chat:community+'/messages/'+id,growth:community+'/me'};
     if(!routes[screen])return;
     this._mapGeneration++;this.setData({mapOpening:false,busy:true,error:'',photoFailed:false,displayResolution:''});
     try{
-      const readStamp=forumReadStamp();const result=screen==='external'?await api(routes.external,'GET',{limit:40,offset:this.data.externalPage*40}):await api(routes[screen]);if(generation!==this._generation)return;
-      if(screen==='library')this.setData({featured:(result.featured||[]).map((bird:{id:string;photo:object|null})=>({...bird,image:bird.photo?picture(bird.id):''}))});
+      const readStamp=forumReadStamp();const result=screen==='external'?await api(routes.external,'GET',{limit:40,offset:this.data.externalPage*40}):await api(routes[screen]);if(generation!==this._generation||revision!==sessionRevision())return;
+      if(screen==='library')this.setData({guideTotal:result.total??result.items?.length??0,guideHasMore:result.hasMore===true,featured:(result.featured||[]).map((bird:{id:string;photo:object|null})=>({...bird,image:''}))});
       const items=(result.items||result.records||[]).map((row:any)=>({...row,image:imageUrl(row.image),placeName:chinesePlace(row.placeName)}));
       this.setData({items,externalNext:result.hasMore??items.length===40,record:{...result,image:imageUrl(result.image)},photo:imageUrl(result.image)});
+      if(screen==='library'){
+        this.projectGuide();
+        for(const bird of this.data.featured){if(bird.photo)void publicGuidePhoto(bird.id,bird.photo).then(src=>{
+          if(!this._closed&&generation===this._generation)this.setData({featured:this.data.featured.map(item=>item.id===bird.id?{...item,image:src}:item)});
+        });}
+      }
+      if(screen==='external')this.projectExternal();
       if(screen==='record'){
         Object.assign(result,rememberForumPost(result,readStamp));this._replyOffset=(result.replies||[]).length;
         const pending=result.features?.threadedReplies?[]:this.data.pendingReplies;
@@ -78,11 +90,12 @@ Page({
         this.setData({recordGallery,record,photoInfo:photoInfo(Object.keys(result.camera||{}).length?result.camera:record.embeddedCamera,Object.keys(result.camera||{}).length?'照片附带 / 已分享的参数':'从照片文件读取'),manualPhotoInfo:photoInfo(record.manualCamera,'作者填写'),replyThreads:forumThreads(replies)});if(result.gallery?.length)this.setData({photo:recordGallery[0].image,photoInfo:photoInfo(recordGallery[0].camera),manualPhotoInfo:photoInfo(recordGallery[0].manualCamera,'作者填写')});wx.setNavigationBarTitle({title:result.channel==='post'?'帖子详情':'观察详情'});
       }
       if(screen==='species'){
+        try{rememberGuide(guideSummary(result));this.setData({guideBookmarked:readGuideShelf().saved.some(b=>b.id===id)});}catch(error){this.setData({guideLocalError:message(error)});}
         await Promise.all([this.loadPlaces(false),api(community+'/posts','GET',{species:id}).then(posts=>{if(generation===this._generation)this.setData({speciesPosts:posts.items,postsError:''});}).catch(error=>{if(generation===this._generation)this.setData({postsError:message(error)});})]);
       }
       if(result.visibility==='private'&&result.media){const path=await privatePhoto(id);if(generation===this._generation)this.setData({photo:path});}
-      if((screen==='chat'||screen==='record') && sessionState()!=='out'){const self=await api(community+'/me');if(generation===this._generation)this.setData({self:self.id});}
-    }catch(error){if(generation===this._generation)this.setData({error:message(error)});}
+      if((screen==='chat'||screen==='record') && sessionState()!=='out'){const self=await api(community+'/me');if(generation===this._generation&&revision===sessionRevision()){this.setData({self:self.id});this.restoreReplyDraft();}}
+    }catch(error){if(generation===this._generation&&revision===sessionRevision())this.setData({error:message(error)});}
     finally{if(generation===this._generation)this.setData({busy:false});}
   },
   async saveRecordImage(){if(this.data.savingPhoto||this.data.record?.visibility!=='public'||!this.data.photo)return;
@@ -99,7 +112,18 @@ Page({
   photoLoaded(event:WechatMiniprogram.CustomEvent<{width:number;height:number}>){
     const {width,height}=event.detail;if(width>0&&height>0)this.setData({displayResolution:width+' × '+height+' px',photoHeight:Math.max(60,Math.min(420,(Math.min(620,wx.getWindowInfo().windowWidth)-32)*height/width)),photoWidth:Math.min(Math.min(620,wx.getWindowInfo().windowWidth)-32,420*width/height)});
   },
-  field(event:Input){const field=String(event.currentTarget.dataset.field);if(['keyword','title','body','replySpecies'].includes(field))this.setData({[field]:event.detail.value,preview:null});},
+  searchGuide(){this.setData({guidePage:0,guideQuery:this.data.keyword.trim(),guideShelf:'catalogue'});void this.load();},
+  guidePage(event:Tap){const page=this.data.guidePage+Number(event.currentTarget.dataset.direction);if(this.data.busy||page<0)return;this.setData({guidePage:page});void this.load();},
+  guideShelf(event:Tap){const shelf=String(event.currentTarget.dataset.shelf);if(!['catalogue','saved','recent'].includes(shelf))return;this.setData({guideShelf:shelf});this.projectGuide();},
+  projectGuide(){try{const shelf=readGuideShelf(),items=this.data.guideShelf==='saved'?shelf.saved:this.data.guideShelf==='recent'?shelf.recent:this.data.items.map(guideSummary);this.setData({guideGroups:guideGroups(items,this.data.guideShelf==='catalogue'?'':this.data.keyword),guideSavedIds:shelf.saved.map(b=>b.id),guideLocalError:''});}catch(error){this.setData({guideGroups:guideGroups(this.data.items.map(guideSummary)),guideLocalError:message(error)});}},
+  bookmarkBird(){if(!this.data.record||this.data.screen!=='species')return;try{const active=bookmarkGuide(guideSummary(this.data.record));this.setData({guideBookmarked:active,guideLocalError:''});}catch(error){this.setData({guideLocalError:message(error)});}},
+  projectExternal(){const result=externalExplore(this.data.items,this.data.externalSource,this.data.externalQuery,this.data.externalPhotos);this.setData({externalShown:result.shown,externalSources:result.sources,externalDays:result.days});},
+  exploreSource(event:Tap){this.setData({externalSource:String(event.currentTarget.dataset.source||'')});this.projectExternal();},
+  exploreInput(event:Input){this.setData({externalQuery:event.detail.value});this.projectExternal();},
+  explorePhotos(){this.setData({externalPhotos:!this.data.externalPhotos});this.projectExternal();},
+  exploreView(event:Tap){const view=String(event.currentTarget.dataset.view);if(view==='gallery'||view==='timeline')this.setData({externalView:view});},
+  forwardPost(){const record=this.data.record;if(record?.visibility==='public')hub('forward',record.id);},
+  field(event:Input){const field=String(event.currentTarget.dataset.field);if(['keyword','title','body','replySpecies'].includes(field))this.setData({[field]:event.detail.value,preview:null});if(field==='body'&&this.data.screen==='record')this.replyEdited();if(field==='keyword'&&this.data.screen==='library'&&this.data.guideShelf!=='catalogue')this.projectGuide();},
   flag(event:Tap){if(this.data.busy)return;const field=event.currentTarget.dataset.field as 'post'|'map'|'anonymous'|'shareDate'|'shareCamera'|'sharePhoto'|'identificationHelp';this.setData({[field]:!this.data[field],preview:null});},
   go(event:Tap){hub(event.currentTarget.dataset.screen,event.currentTarget.dataset.id||'');},
   sparrowPair(){compareBirds(['avibase-C22FBF8D','avibase-240E3390']);},
@@ -118,8 +142,8 @@ Page({
   },
   morePlaces(){return this.loadPlaces(true);},
   startSpeciesDiscussion(){const row=this.data.record;if(!row)return;setCompose({title:'关于'+(row.name||row.english)+'的讨论',body:'',photo:'',speciesId:this.data.id,speciesName:row.name||row.english,speciesSupported:row.features?.speciesPosts===true});hub('publish','compose');},
-  chooseReplySpecies(event:WechatMiniprogram.CustomEvent<{id:string;name:string}>){this.setData({replySpecies:event.detail.id,selectedSpecies:event.detail.name,replySuggestOpen:false});},
-  clearReplySpecies(){this.setData({replySpecies:'',selectedSpecies:''});},
+  chooseReplySpecies(event:WechatMiniprogram.CustomEvent<{id:string;name:string}>){this.setData({replySpecies:event.detail.id,selectedSpecies:event.detail.name,replySuggestOpen:false});this.replyEdited();},
+  clearReplySpecies(){this.setData({replySpecies:'',selectedSpecies:''});this.replyEdited();},
   toggleReplySpecies(){this.setData({replySuggestOpen:!this.data.replySuggestOpen});},
   holdPoll(){},
   openPoll(){const poll=this.data.record?.poll;if(!poll)return;const candidate=poll.candidates.find((item:{id:string})=>item.id===poll.mine);this.setData({pollOpen:true,pollSelection:poll.mine||'',pollSelectionName:candidate?.name||'',pollError:''});},
@@ -138,8 +162,34 @@ Page({
   },
   replyTo(event:Tap){const id=String(event.currentTarget.dataset.id),row=this.data.record?.replies?.find((item:any)=>item.id===id);if(!row||row.status==='pending')return;
     if(!this.data.record.features?.threadedReplies){this.setData({notice:'当前服务需更新后才能回复指定楼层，你仍可发表普通回复。'});this.focusReplies();return;}
-    this.setData({replyTarget:{id,name:row.publicName||'鸟友'},replyFocused:true});wx.pageScrollTo({selector:'#reply-composer',duration:160});},
-  cancelReply(){this.setData({replyTarget:null,replyFocused:false});},
+    this.setData({replyTarget:{id,name:row.publicName||'鸟友'},replyFocused:true});this.replyEdited();wx.pageScrollTo({selector:'#reply-composer',duration:160});},
+  restoreReplyDraft(){
+    if(this.data.screen!=='record'||!this.data.self||this._replyOwner===this.data.self&&this._replyRevision===sessionRevision())return;
+    this._replyOwner=this.data.self;this._replyRevision=sessionRevision();
+    try{const draft=readReplyDraft(this.data.self,this.data.id);if(!draft)return;
+      if((this.data.body||this.data.replySpecies||this.data.replyTarget)&&this.data.body!==draft.body){this._replyPrevious=draft;this.setData({replyDraftBlocked:true,replyDraftError:'本机还保存着另一份回复草稿。当前文字保留，请选择使用哪一份。'});return;}
+      // Keep the target explicit if this service lacks threaded replies; never silently retarget a reply.
+      const target=draft.parentId?{id:draft.parentId,name:draft.parentName}:null;
+      this._submitKey=draft.reference||key();this._replySignature=JSON.stringify([this.data.id,draft.body.trim(),draft.species,draft.parentId]);
+      this.setData({body:draft.body,replySpecies:draft.species,selectedSpecies:draft.speciesName,replyTarget:target,replyDraftSaved:'已恢复本机回复草稿',replyDraftError:''});
+    }catch(error){this.setData({replyDraftError:message(error)});}
+  },
+  chooseReplyDraft(event:Tap){
+    const previous=this._replyPrevious;if(!previous)return;
+    const restore=event.currentTarget.dataset.choice==='previous';
+    wx.showModal({title:restore?'恢复上次的回复草稿？':'使用当前文字替换旧草稿？',content:restore?'将替换当前页面中的回复文字和引用。':'将用当前页面的文字更新这篇帖子的本机回复草稿。',confirmText:restore?'恢复':'替换',success:reply=>{
+      if(!reply.confirm||this._replyPrevious!==previous)return;this.setData({replyDraftBlocked:false,replyDraftError:''});this._replyPrevious=null;
+      if(restore)this.setData({body:previous.body,replySpecies:previous.species,selectedSpecies:previous.speciesName,replyTarget:previous.parentId?{id:previous.parentId,name:previous.parentName}:null});this.replyEdited();this.storeReplyDraft();
+    }});
+  },
+  replyEdited(){this._submitKey=key();this._replySignature='';clearTimeout(this._replyTimer);this._replyTimer=setTimeout(()=>this.storeReplyDraft(),450);},
+  storeReplyDraft(){
+    clearTimeout(this._replyTimer);if(this.data.replyDraftBlocked)return;if(!this._replyOwner||this._replyOwner!==this.data.self||this._replyRevision!==sessionRevision()||sessionState()==='out'||this.data.screen!=='record')return;
+    try{saveReplyDraft(this.data.self,{post:this.data.id,body:this.data.body,species:this.data.replySpecies,speciesName:this.data.selectedSpecies,parentId:this.data.replyTarget?.id||'',parentName:this.data.replyTarget?.name||'',reference:this._submitKey});this.setData({replyDraftSaved:this.data.body?'未发送文字已保存在本机':'',replyDraftError:''});}
+    catch(error){this.setData({replyDraftSaved:'',replyDraftError:message(error)});}
+  },
+  toggleThread(event:Tap){const id=String(event.currentTarget.dataset.id);if(this.data.replyThreads.some(t=>t.id===id))this.setData({expandedThreads:{...this.data.expandedThreads,[id]:!this.data.expandedThreads[id]}});},
+  cancelReply(){this.setData({replyTarget:null,replyFocused:false});this.replyEdited();},
   blurReply(){this.setData({replyFocused:false});},
   async moreReplies(){
     if(this._replyLoading||!this.data.record?.replyHasMore)return;
@@ -258,7 +308,7 @@ Page({
   },
   async action(event:Tap){
     if(['like','bookmark'].includes(event.currentTarget.dataset.op)){await this.react(event);return;}
-    if(this.data.busy||this._closed)return;const {op,id}=event.currentTarget.dataset;this.setData({busy:true,error:'',notice:''});
+    if(this.data.busy||this._closed)return;const revision=sessionRevision(),current=()=>!this._closed&&revision===sessionRevision();const {op,id}=event.currentTarget.dataset;this.setData({busy:true,error:'',notice:''});
     try{
       if(op==='withdraw'){if(!(await wx.showModal({title:'撤回发布？',content:'此渠道的内容和照片将从公开页面移除。'})).confirm)return;
         await api(community+'/publications/'+id,'DELETE');}
@@ -270,15 +320,18 @@ Page({
         this.setData({notice:op==='vote'?'已记录你的鉴定票。':'已采纳'+candidate.name+'。'});
       }
       if(op==='reply'||op==='send'){
-        const text=this.data.body.trim(),parent=this.data.replyTarget;
-        if(!text)throw new Error('请输入内容。');
+        const draftBody=this.data.body,text=draftBody.trim(),parent=this.data.replyTarget,species=this.data.replySpecies;
+        if(this.data.replyDraftBlocked)throw new Error('请先选择使用当前文字或上次草稿。');if(!text)throw new Error('请输入内容。');if(parent&&!this.data.record?.features?.threadedReplies)throw new Error('当前服务不支持引用楼层，请取消引用后发送普通回复。');
         const signature=JSON.stringify([this.data.id,text,this.data.replySpecies,parent?.id||'']);
         if(this._replySignature&&this._replySignature!==signature)this._submitKey=key();this._replySignature=signature;
+        if(op==='reply')this.storeReplyDraft();
         const result=await api(op==='reply'?community+'/publications/'+this.data.id+'/replies':community+'/messages/'+this.data.id,'POST',
-          {body:text,reference:this._submitKey,...(op==='reply'?{species:this.data.replySpecies||null,...(parent?{parentId:parent.id}:{})}:{})});
-        if(this._closed)return;
-        if(op==='reply'&&result.id)this.setData({pendingReplies:this.data.pendingReplies.concat({id:result.id,body:text,publicName:'我',memberId:this.data.self,species:this.data.replySpecies||'',parentId:parent?.id||'',replyToName:parent?.name||'',status:'pending',created:new Date().toISOString()})});
-        this._submitKey=key();this._replySignature='';this.setData({body:'',replyTarget:null,replyFocused:false,replySuggestOpen:false,replySpecies:'',selectedSpecies:'',notice:op==='reply'?'回复已提交，审核通过后公开显示。':'已发送。'});wx.hideKeyboard?.({fail:()=>{}});
+          {body:text,reference:this._submitKey,...(op==='reply'?{species:species||null,...(parent?{parentId:parent.id}:{})}:{})});
+        if(!current())return;
+        if(op==='reply'&&result.id)this.setData({pendingReplies:this.data.pendingReplies.concat({id:result.id,body:text,publicName:'我',memberId:this.data.self,species:species||'',parentId:parent?.id||'',replyToName:parent?.name||'',status:'pending',created:new Date().toISOString()})});
+        this._submitKey=key();this._replySignature='';
+        const unchanged=this.data.body===draftBody&&this.data.replySpecies===species&&this.data.replyTarget?.id===parent?.id;
+        this.setData({...(unchanged?{body:'',replyTarget:null,replyFocused:false,replySuggestOpen:false,replySpecies:'',selectedSpecies:''}:{}),notice:op==='reply'?'回复已提交，审核通过后公开显示。':'已发送。'});if(op==='reply')this.storeReplyDraft();if(unchanged)wx.hideKeyboard?.({fail:()=>{}});
       }
       if(op==='adopt'){await api('/api/v2/observations/'+this.data.record.ownedSighting+'/adopt','POST',{reply:id});this.setData({notice:'已更新私人观察的鸟种。'});}
       if(op==='unbookmark'){await api(community+'/publications/'+id+'/reactions/bookmark','DELETE');}
@@ -286,7 +339,7 @@ Page({
       if(op==='report'){const res=await wx.showModal({title:'举报内容',editable:true,placeholderText:'请填写举报原因'});if(!res.confirm||!res.content)return;
         await api(community+'/reports/'+id,'POST',{reason:res.content});this.setData({notice:'举报已受理'});}
       if(op==='source'&&this.data.record?.sourceUrl)await wx.setClipboardData({data:this.data.record.sourceUrl});
-      await this.load();
-    }catch(error){if(!this._closed)this.setData({error:message(error)});}finally{if(!this._closed)this.setData({busy:false});}
+      if(current())await this.load();
+    }catch(error){if(current())this.setData({error:message(error)});}finally{if(current())this.setData({busy:false});}
   }
 });

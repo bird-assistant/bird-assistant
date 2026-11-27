@@ -35,7 +35,7 @@ async def review(args):
                   const anchors=[...document.querySelectorAll('.post-action,.record-action')].map(e=>{const i=e.querySelector('img'),r=e.getBoundingClientRect(),b=i?.getBoundingClientRect();return b?{offset:b.x-r.x,width:b.width}:null});
                   const deck=document.querySelector('.deck-active .deck-card'),hint=document.querySelector('.paper-share-hint');
                   const draftActions=document.querySelector('.draft-deck .draft-card-actions');
-                  const closeShapes=[...document.querySelectorAll('.calendar-close,.choice-close')].map(box);
+                  const closeShapes=[...document.querySelectorAll('.calendar-close,.choice-close,.social-sheet-title button')].map(box);
                   return {width:innerWidth,scroll:document.documentElement.scrollWidth,panels,blockedCard,anchors,deck:deck?box(deck):null,hint:hint?box(hint):null,closeShapes,draftActions:draftActions?box(draftActions):null};
                 }""")
                 result.update(device=profile["name"], viewport=[width, height], dpr=profile["dpr"], kind=kind)
@@ -44,8 +44,9 @@ async def review(args):
                     "tripSetup", "trip", "journalDeck", "journalArmed", "journalDelete", "journalUp", "journalShare",
                     "journalShareSquare", "journalShareLandscape", "forum", "pollSearch", "mapFilter",
                     "libraryCalendar", "libraryFilter", "calendarDay", "journalUpEarly", "tripHistory", "drafts", "friends",
+                    "birdLibrary", "birdSaved", "externalGallery", "externalTimeline", "noteList", "noteEdit", "noteTrash", "groupSettings", "forward", "threadedPost", "growth",
                 ):
-                    await page.screenshot(path=str(root / f"{kind}-{width}.png"))
+                    await page.screenshot(path=str(root / f"{kind}-{width}.png"), scale="css")
             await page.close()
         await browser.close()
     (root / "metrics.json").write_text(json.dumps(results, ensure_ascii=False, indent=2))

@@ -21,7 +21,7 @@ let draft:Draft|null=null;
 export function setDraft(value:Draft){draft=value;}
 export function getDraft(){return draft;}
 export function key(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);}
-const socialScreens = ['account','friends','member','inbox','chat','groups','group','blocked'];
+const socialScreens = ['account','friends','member','inbox','chat','groups','group','forward','blocked'];
 let forumTab='';
 export function takeForumTab(){const tab=forumTab;forumTab='';return tab;}
 export function hub(screen:string,id=''){

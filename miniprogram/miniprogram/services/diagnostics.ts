@@ -9,6 +9,6 @@ export function faultSummary(stage:string,value:unknown){
 }
 export function diagnosticText(){
   const device=wx.getDeviceInfo?.(),app=wx.getAppBaseInfo?.();const rows=wx.getStorageSync(KEY);
-  return JSON.stringify({version:'0.4.18',model:device?.model,platform:device?.platform,system:device?.system,wechat:app?.version,library:app?.SDKVersion,
+  return JSON.stringify({version:'0.4.19',model:device?.model,platform:device?.platform,system:device?.system,wechat:app?.version,library:app?.SDKVersion,
     faults:Array.isArray(rows)?rows.slice(0,20):[]},null,2);
 }

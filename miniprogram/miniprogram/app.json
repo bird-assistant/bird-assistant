@@ -14,7 +14,8 @@
         "picker/index",
         "social/index",
         "compare/index",
-        "trip/index"
+        "trip/index",
+        "notes/index"
       ]
     }
   ],

@@ -1,3 +1,73 @@
+# Current candidate — 0.4.19 community and personal notes
+
+28 November 2026, Beijing time. **0.4.18 remains the user-reported uploaded experience version.** Its runtime and accepted comments are frozen in `release/experience-0.4.18`; [team PR #30](https://github.com/bird-assistant/bird-assistant/pull/30) is ready for review, with passing checks, and still needs the repository's required teammate approval before merge.
+
+The new candidate uses the existing private candidate branch `fix/recognition-acceptance-0.4.7`; the full source is separate on `feat/community-workbench-0.4.19`. [What to review](COMMUNITY-WORKBENCH-0.4.19.md) · [social/media decisions](SOCIAL-CLIENT-0.4.19.md) · [offline interaction design](../design/social-controls-0419.html).
+
+New work: title-preserving cloud-scroll/bird scene and outward-only armed wave; real local field memos with autosave/search/pin/recoverable trash; per-account DM/reply drafts and safe late acknowledgements; friend-handle entry, local conversation controls and group member drawer; explicit public-post forwarding into an existing friend/group; folded reply groups; full served catalogue pagination, personal guide shelf, external gallery/date views; bounded public-photo cache and clearer growth display.
+
+**446 client tests pass, zero failed/skipped;23 WXML/25 WXSS compile.** Native touch/FPS/permissions and two-account service checks remain to be accepted. The source-layout evidence is in the revision document. The standalone advanced-group/image-reply prototype is clearly demo-only and makes no network requests.
+
+## Update the existing Windows client
+
+Keep the helper terminal, its `.venv`/`image` files, AppID/private config and local storage. This stops for local edits instead of discarding them. This is a candidate review, not an automatic replacement upload.
+
+~~~powershell
+& {
+    $ErrorActionPreference = 'Stop'
+    Set-Location 'C:\Workspace\bird-assistant\bird-assistant-miniprogram'
+    function Invoke-CheckedGit {
+        & git @args
+        if ($LASTEXITCODE -ne 0) { throw 'Git stopped; inspect the error before continuing.' }
+    }
+    $birdChanges = & git status --porcelain
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect the working tree.' }
+    if ($birdChanges) { throw 'Keep local changes before upgrading; nothing was reset.' }
+    Invoke-CheckedGit fetch origin fix/recognition-acceptance-0.4.7
+    Invoke-CheckedGit switch fix/recognition-acceptance-0.4.7
+    Invoke-CheckedGit merge --ff-only origin/fix/recognition-acceptance-0.4.7
+    & npm.cmd ci
+    if ($LASTEXITCODE -ne 0) { throw 'Client dependency installation stopped.' }
+    & npm.cmd run setup
+    if ($LASTEXITCODE -ne 0) { throw 'Setup stopped.' }
+    & npm.cmd run verify
+    if ($LASTEXITCODE -ne 0) { throw 'Verification stopped.' }
+    & node -p "require('./package.json').version"
+}
+~~~
+
+Expected: version **0.4.19**,446 passed,23 WXML/25 WXSS. Fully Compile the existing DevTools project. Review local notes and journal/cloud first; then library/bookmarks/external filters. Use staging accounts when the existing business service is reachable to check friendship, blocked DM, retry, invitation acceptance, public forwarding and drawer scroll isolation. No native upload was performed here. To inspect the uploaded version instead, use the frozen release branch, preserving any local changes first.
+
+## Decisions for the next session
+
+1. Give visual feedback on clouds/glow, the new library/sightings hierarchy and local field memos.
+2. Try the offline advanced-group/image-reply design; decide roles/announcement rules, image-only reply behavior and the proposed four-image cap before contract work.
+3. **Server restoration and all server-dependent implementation remain outside this revision**, per the latest instruction. No credentials, deployment, CloudBase activation or provider calls changed. Revisit the existing inactive preparation only in the later restoration pass.
+4. Keep identification/fusion and deeper journal/editor expansion in the original backlog until the teammate returns. All original48 IDs and R01–R90 remain; newR91–R104 follow. Older “current candidate” and server-next instructions below are historical and are superseded by this section.
+
+---
+
+## Revision0.4.19 follow-up IDs
+
+| ID | Work | State |
+| --- | --- | --- |
+| R91 | Freeze uploaded0.4.18 and prepare team handoff | Frozen; PR30 ready; required teammate review pending |
+| R92 | Cloud scene below the journal title | Client implemented; native motion acceptance pending |
+| R93 | Outward armed wave without constant green ring | Client implemented; native motion acceptance pending |
+| R94 | Local personal field memos | Client tested; device acceptance pending |
+| R95 | Account-scoped DM drafts and conversation controls | Client tested; service integration pending |
+| R96 | Friend handle entry and group member drawer | Existing contract wired; two-account acceptance pending |
+| R97 | Explicit public-post forwarding to friend/group | Client tested; service integration pending |
+| R98 | Folded reply chains and durable reply drafts | Client tested; threaded service acceptance pending |
+| R99 | Library hierarchy, full served pagination and local shelf | Client tested; native/service acceptance pending |
+| R100 | External gallery/date view and page-scoped filters | Client tested; native/service acceptance pending |
+| R101 | Bounded anonymous guide-photo cache | Client tested; device filesystem acceptance pending |
+| R102 | Truthful profile growth presentation | Existing contract wired; service acceptance pending |
+| R103 | Advanced group roles, image replies and media lifecycle | Offline prototype/design; backend contracts deferred |
+| R104 | Server restoration and CloudBase activation | Explicitly deferred this pass; earlier inactive preparation retained |
+
+---
+
 #0.4.18 experience checkpoint — frozen for team review
 
 The user reports uploading the current experience version. [Handoff and accepted feedback](EXPERIENCE-0.4.18-HANDOFF.md). Further work uses a separate branch; older not-uploaded statements below are pre-upload history.

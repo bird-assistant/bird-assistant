@@ -1,0 +1,23 @@
+<app-header title="{{screen === 'edit' ? '写下此刻' : '我的随手记'}}" back bindback="back"/>
+<view class="page notebook">
+  <view wx:if="{{error}}" class="note error" role="alert">{{error}}<button wx:if="{{screen === 'edit'}}" class="text-button" bindtap="saveCopy">保留当前文字，另存一份</button><button wx:else class="text-button" bindtap="reload">重新读取</button></view>
+  <block wx:if="{{screen === 'list'}}">
+    <view class="notes-heading"><view><text class="eyebrow">FIELD MEMOS / 羽迹</text><view class="notes-title">{{trash ? '笔记回收站' : '留住一点发现'}}</view><text class="muted">{{trash ? trashCount : count}} 篇 · 保存在这台设备</text></view><button wx:if="{{!trash}}" class="primary new-note" bindtap="create" aria-label="写新笔记"><image src="/assets/icons/plus.png"/>写一笔</button></view>
+    <input class="notes-search" value="{{query}}" bindinput="search" placeholder="找标题、正文或标签" maxlength="100"/>
+    <scroll-view wx:if="{{tags.length && !trash}}" scroll-x class="notes-tags"><button class="{{!tag ? 'on' : ''}}" data-tag="" bindtap="tag">全部</button><button wx:for="{{tags}}" wx:key="*this" class="{{tag === item ? 'on' : ''}}" data-tag="{{item}}" bindtap="tag"># {{item}}</button></scroll-view>
+    <view class="notes-list"><button wx:for="{{rows}}" wx:key="id" class="note-row {{item.pinned ? 'note-pinned' : ''}}" data-id="{{item.id}}" bindtap="open"><view class="note-row-meta"><text>{{item.pinned && !trash ? '置顶 · ' : ''}}{{item.when}}</text><image src="/assets/icons/arrow.png"/></view><view class="note-row-title">{{item.title || '未命名笔记'}}</view><view wx:if="{{item.excerpt}}" class="note-excerpt">{{item.excerpt}}</view><view wx:if="{{item.linked}}" class="note-link">观察 · {{item.linked}}</view><view class="note-labels"><text wx:for="{{item.tags}}" wx:for-item="label" wx:key="*this">#{{label}}</text></view></button></view>
+    <view wx:if="{{!rows.length}}" class="notes-empty"><image src="/assets/icons/journal.png"/><view>{{query || tag ? '没有找到相符的笔记' : trash ? '回收站是空的' : '先写下一个小发现'}}</view><text>鸟鸣、路线、观察心得，都可以慢慢补充。</text></view>
+    <button class="text-button notes-trash" bindtap="toggleTrash">{{trash ? '返回我的随手记' : '回收站 · '+trashCount}}</button>
+  </block>
+  <block wx:else>
+    <view class="editor-status"><text>{{note.deletedAt ? '回收站中的笔记' : saved}}</text><button wx:if="{{!note.deletedAt}}" class="text-button" bindtap="pin">{{note.pinned ? '取消置顶' : '置顶'}}</button></view>
+    <input class="note-title-input" value="{{note.title}}" data-field="title" bindinput="input" disabled="{{!!note.deletedAt}}" maxlength="80" placeholder="给这次发现起个名字"/>
+    <textarea class="note-body-input" value="{{note.body}}" data-field="body" bindinput="input" disabled="{{!!note.deletedAt}}" maxlength="5000" placeholder="看见了什么？听到了什么？\n写一点真实的感受就好。" cursor-spacing="24"/>
+    <view class="editor-count">{{note.body.length}} / 5000</view>
+    <view class="note-section">标签<text>逗号分隔，最多6个</text></view><input value="{{tagText}}" data-field="tags" bindinput="input" disabled="{{!!note.deletedAt}}" maxlength="110" placeholder="例如：湖边，鸟鸣，想再去"/>
+    <button wx:if="{{!note.deletedAt}}" class="link-observation" bindtap="links"><image src="/assets/icons/pin.png"/><text>{{linkedName || '关联一条本机观察（选填）'}}</text><image src="/assets/icons/arrow.png"/></button>
+    <scroll-view scroll-y wx:if="{{linkOpen}}" class="note-link-picker"><view wx:if="{{observationError}}" class="muted">{{observationError}}</view><button data-id="" bindtap="link">不关联观察</button><button wx:for="{{observations}}" wx:key="id" data-id="{{item.id}}" bindtap="link">{{item.name}}</button><view wx:if="{{!observations.length}}" class="muted">还没有自己的本机观察。</view></scroll-view>
+    <view class="editor-actions"><button wx:if="{{!note.deletedAt}}" class="primary" bindtap="save">保存笔记</button><button bindtap="copy">复制文字</button><button class="text-button" bindtap="trash">{{note.deletedAt ? '还原笔记' : '移入回收站'}}</button></view>
+    <view class="tiny">文字自动保存在本机，暂不跨设备同步。关联观察只记住关联，不复制或删除照片原件。</view>
+  </block>
+</view>

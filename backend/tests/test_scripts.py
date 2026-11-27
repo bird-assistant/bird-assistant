@@ -29,7 +29,7 @@ def test_vision_device_guard_latches_only_native_bus_error(tmp_path):
     assert subprocess.run([*command, "exit 23"]).returncode == 23
     assert not marker.exists()
     probe = (
-        'if [[ ${BIRD_VISION_DEVICE:-} != cpu ]]; then ulimit -c 0; kill -BUS $$; fi; '
+        "if [[ ${BIRD_VISION_DEVICE:-} != cpu ]]; then ulimit -c 0; kill -BUS $$; fi; "
         'echo "$BIRD_VISION_SPECIES_PRECISION"'
     )
     for _ in range(2):

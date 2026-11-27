@@ -64,7 +64,7 @@ Component({
       let cache=icons.get(this);if(!cache){cache=new MapIconCache(()=>getCanvas(this,'#map-marker-canvas',96,96),path=>{try{wx.getFileSystemManager().unlink({filePath:path,fail:()=>{}});}catch{}});icons.set(this,cache);}
       const markers=groups.map((group,index)=>{const marker={...clusterMarker(group,index,scale),id:ids[index]};const image=marker.anchor&&cache!.get(group.count,group.visibility||'public');return image?{...marker,iconPath:image}:marker;});
       const saved=new Map<number,ReturnType<typeof readSavedPlaces>[number]>();
-      for(const entry of this.mapSavedPlaces().entries()){const index=entry[0],place=entry[1],id=2147483000+index;saved.set(id,place);markers.push({id,latitude:place.latitude,longitude:place.longitude,iconPath:'/assets/icons/collection.png',width:24,height:24,anchor:{x:.5,y:.5},callout:{content:'收藏 · '+place.name,display:'BYCLICK',padding:6,borderRadius:10,color:'#285b49',bgColor:'#fffef9'}});}
+      for(const entry of this.mapSavedPlaces().entries()){const index=entry[0],place=entry[1],id=2147483000+index;saved.set(id,place);markers.push({id,latitude:place.latitude,longitude:place.longitude,iconPath:'/assets/icons/map-bookmark.png',width:26,height:30,anchor:{x:.5,y:.5},callout:{content:'收藏 · '+place.name,display:'BYCLICK',padding:6,borderRadius:10,color:'#285b49',bgColor:'#fffef9'}});}
       savedTargets.set(this,saved);
       if(JSON.stringify(markers)!==JSON.stringify(this.data.markers))this.setData({markers});
       const variants=['public','private'];

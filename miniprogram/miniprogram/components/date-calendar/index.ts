@@ -1,3 +1,4 @@
+import {beginSheetDrag,moveSheetDrag,endSheetDrag,resetSheetDrag} from '../../services/sheet-gesture';
 import {calendarCells,calendarMonth,orderedDates} from '../../services/calendar';
 import {beijingDate} from '../../services/observation-context';
 type Tap=WechatMiniprogram.TouchEvent;
@@ -6,10 +7,10 @@ const grids=new WeakMap<object,WechatMiniprogram.BoundingClientRectCallbackResul
 const suppressed=new WeakSet<object>();
 Component({
   properties:{open:{type:Boolean,value:false},from:{type:String,value:''},to:{type:String,value:''},min:{type:String,value:''},max:{type:String,value:''},single:{type:Boolean,value:false}},
-  data:{activeEdge:'',dragging:false,month:'',label:'',draftFrom:'',draftTo:'',stage:0,bodyHeight:350,weekdays:['一','二','三','四','五','六','日'],cells:[] as ReturnType<typeof calendarCells>},
-  observers:{open:function(open:boolean){touches.delete(this);suppressed.delete(this);this.setData({dragging:false});if(open){this.setData({month:calendarMonth(this.data.from||this.data.min||beijingDate()),draftFrom:this.data.from,draftTo:this.data.to,stage:0,activeEdge:'',bodyHeight:Math.min(390,Math.max(40,wx.getWindowInfo().windowHeight-(this.data.single?210:270)))});this.project();}}},
+  data:{sheetDragStyle:'',activeEdge:'',dragging:false,month:'',label:'',draftFrom:'',draftTo:'',stage:0,bodyHeight:350,weekdays:['一','二','三','四','五','六','日'],cells:[] as ReturnType<typeof calendarCells>},
+  observers:{open:function(open:boolean){resetSheetDrag(this);touches.delete(this);suppressed.delete(this);this.setData({dragging:false});if(open){this.setData({month:calendarMonth(this.data.from||this.data.min||beijingDate()),draftFrom:this.data.from,draftTo:this.data.to,stage:0,activeEdge:'',bodyHeight:Math.min(390,Math.max(40,wx.getWindowInfo().windowHeight-(this.data.single?210:270)))});this.project();}}},
   pageLifetimes:{resize(){touches.delete(this);this.setData({dragging:false,bodyHeight:Math.min(390,Math.max(40,wx.getWindowInfo().windowHeight-(this.data.single?210:270)))});}},
-  methods:{
+  methods:{sheetDragStart(event:WechatMiniprogram.TouchEvent){beginSheetDrag(this,event);},sheetDragMove(event:WechatMiniprogram.TouchEvent){moveSheetDrag(this,event);},sheetDragEnd(){endSheetDrag(this);},sheetDragCancel(){resetSheetDrag(this);},
     noop(){},close(){touches.delete(this);this.setData({dragging:false});this.triggerEvent('close');},
     project(){this.setData({label:this.data.month.slice(0,4)+'年 '+Number(this.data.month.slice(5,7))+'月',cells:calendarCells(this.data.month,this.data.draftFrom,this.data.draftTo,this.data.min,this.data.max)});},
     monthChange(event:Tap){const next=calendarMonth(this.data.month,Number(event.currentTarget.dataset.delta));if(this.data.min&&next.slice(0,7)<this.data.min.slice(0,7)||this.data.max&&next.slice(0,7)>this.data.max.slice(0,7))return;this.setData({month:next});this.project();},

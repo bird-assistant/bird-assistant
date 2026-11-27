@@ -59,7 +59,7 @@ test('home touch ownership leaves controls, search and all sheet exits outside t
     if(!tag.endsWith('/>'))stack.push(node);
   }
   assert.equal(stack.length,0);
-  const touchKeys=a=>Object.keys(a).filter(k=>/^(bind|catch)(:)?touch/.test(k)&&!(k==='catchtouchmove'&&a[k]==='holdSheet'));
+  const touchKeys=a=>Object.keys(a).filter(k=>/^(bind|catch)(:)?touch/.test(k)&&!(k==='catchtouchmove'&&a[k]==='holdSheet')&&!(/^sheetDrag/.test(a[k])&&a['data-dismiss']==='closeSheet'));
   const surfaces=nodes.filter(n=>touchKeys(n.attrs).length);assert.equal(surfaces.length,1);assert.equal(surfaces[0].attrs.class,'map-gesture');
   const actions=nodes.filter(n=>['button','input','picker','scroll-view','app-header'].includes(n.tag)||n.attrs.catchtap==='closeSheet');assert.ok(actions.length>=17);
   for(const action of actions)for(const ancestor of [action,...action.parents])assert.equal(touchKeys(ancestor.attrs).length,0,action.tag+' must not be trapped by '+ancestor.attrs.class);

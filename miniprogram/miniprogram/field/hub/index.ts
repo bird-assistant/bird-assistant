@@ -1,3 +1,4 @@
+import {beginSheetDrag,moveSheetDrag,endSheetDrag,resetSheetDrag} from '../../services/sheet-gesture';
 import {previewMedia} from '../../services/native-ui';
 import {displayedDistance} from '../../services/map-ordering';
 import {acceptPickedMedia} from '../../services/media-import';
@@ -22,13 +23,14 @@ type Input=WechatMiniprogram.CustomEvent<{value:string}>;
 function message(error:unknown){return error instanceof Error?error.message:'请求失败，请重试。';}
 
 Page({
-  data:{pollOpen:false,pollBusy:false,pollError:'',pollSelection:'',pollSelectionName:'',sheetHeights:{} as Record<string,number>,savingPhoto:false,publishAttachments:[] as PostImage[],recordGallery:[] as any[],reactionBusy:{like:false,bookmark:false},placesError:'',postsError:'',placeSort:'recent',placePoint:null as {latitude:number;longitude:number}|null,mapOpening:false,displayResolution:'',manualCamera:{} as PhotoDetails,manualPhotoInfo:null as ReturnType<typeof photoInfo>,photoInfo:null as ReturnType<typeof photoInfo>,postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
+  sheetDragStart(event:WechatMiniprogram.TouchEvent){beginSheetDrag(this,event);},sheetDragMove(event:WechatMiniprogram.TouchEvent){moveSheetDrag(this,event);},sheetDragEnd(){endSheetDrag(this);},sheetDragCancel(){resetSheetDrag(this);},
+  data:{sheetDragStyle:'',pollOpen:false,pollBusy:false,pollError:'',pollSelection:'',pollSelectionName:'',sheetHeights:{} as Record<string,number>,savingPhoto:false,publishAttachments:[] as PostImage[],recordGallery:[] as any[],reactionBusy:{like:false,bookmark:false},placesError:'',postsError:'',placeSort:'recent',placePoint:null as {latitude:number;longitude:number}|null,mapOpening:false,displayResolution:'',manualCamera:{} as PhotoDetails,manualPhotoInfo:null as ReturnType<typeof photoInfo>,photoInfo:null as ReturnType<typeof photoInfo>,postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
     draft:null as Draft|null,anonymous:true,shareDate:false,shareCamera:false,sharePhoto:true,map:false,post:true,identificationHelp:false,
     externalPage:0,externalNext:false,preview:null as any,previewLines:[] as string[],photo:'',replySpecies:'',self:'',selectedSpecies:'',matches:[] as any[]},
   _galleryUploads:null as unknown as Map<string,{id:string;camera:Record<string,string>}>,
   _pollGeneration:0,_pollNeedsRefresh:false,
   _placesSequence:0,_mapGeneration:0,_cameraDetails:{} as Record<string,string>,_media:'',_sighting:'',_generation:0,_submitKey:'',_replySignature:'',_path:'',_closed:false,_replyOffset:0,_replyLoading:false,
-  onLoad(options:Record<string,string|undefined>){
+  onLoad(options:Record<string,string|undefined>){resetSheetDrag(this);
     installAdaptiveSheets(this,()=>this.data.pollOpen);this.setData({pollOpen:options.poll==='1'});this._galleryUploads=new Map();
     const screen=options.screen&&names[options.screen]?options.screen:'feed';
     this._submitKey=key();
@@ -42,7 +44,7 @@ Page({
     void this.load();
   },
   onShow(){if(this._pollNeedsRefresh){this._pollNeedsRefresh=false;void this.load();}},
-  onHide(){this._pollNeedsRefresh=this.data.pollBusy;this._pollGeneration++;this.setData({pollBusy:false,pollOpen:false});this._mapGeneration++;this.setData({mapOpening:false});},
+  onHide(){resetSheetDrag(this);this._pollNeedsRefresh=this.data.pollBusy;this._pollGeneration++;this.setData({pollBusy:false,pollOpen:false});this._mapGeneration++;this.setData({mapOpening:false});},
   onUnload(){stopAdaptiveSheets(this);this._pollGeneration++;this._mapGeneration++;this._closed=true;this._generation++;},
   copyCredit(event:Tap){void wx.setClipboardData({data:event.currentTarget.dataset.url});},
   onShareAppMessage(){

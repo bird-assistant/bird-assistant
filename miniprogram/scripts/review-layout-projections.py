@@ -33,14 +33,17 @@ async def review(args):
                   const card=document.querySelector('.deck-active .paper-armed');let blockedCard=null;
                   if(card){const r=card.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;if(x>0&&x<innerWidth&&y>0&&y<innerHeight)blockedCard=!document.elementFromPoint(x,y)?.closest('.deck-card');}
                   const anchors=[...document.querySelectorAll('.post-action,.record-action')].map(e=>{const i=e.querySelector('img'),r=e.getBoundingClientRect(),b=i?.getBoundingClientRect();return b?{offset:b.x-r.x,width:b.width}:null});
-                  return {width:innerWidth,scroll:document.documentElement.scrollWidth,panels,blockedCard,anchors};
+                  const deck=document.querySelector('.deck-active .deck-card'),hint=document.querySelector('.paper-share-hint');
+                  const draftActions=document.querySelector('.draft-deck .draft-card-actions');
+                  const closeShapes=[...document.querySelectorAll('.calendar-close,.choice-close')].map(box);
+                  return {width:innerWidth,scroll:document.documentElement.scrollWidth,panels,blockedCard,anchors,deck:deck?box(deck):null,hint:hint?box(hint):null,closeShapes,draftActions:draftActions?box(draftActions):null};
                 }""")
                 result.update(device=profile["name"], viewport=[width, height], dpr=profile["dpr"], kind=kind)
                 results.append(result)
                 if width in (320, 365, 940) and kind in (
-                    "tripSetup", "trip", "journalArmed", "journalDelete", "journalUp", "journalShare",
+                    "tripSetup", "trip", "journalDeck", "journalArmed", "journalDelete", "journalUp", "journalShare",
                     "journalShareSquare", "journalShareLandscape", "forum", "pollSearch", "mapFilter",
-                    "libraryCalendar", "libraryFilter",
+                    "libraryCalendar", "libraryFilter", "calendarDay", "journalUpEarly", "tripHistory", "drafts", "friends",
                 ):
                     await page.screenshot(path=str(root / f"{kind}-{width}.png"))
             await page.close()
@@ -49,7 +52,11 @@ async def review(args):
     overflow = [(r["kind"], r["viewport"], r["scroll"]) for r in results if r["scroll"] > r["width"] + 2]
     panels = [(r["kind"], r["viewport"], p) for r in results for p in r["panels"] if p["y"] < -1 or p["bottom"] > r["viewport"][1] + 1]
     blocked = [(r["kind"], r["viewport"]) for r in results if r["blockedCard"]]
-    print(json.dumps({"cases": len(results), "devices": len(profiles), "overflow": overflow, "offscreenPanels": panels, "blockedArmedCards": blocked}, ensure_ascii=False), flush=True)
+    deck_bounds = [(r["kind"], r["viewport"], r["deck"]) for r in results if r["kind"] == "journalDeck" and r["deck"] and r["deck"]["bottom"] > r["viewport"][1]-65+1]
+    close_shapes = [(r["kind"], r["viewport"], b) for r in results for b in r["closeShapes"] if abs(b["w"]-b["h"])>1]
+    hint_overlap = [(r["kind"], r["viewport"]) for r in results if r["kind"] in ("journalArmed","journalUpEarly","journalUp") and r["deck"] and r["hint"] and r["hint"]["y"] < r["deck"]["bottom"]-1]
+    draft_bounds=[(r["kind"],r["viewport"],r["draftActions"]) for r in results if r.get("draftActions") and r["draftActions"]["bottom"]>r["viewport"][1]+1]
+    print(json.dumps({"cases": len(results), "devices": len(profiles), "overflow": overflow, "offscreenPanels": panels, "blockedArmedCards": blocked,"deckBelowTabs":deck_bounds,"squashedCloseButtons":close_shapes,"overlappingShareHints":hint_overlap,"draftActionsOffscreen":draft_bounds}, ensure_ascii=False), flush=True)
 
 
 if __name__ == "__main__":

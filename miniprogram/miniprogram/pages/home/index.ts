@@ -52,7 +52,7 @@ Page({
   search(e:WechatMiniprogram.CustomEvent<{value:string}>){const query=e.detail.value;this.setData({query,searchOpen:true,results:places.filter(p=>!query||p.name.includes(query))});},
   searchFocus(){if(!this.data.searchOpen||!this.data.searchFocused)this.setData({searchOpen:true,searchFocused:true});},searchBlur(){if(this.data.searchFocused)this.setData({searchFocused:false});},
   searchAction(){if(this.data.searchOpen)this.closeSearch();else this.searchFocus();},
-  closeSearch(){if(this.data.searchOpen||this.data.searchFocused){this.setData({searchOpen:false,searchFocused:false});wx.hideKeyboard?.();}},
+  closeSearch(){if(this.data.searchOpen||this.data.searchFocused){this.setData({searchOpen:false,searchFocused:false});wx.hideKeyboard?.({fail:()=>{}});}},
   choosePlace(e:Touch){this.closeSearch();const p=places.find(p=>p.id===e.currentTarget.dataset.id);if(!p)return;const zoom=Math.max(.7,this.data.zoom);this.setData({focused:p.id,focusPoint:{x:p.x,y:p.y},selectedMarkerIds:[],query:p.name,sheet:true,detail:null});syncNavigation(this);this.flyTo(p,zoom,true);},
   filter(e:WechatMiniprogram.CustomEvent<{value:string}>){const key=String(e.currentTarget.dataset.key);if(['visibility','date','species'].includes(key)){this.stopFlight();this.setData({[key]:Number(e.detail.value),focused:'',focusPoint:null,selectedMarkerIds:[]});this.updateMap();}},
   openSummary(){this.closeSearch();const p=this.data.focusPoint||places.find(p=>p.id===(this.data.focused||this.data.region));this.setData({sheet:true,detail:null});syncNavigation(this);if(p)this.flyTo(p,this.data.zoom,true);},

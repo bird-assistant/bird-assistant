@@ -1,4 +1,4 @@
-export type Cluster={latitude:number;longitude:number;count:number;minLatitude:number;maxLatitude:number;minLongitude:number;maxLongitude:number};
+export type Cluster={visibility?:'public'|'private';latitude:number;longitude:number;count:number;minLatitude:number;maxLatitude:number;minLongitude:number;maxLongitude:number};
 const clampLatitude=(latitude:number)=>Math.max(-85.051129,Math.min(85.051129,latitude));
 export function mapPixel(point:{latitude:number;longitude:number},zoom:number){
   const world=256*2**zoom,sine=Math.sin(clampLatitude(point.latitude)*Math.PI/180);
@@ -19,17 +19,17 @@ export function spacedClusters(cells:Cluster[],zoom:number,gap=44):Cluster[]{
       let nearest:Group|undefined,distance=gap*gap;const column=Math.floor(row.x/gap),line=Math.floor(row.y/gap);
       for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)for(const other of buckets.get(((column+dx+columns)%columns)+','+(line+dy))||[]){
         const x=Math.abs(row.x-other.x),wrapped=Math.min(x,world-x),y=row.y-other.y,d=wrapped*wrapped+y*y;
-        if(d<distance){nearest=other;distance=d;}
+        if(d<distance&&row.visibility===other.visibility){nearest=other;distance=d;}
       }
       if(!nearest)break;
       remove(nearest);const count=row.count+nearest.count;let bx=nearest.x;
       if(bx-row.x>world/2)bx-=world;else if(row.x-bx>world/2)bx+=world;
       const x=((row.x*row.count+bx*nearest.count)/count+world)%world,y=(row.y*row.count+nearest.y*nearest.count)/count;
       const center=fromPixel(x,y,zoom),around=(value:number)=>center.longitude+((value-center.longitude+540)%360)-180,ends=[row.minLongitude,row.maxLongitude,nearest.minLongitude,nearest.maxLongitude].sort((a,b)=>around(a)-around(b));
-      row={...center,x,y,count,minLatitude:Math.min(row.minLatitude,nearest.minLatitude),maxLatitude:Math.max(row.maxLatitude,nearest.maxLatitude),minLongitude:ends[0],maxLongitude:ends[ends.length-1]};
+      row={...center,x,y,count,visibility:row.visibility,minLatitude:Math.min(row.minLatitude,nearest.minLatitude),maxLatitude:Math.max(row.maxLatitude,nearest.maxLatitude),minLongitude:ends[0],maxLongitude:ends[ends.length-1]};
     }
     const key=bucket(row),items=buckets.get(key)||new Set<Group>();items.add(row);buckets.set(key,items);
   }
   const result:Group[]=[];for(const items of buckets.values())for(const row of items)result.push(row);
-  return result.map(row=>({latitude:row.latitude,longitude:row.longitude,count:row.count,minLatitude:row.minLatitude,maxLatitude:row.maxLatitude,minLongitude:row.minLongitude,maxLongitude:row.maxLongitude}));
+  return result.map(row=>({... (row.visibility?{visibility:row.visibility}:{}),latitude:row.latitude,longitude:row.longitude,count:row.count,minLatitude:row.minLatitude,maxLatitude:row.maxLatitude,minLongitude:row.minLongitude,maxLongitude:row.maxLongitude}));
 }

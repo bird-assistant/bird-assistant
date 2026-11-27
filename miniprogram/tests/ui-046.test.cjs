@@ -38,8 +38,8 @@ test('late media picker callbacks cannot add files after the identification page
 test('detail and feed reactions have independent pending operations and cannot roll each other back',async t=>{
   storage();for(const path of ['field/hub','pages/community']){
     const requests=[];t.mock.method(service,'api',(_url,_method)=>new Promise((resolve,reject)=>requests.push({resolve,reject})));
-    const p=page(path),detail=path==='field/hub';p.data.id='post';if(detail)p.data.record={id:'post',reactions:[],liked:false,bookmarked:false,likes:3,hasLikes:true};else p.data.remotePosts=[{id:'post',liked:false,favorited:false,likes:3,hasLikes:true}];
-    const react=kind=>detail?p.action(tap({op:kind})):p.react(tap({id:'post',kind}));
+    const p=page(path),detail=path==='field/hub',recordId=detail?'detail-pending':'feed-pending';p.data.id=recordId;if(detail)p.data.record={id:recordId,reactions:[],liked:false,bookmarked:false,likes:3,hasLikes:true};else p.data.remotePosts=[{id:recordId,liked:false,favorited:false,likes:3,hasLikes:true}];
+    const react=kind=>detail?p.action(tap({op:kind})):p.react(tap({id:recordId,kind}));
     const like=react('like'),bookmark=react('bookmark');void react('like');assert.equal(requests.length,2);assert.equal(p.data.busy,false);
     requests[1].resolve({active:true,bookmarked:true,reactions:['bookmark'],likes:999});await bookmark;
     let row=detail?p.data.record:p.data.remotePosts[0];assert.equal(row.likes,3);assert.equal(detail?row.bookmarked:row.favorited,true);

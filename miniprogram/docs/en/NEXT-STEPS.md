@@ -1,3 +1,17 @@
+# Current candidate — 0.4.17 interaction stability
+
+28 November2026, Beijing time. [Revision and native acceptance](INTERACTION-0.4.17.md) · [CloudBase preparation](CLOUDBASE-0.4.17.md) · [friends/DM/group design](SOCIAL-0.4.17.md).
+
+Map:9-second geographic ripple without a focus pin, preserved zoom/row anchor, separate own/public counts and saved-place symbols. Calendar endpoint adjustment/cancellation and single-day cycle; shorter time sheet and richer trip history. Journal: stable viewport/edge fades/outward glow, cloud-entry threshold, **removed45-second timeout**, and share menu retained after success/cancel/native return. Shared forum interactions and legacy-list hydration; labelled voting; vertical draft deck; friend-request tabs.
+
+**416 client tests;22 WXML/24 WXSS compile; backend510 passed/53 skipped,86.76% coverage.**30 profiles×30 browser states=900source projections; native Compile, phone permissions/gestures/FPS and long-idle recovery still require acceptance. The user's accepted WeChat/forum share and right-neighbour deletion remain intact.
+
+CloudBase function source/instructions are prepared **inactive**, retaining existing business identity/permissions. No deployment/environment or client transport switch happened. Read-only probe04:47:05: writing404/404, audio404, vision200ready. Hosted withdrawal405 needs current business deployment; the original vote is preserved on failure. Full waiting/pre-capture/fusion and deferred forward-success redesign remain visible in the backlog. All48 original IDs and R01–R74 below remain; R75–R86 are in this revision. Historical0.4.16's45-second auto-release is superseded.
+
+Follow the canonical English Windows commands below. Keep the helper terminal running and retain AppID/private config, `.venv`, untracked`image/` and local data. Update the existing candidate checkout, npm ci/setup/verify, then full Compile; do not switch to the older main runtime or clear storage.
+
+---
+
 # Current candidate — 0.4.16 interaction follow-up
 
 28 November 2026, Beijing time. [Changes, deployment contracts and focused native acceptance](INTERACTION-0.4.16.md). All original 48 backlog IDs and R01–R64 below remain; this revision adds R65–R74. The previous 0.4.15 records below are historical.

@@ -8,6 +8,6 @@ export function calendarCells(month:string,from='',to='',min='',max=''){
   const date=new Date(month.slice(0,7)+'-01T00:00:00Z'),first=date.getTime(),offset=(date.getUTCDay()+6)%7;
   return Array.from({length:42},(_,index)=>{
     const stamp=new Date(first+(index-offset)*DAY),value=stamp.toISOString().slice(0,10),current=value.slice(0,7)===month.slice(0,7);
-    return {value,day:stamp.getUTCDate(),current,disabled:!current||!!min&&value<min||!!max&&value>max,start:value===from,end:value===to,within:!!from&&!!to&&value>from&&value<to};
+    return {value,day:stamp.getUTCDate(),current,disabled:!current||!!min&&value<min||!!max&&value>max,start:value===from,end:value===to,single:!!from&&from===to&&value===from,band:!!from&&!!to&&from!==to&&value>=from&&value<=to,within:!!from&&!!to&&value>from&&value<to};
   });
 }

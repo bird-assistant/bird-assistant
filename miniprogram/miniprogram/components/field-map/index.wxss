@@ -47,3 +47,5 @@
 .save-map-place{display:flex;align-items:center;justify-content:flex-start;width:100%;gap:9px;min-height:40px;margin:6px 0 0;padding:9px 12px;border-radius:12px;background:#fafbf5f2;color:#285b49;font-size:12px}.save-place-icon{width:17px;height:17px;flex:none}.save-place-hint{margin-left:auto;color:#89977c;font-size:10px}.save-map-place::after{border:0}@media(prefers-reduced-motion:reduce){.location-signal .location-wave{animation:none;opacity:.6}}
 
 .location-wave{position:absolute;box-sizing:border-box;border-radius:50%}
+
+.record-row.record-focused{border-radius:10px;background:#e8f0e2;box-shadow:inset 3px 0 #659879}.record-focused .record-main{padding-left:8px}.map-actions .map-action{flex:none}.location-signal .location-wave{animation:none}.record-scroll{scroll-padding-top:0}

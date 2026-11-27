@@ -34,7 +34,7 @@ function projectElement(e:JournalElement,d:JournalDocument,scale:number) {
   return {...e,...photoCrop(e,scale),label:elementLabel(e,d),left:e.x/d.width*100,top:e.y/d.height*100,width:e.w/d.width*100,height:e.h/d.height*100,fontPx:e.fontSize*scale,rows:text?text.rows.map(r=>({...r,size:r.size*scale,y:r.y*scale})):[],overflow:!!text?.overflow};
 }
 Page({
-  data:{filterOpen:false,filterField:'',filterOptions:[] as string[],filterSelected:0,filterTitle:'',calendarOpen:false,calendarTarget:'library',calendarFrom:'',calendarTo:'',paperVisualId:'',paperPhase:'',paperCloudHeight:260,deckHeight:340,deckPreviewHeight:170,deckArrival:'',sharePreviewWidth:120,sharePreviewHeight:160,deckSlots:[] as Array<ReturnType<typeof journalLibrary>[number]&{slot:number;index:number}>,deckOffset:0,deckSettling:false,paperArmedId:'',paperDragDown:false,paperDragUp:false,paperDragProgress:0,paperDragStyle:'',paperDragAction:'',shareOpen:false,shareId:'',shareTitle:'',shareRatio:'',shareBitmap:'',sharePreview:null as ReturnType<typeof journalThumbnail>|null,shareError:'',resumeRow:null as ShelfRow|null,deckThumbnails:{} as Record<string,string>,previewErrors:{} as Record<string,boolean>,sheetHeights:{} as Record<string,number>,deckPreviews:{} as Record<string,ReturnType<typeof journalThumbnail>>,libraryText:'',libraryFrom:'',libraryTo:'',libraryOrder:0,libraryOrders:['最近修改','创建时间'],libraryRatio:0,libraryRatios:['全部比例','3:4','1:1','4:3'],libraryRows:[] as ReturnType<typeof journalLibrary>,deckIndex:0,libraryTotal:0,aiDestination:'new' as WritingDestination,aiDestinations:[{id:'new',name:'新增文字框'},{id:'selected',name:'所选文本框'},{id:'overview',name:'页首概述'}],aiSelectedAvailable:false,aiIncludeTitle:false,aiIncludeCaptions:false,aiPhotoCount:0,aiTargetLabel:'',aiCaptionPreviews:[] as Array<{id:string;label:string;text:string}>,aiHistoryOpen:false,aiHistory:[] as ReturnType<typeof readWritingHistory>,aiHistoryNotice:'',templateWidth:150,saveStatus:'',ratioLocks,ratioMode:'current',pixels:{w:0,h:0,fontSize:0},papers,paperColors,paperSource:'',templateOpen:false,templateOptions:[] as Array<{id:number;name:string;photos:Array<{src:string;style:string;imageStyle:string}>}>,composition:'',aiBusy:false,aiSuggestion:null as JournalAiSuggestion|null,backgroundSelected:false,layersOpen:false,selectedName:'',numberEditing:'',numberDrafts:{} as Record<string,string>,cropOpen:false,cropDraft:null as JournalElement|null,cropPreview:null as (ReturnType<typeof photoCrop>&{width:number;height:number})|null,editorChromeHeight:EDITOR_CHROME_HEIGHT,maxWidth:900,maxHeight:1200,assetImageHeight:114,from:'',to:'',unknown:true,picked:[] as JournalAsset[],period:0,periods:['自选素材','每日','每周','每月','每年'],includeNotes:false,aiPhotos:[] as Array<{id:string;src:string;label:string;selected:boolean}>,exporting:false,editorHeight:650,controlsHeight:200,overview:false,paperScale:1,paperLeft:0,shownHeight:400,view:'home',headerTitle:'羽迹',drafts:[] as ReturnType<typeof journalLibrary>,assets:[] as JournalAsset[],source:'observations',chosen:0,title:'沿着鸟鸣，慢慢走',ratio:'3:4',style:'nature',styles:[{id:'nature',name:'自然留白'},{id:'magazine',name:'纸上故事'},{id:'minimal',name:'极简图鉴'}],ratios:['3:4','1:1','4:3'],doc:null as JournalDocument|null,renderElements:[] as Array<Record<string,unknown>>,selected:null as JournalElement|null,labels:[] as Array<{id:string;label:string}>,selectedId:'',canUndo:false,canRedo:false,dirty:false,stageWidth:320,stageHeight:390,docHeight:427,focusY:0,headerHeight:88,scale:1,error:'',busy:false,ai:false,inputMode:'text',prompt:'',purpose:0,purposes:['观察正文','鸟类介绍','分享文案','照片手帐','概述与总结','照片说明'],placement:1,placements:['照片区上方','照片区下方','自由放置'],speechApplied:'',bundleSummary:'',decorations:[{id:'leaf',name:'叶子'},{id:'flower',name:'小花'},{id:'star',name:'星星'},{id:'feather',name:'羽毛'},{id:'stamp',name:'邮戳'},{id:'tape',name:'纸胶带'},{id:'sprig',name:'枝叶'},{id:'grass',name:'芦苇'},{id:'sun',name:'日光'},{id:'moon',name:'月相'},{id:'waves',name:'水纹'},{id:'compass',name:'方位'}],exportPath:''},
+  data:{homeHeight:600,homeCompact:false,homeTiny:false,libraryToolsOpen:false,shareStatus:'',filterOpen:false,filterField:'',filterOptions:[] as string[],filterSelected:0,filterTitle:'',calendarOpen:false,calendarTarget:'library',calendarFrom:'',calendarTo:'',paperVisualId:'',paperPhase:'',paperCloudHeight:260,deckHeight:340,deckPreviewHeight:170,deckArrival:'',sharePreviewWidth:120,sharePreviewHeight:160,deckSlots:[] as Array<ReturnType<typeof journalLibrary>[number]&{slot:number;index:number}>,deckOffset:0,deckSettling:false,paperArmedId:'',paperDragDown:false,paperDragUp:false,paperDragProgress:0,paperFog:0,paperDragStyle:'',paperDragAction:'',shareOpen:false,shareId:'',shareTitle:'',shareRatio:'',shareBitmap:'',sharePreview:null as ReturnType<typeof journalThumbnail>|null,shareError:'',resumeRow:null as ShelfRow|null,deckThumbnails:{} as Record<string,string>,previewErrors:{} as Record<string,boolean>,sheetHeights:{} as Record<string,number>,deckPreviews:{} as Record<string,ReturnType<typeof journalThumbnail>>,libraryText:'',libraryFrom:'',libraryTo:'',libraryOrder:0,libraryOrders:['最近修改','创建时间'],libraryRatio:0,libraryRatios:['全部比例','3:4','1:1','4:3'],libraryRows:[] as ReturnType<typeof journalLibrary>,deckIndex:0,libraryTotal:0,aiDestination:'new' as WritingDestination,aiDestinations:[{id:'new',name:'新增文字框'},{id:'selected',name:'所选文本框'},{id:'overview',name:'页首概述'}],aiSelectedAvailable:false,aiIncludeTitle:false,aiIncludeCaptions:false,aiPhotoCount:0,aiTargetLabel:'',aiCaptionPreviews:[] as Array<{id:string;label:string;text:string}>,aiHistoryOpen:false,aiHistory:[] as ReturnType<typeof readWritingHistory>,aiHistoryNotice:'',templateWidth:150,saveStatus:'',ratioLocks,ratioMode:'current',pixels:{w:0,h:0,fontSize:0},papers,paperColors,paperSource:'',templateOpen:false,templateOptions:[] as Array<{id:number;name:string;photos:Array<{src:string;style:string;imageStyle:string}>}>,composition:'',aiBusy:false,aiSuggestion:null as JournalAiSuggestion|null,backgroundSelected:false,layersOpen:false,selectedName:'',numberEditing:'',numberDrafts:{} as Record<string,string>,cropOpen:false,cropDraft:null as JournalElement|null,cropPreview:null as (ReturnType<typeof photoCrop>&{width:number;height:number})|null,editorChromeHeight:EDITOR_CHROME_HEIGHT,maxWidth:900,maxHeight:1200,assetImageHeight:114,from:'',to:'',unknown:true,picked:[] as JournalAsset[],period:0,periods:['自选素材','每日','每周','每月','每年'],includeNotes:false,aiPhotos:[] as Array<{id:string;src:string;label:string;selected:boolean}>,exporting:false,editorHeight:650,controlsHeight:200,overview:false,paperScale:1,paperLeft:0,shownHeight:400,view:'home',headerTitle:'羽迹',drafts:[] as ReturnType<typeof journalLibrary>,assets:[] as JournalAsset[],source:'observations',chosen:0,title:'沿着鸟鸣，慢慢走',ratio:'3:4',style:'nature',styles:[{id:'nature',name:'自然留白'},{id:'magazine',name:'纸上故事'},{id:'minimal',name:'极简图鉴'}],ratios:['3:4','1:1','4:3'],doc:null as JournalDocument|null,renderElements:[] as Array<Record<string,unknown>>,selected:null as JournalElement|null,labels:[] as Array<{id:string;label:string}>,selectedId:'',canUndo:false,canRedo:false,dirty:false,stageWidth:320,stageHeight:390,docHeight:427,focusY:0,headerHeight:88,scale:1,error:'',busy:false,ai:false,inputMode:'text',prompt:'',purpose:0,purposes:['观察正文','鸟类介绍','分享文案','照片手帐','概述与总结','照片说明'],placement:1,placements:['照片区上方','照片区下方','自由放置'],speechApplied:'',bundleSummary:'',decorations:[{id:'leaf',name:'叶子'},{id:'flower',name:'小花'},{id:'star',name:'星星'},{id:'feather',name:'羽毛'},{id:'stamp',name:'邮戳'},{id:'tape',name:'纸胶带'},{id:'sprig',name:'枝叶'},{id:'grass',name:'芦苇'},{id:'sun',name:'日光'},{id:'moon',name:'月相'},{id:'waves',name:'水纹'},{id:'compass',name:'方位'}],exportPath:''},
   _past:[] as Snapshot[],_future:[] as Snapshot[],_drag:null as {before:Snapshot;x:number;y:number;element:JournalElement;resize:boolean}|null,_editBefore:null as Snapshot|null,
   _adjustment:null as {before:Snapshot;key:string;id:string}|null,
   _previews:null as ReturnType<typeof previewQueue>|null,
@@ -44,8 +44,8 @@ Page({
   _aiOriginSelection:'',
   _documents:[] as ShelfRow[],
   _paperTouch:null as {x:number;y:number;lastX:number;lastY:number;id:string;active:boolean;started:number}|null,_paperSuppressTap:false,_deckSlideTimer:0 as ReturnType<typeof setTimeout>,_deckWidth:360,
-  _paperDeleteY:170,_paperShareY:-180,
-  _paperFlightTimer:0 as ReturnType<typeof setTimeout>,_paperFlightGeneration:0,_paperIdleTimer:0 as ReturnType<typeof setTimeout>,
+  _paperDeleteY:170,_paperShareY:-180,_paperOrigin:500,_paperCardHeight:320,_paperCloudBottom:300,
+  _paperFlightTimer:0 as ReturnType<typeof setTimeout>,_paperFlightGeneration:0,
   _paperHoldTimer:0 as ReturnType<typeof setTimeout>,_paperViewport:900,_paperLatest:null as ReturnType<typeof paperDrag>|null,
   _paperPreviews:null as ReturnType<typeof previewQueue>|null,_shareGeneration:0,_shareBefore:'',_shareSnapshot:null as JournalDocument|null,
   _thumbTimer:0 as ReturnType<typeof setTimeout>,_thumbGeneration:0,_thumbBusy:false,
@@ -130,11 +130,11 @@ Page({
   openLayers(){this.finishAdjustment();this.endTextEdit();this.setData({layersOpen:true});},
   closeLayers(){this.setData({layersOpen:false});},
   onEditorScroll(e:WechatMiniprogram.CustomEvent<{scrollTop:number}>){this._scrollTop=round2(e.detail.scrollTop);},
-  onLoad(){installAdaptiveSheets(this,()=>this.data.shareOpen||this.data.ai||this.data.aiHistoryOpen||this.data.cropOpen||this.data.layersOpen||this.data.templateOpen);this._failedPhotos=new Map();this._failedCovers=new Map();this.resizeEditor();},
+  onLoad(){installAdaptiveSheets(this,()=>this.data.libraryToolsOpen||this.data.shareOpen||this.data.ai||this.data.aiHistoryOpen||this.data.cropOpen||this.data.layersOpen||this.data.templateOpen);this._failedPhotos=new Map();this._failedCovers=new Map();this.resizeEditor();},
   onResize(){this.closePaperAction();this.resizeEditor();this.projectDeck();fitAdaptiveSheets(this);},
-  resizeEditor(){const box=layout();this.setData({templateWidth:Math.min(150,Math.floor((box.width-48)/2-22)),headerHeight:box.headerHeight,assetImageHeight:round2((box.width-86)*.375),editorHeight:layout(true).height,stageWidth:box.width-52,scale:(box.width-52)/900});this.refresh();},
-  onShow(){this._active=true;this.closePaperAction();this.setData({filterOpen:false,calendarOpen:false});selectTab(this,1);this.loadDrafts();if(this.data.doc&&this.data.view==='editor')this.refresh();},
-  onHide(){this.setData({filterOpen:false,calendarOpen:false});this.closePaperAction();this.closeShare();clearTimeout(this._thumbTimer);this._thumbGeneration++;this._active=false;clearTimeout(this._autosave);this._aiGeneration++;this._aiJob?.cancel();this._aiJob=null;this.setData({aiBusy:false});this.finishAdjustment();this.endTextEdit();if(this._saveJob)this.cacheEditorState();void this.persistDraft();this.selectComponent?.('#journal-speech')?.stopWork?.();},
+  resizeEditor(){const box=layout();this.setData({homeHeight:Math.max(0,box.height),homeCompact:box.height<560,homeTiny:box.height<340,templateWidth:Math.min(150,Math.floor((box.width-48)/2-22)),headerHeight:box.headerHeight,assetImageHeight:round2((box.width-86)*.375),editorHeight:layout(true).height,stageWidth:box.width-52,scale:(box.width-52)/900});this.refresh();},
+  onShow(){this._active=true;this.closePaperAction();this.resizeEditor();this.setData({filterOpen:false,calendarOpen:false,libraryToolsOpen:false,exporting:false});this.loadDrafts();if(this.data.shareOpen){if(this.data.libraryRows.some(row=>row.id===this.data.shareId)||this.data.doc?.id===this.data.shareId)this.setData({paperVisualId:this.data.shareId,paperPhase:'hidden'});else this.closeShare();}selectTab(this,1);if(this.data.doc&&this.data.view==='editor')this.refresh();},
+  onHide(){this.setData({filterOpen:false,calendarOpen:false,libraryToolsOpen:false,exporting:false});this._shareGeneration++;this.closePaperAction();clearTimeout(this._thumbTimer);this._thumbGeneration++;this._active=false;clearTimeout(this._autosave);this._aiGeneration++;this._aiJob?.cancel();this._aiJob=null;this.setData({aiBusy:false});this.finishAdjustment();this.endTextEdit();if(this._saveJob)this.cacheEditorState();void this.persistDraft();this.selectComponent?.('#journal-speech')?.stopWork?.();},
   loadDrafts(){try{
     this._documents=readJournalShelf();const id=wx.getStorageSync('bird-assistant.journal.last.v1');
     this.setData({resumeRow:this._documents.find(row=>row.id===id)||(typeof id==='string'&&id?{id,title:'上次编辑的手帐',ratio:'',updatedAt:'',revision:'',cover:'',thumbnail:''}:null),drafts:journalLibrary(this._documents,{text:'',ratio:'',order:'updated',from:'',to:''}),libraryTotal:this._documents.length});this.filterLibrary(false);
@@ -152,7 +152,7 @@ Page({
   },
   fitDeck(){
     if(this.data.view!=='home'||this._paperTouch||this.data.paperPhase||typeof wx.createSelectorQuery!=='function')return;
-    wx.createSelectorQuery().select('.journal-deck-frame').boundingClientRect(rect=>{if(!this._active||this._paperTouch||this.data.paperPhase||this.data.view!=='home')return;const box=rect as WechatMiniprogram.BoundingClientRectCallbackResult;if(!box)return;const window=wx.getWindowInfo(),safe=Math.max(0,(window.screenHeight||window.windowHeight)-(window.safeArea?.bottom||window.screenHeight||window.windowHeight)),height=Math.max(240,Math.min(384,Math.floor(window.windowHeight-66-safe-box.top-12)));if(height!==this.data.deckHeight)this.setData({deckHeight:height,deckPreviewHeight:Math.max(96,Math.min(196,height-164))});}).exec();
+    wx.createSelectorQuery().select('.journal-deck-frame').boundingClientRect(rect=>{if(!this._active||this._paperTouch||this.data.paperPhase||this.data.view!=='home')return;const box=rect as WechatMiniprogram.BoundingClientRectCallbackResult;if(!box||!Number.isFinite(box.height)||box.height<=0)return;const height=Math.max(66,Math.min(420,Math.floor(box.height-62))),preview=Math.max(24,Math.min(220,height-(this.data.homeTiny?62:132)));if(height!==this.data.deckHeight||preview!==this.data.deckPreviewHeight)this.setData({deckHeight:height,deckPreviewHeight:preview});}).exec();
   },
   async prepareDeckThumbnail(){
     if(this._thumbBusy||!this._active||this.data.view!=='home'||this._paperTouch||this.data.deckSettling)return;
@@ -174,6 +174,8 @@ Page({
   thumbnailFailed(e:Touch){const id=String(e.currentTarget.dataset.id);this.setData({previewErrors:{...this.data.previewErrors,[id]:true},deckThumbnails:{...this.data.deckThumbnails,[id]:''}});},
   retryThumbnail(e:Touch){const id=String(e.currentTarget.dataset.id);this.setData({previewErrors:{...this.data.previewErrors,[id]:false},deckThumbnails:{...this.data.deckThumbnails,[id]:''}});this.projectDeck();},
   librarySearch(e:Input){this.setData({libraryText:e.detail.value});this.filterLibrary();},
+  openLibraryTools(){this.closePaperAction();this.setData({libraryToolsOpen:true});syncNavigation(this);},
+  closeLibraryTools(){this.setData({libraryToolsOpen:false});syncNavigation(this);},
   openJournalChoice(e:Touch){
     this.closePaperAction();const field=String(e.currentTarget.dataset.key),d=this.data;
     const sets:Record<string,{title:string;options:string[];selected:number}>={libraryOrder:{title:'手帐排序',options:d.libraryOrders,selected:d.libraryOrder},libraryRatio:{title:'画布比例',options:d.libraryRatios,selected:d.libraryRatio},period:{title:'整理类型',options:d.periods,selected:d.period},purpose:{title:'这次写什么',options:d.purposes,selected:d.purpose},placement:{title:'文字放在哪里',options:d.placements,selected:d.placement},editorRatio:{title:'画布比例',options:d.ratios,selected:d.ratios.indexOf(d.doc?.ratio||'3:4')},editorStyle:{title:'手帐风格',options:d.styles.map(item=>item.name),selected:d.styles.findIndex(item=>item.id===d.doc?.style)}};
@@ -223,10 +225,10 @@ Page({
     if(!this._active||this.data.view!=='home'||!start||start.id!==id||start.active||Date.now()-start.started<PAPER_HOLD_MS||id!==this.data.libraryRows[this.data.deckIndex]?.id||this.data.busy||this.data.shareOpen)return;
     start.active=true;start.x=start.lastX;start.y=start.lastY;this._paperViewport=wx.getWindowInfo?.().windowHeight||900;
     this._paperSuppressTap=true;this._paperLatest=null;
-    this.setData({paperArmedId:id,paperDragStyle:'',paperDragAction:'',paperDragDown:false,paperDragUp:false,paperDragProgress:0});
-    this.setData({paperVisualId:id,paperPhase:'armed'});this.armPaperIdleRecovery();
+    this.setData({paperArmedId:id,paperDragStyle:'',paperDragAction:'',paperDragDown:false,paperDragUp:false,paperDragProgress:0,paperFog:0});
+    this.setData({paperVisualId:id,paperPhase:'armed',paperFog:0});
     if(typeof wx.createSelectorQuery==='function')wx.createSelectorQuery().select('.library-dates').boundingClientRect(rect=>{const box=rect as WechatMiniprogram.BoundingClientRectCallbackResult;if(box&&this.data.paperArmedId===id)this.setData({paperCloudHeight:Math.max(48,box.bottom-this.data.headerHeight)});}).exec();
-    if(typeof wx.createSelectorQuery==='function')wx.createSelectorQuery().select('.deck-active .deck-card').boundingClientRect(rect=>{const box=rect as WechatMiniprogram.BoundingClientRectCallbackResult;if(!box||this.data.paperArmedId!==id)return;const window=wx.getWindowInfo(),safe=Math.max(0,(window.screenHeight||window.windowHeight)-(window.safeArea?.bottom||window.screenHeight||window.windowHeight)),origin=box.top+box.height*.6;this._paperDeleteY=window.windowHeight-124-safe-origin;this._paperShareY=this.data.headerHeight+this.data.paperCloudHeight*.65-origin;}).exec();
+    if(typeof wx.createSelectorQuery==='function')wx.createSelectorQuery().select('.deck-active .deck-card').boundingClientRect(rect=>{const box=rect as WechatMiniprogram.BoundingClientRectCallbackResult;if(!box||this.data.paperArmedId!==id)return;const window=wx.getWindowInfo(),safe=Math.max(0,(window.screenHeight||window.windowHeight)-(window.safeArea?.bottom||window.screenHeight||window.windowHeight)),origin=box.top+box.height*.6;this._paperOrigin=origin;this._paperCardHeight=box.height;this._paperCloudBottom=this.data.headerHeight+this.data.paperCloudHeight;this._paperDeleteY=window.windowHeight-124-safe-origin;this._paperShareY=this._paperCloudBottom-36-origin;}).exec();
   },
   deckTouchMove(e:Touch){
     const start=this._paperTouch,touch=e.touches[0];if(!start)return;
@@ -242,7 +244,7 @@ Page({
       return;
     }
     const drag=paperDrag(dx,dy,this._paperViewport);if(drag.cancel){this.closePaperAction();return;}
-    if(drag.down)drag.style=drag.style.replace(/translateY\([^)]*\)/,'translateY('+(Math.max(0,Math.min(116,this._paperDeleteY))*drag.progress)+'px)');this.armPaperIdleRecovery();this._paperLatest=drag;
+    if(drag.down)drag.style=drag.style.replace(/translateY\([^)]*\)/,'translateY('+(Math.max(0,Math.min(116,this._paperDeleteY))*drag.progress)+'px)');if(drag.up)drag.style=drag.style.replace(/translateY\([^)]*\)/,'translateY('+(this._paperShareY*drag.progress)+'px)');const fog=drag.up&&drag.progress>.45?Math.max(0,Math.min(1,(this._paperCloudBottom-(this._paperOrigin+this._paperShareY*drag.progress-this._paperCardHeight*.6*(1-drag.progress*.46)))/60)):0;this.setData({paperFog:fog});this._paperLatest=drag;
     if(!this._paperPreviews)this._paperPreviews=previewQueue(()=>{const latest=this._paperLatest;if(latest&&this.data.paperArmedId)this.setData({paperDragStyle:latest.style,paperDragAction:latest.action,paperDragDown:latest.down,paperDragUp:latest.up,paperDragProgress:latest.progress});},20);
     this._paperPreviews.request();
   },
@@ -257,13 +259,13 @@ Page({
     }
     this._paperPreviews?.flush();const action=this._paperLatest?.action||'',id=start.id;this._paperTouch=null;this._paperSuppressTap=true;
     if(action)this.departPaper(id,action);
-    else {this._paperLatest=null;this.setData({paperDragStyle:'',paperDragAction:'',paperDragDown:false,paperDragUp:false,paperDragProgress:0});}
+    else {this._paperLatest=null;this.setData({paperDragStyle:'',paperDragAction:'',paperDragDown:false,paperDragUp:false,paperDragProgress:0,paperFog:0});}
   },
-  armPaperIdleRecovery(){clearTimeout(this._paperIdleTimer);this._paperIdleTimer=setTimeout(()=>{if(this.data.paperPhase==='armed')this.closePaperAction();},45000);},
+
   cancelPaper(){if(this.data.paperPhase==='depart-share'||this.data.paperPhase==='depart-delete')this.returnPaper();else this.closePaperAction();},
   departPaper(id:string,action:'share'|'delete'){
-    clearTimeout(this._paperIdleTimer);this._paperPreviews?.cancel();const token=++this._paperFlightGeneration;
-    this.setData({paperArmedId:'',paperVisualId:id,paperPhase:'depart-'+action,paperDragAction:action,paperDragDown:action==='delete',paperDragStyle:'transform:translateY('+(action==='share'?this._paperShareY:this._paperDeleteY)+'px) scale(.08);opacity:0'});
+    this._paperPreviews?.cancel();const token=++this._paperFlightGeneration;
+    this.setData({paperArmedId:'',paperVisualId:id,paperPhase:'depart-'+action,paperFog:action==='share'?1:0,paperDragAction:action,paperDragDown:action==='delete',paperDragStyle:'transform:translateY('+(action==='share'?this._paperShareY:this._paperDeleteY)+'px) scale(.08);opacity:0'});
     clearTimeout(this._paperFlightTimer);this._paperFlightTimer=setTimeout(()=>{
       if(!this._active||token!==this._paperFlightGeneration)return;if(this.data.view!=='home'){this.closePaperAction();return;}
       this.setData({paperPhase:'hidden'});const event={currentTarget:{dataset:{id}}} as unknown as Touch;
@@ -271,15 +273,15 @@ Page({
     },360);
   },
   returnPaper(){
-    clearTimeout(this._paperFlightTimer);this._paperFlightGeneration++;clearTimeout(this._paperIdleTimer);this._paperTouch=null;this._paperLatest=null;this._paperPreviews?.cancel();
+    clearTimeout(this._paperFlightTimer);this._paperFlightGeneration++;this._paperTouch=null;this._paperLatest=null;this._paperPreviews?.cancel();
     if(!this.data.paperVisualId){this.closePaperAction();return;}
-    this.setData({paperArmedId:'',paperPhase:'returning',paperDragAction:'',paperDragDown:false,paperDragUp:false,paperDragProgress:0,paperDragStyle:'',deckSettling:false,deckOffset:0});
+    this.setData({paperArmedId:'',paperPhase:'returning',paperDragAction:'',paperDragDown:false,paperDragUp:false,paperDragProgress:0,paperFog:0,paperDragStyle:'',deckSettling:false,deckOffset:0});
     this._paperFlightTimer=setTimeout(()=>{if(this._active)this.setData({paperPhase:'',paperVisualId:''});},340);
   },
   closePaperAction(){
-    clearTimeout(this._paperHoldTimer);clearTimeout(this._deckSlideTimer);clearTimeout(this._paperFlightTimer);clearTimeout(this._paperIdleTimer);this._paperFlightGeneration++;this._paperPreviews?.cancel();this._paperTouch=null;this._paperLatest=null;
+    clearTimeout(this._paperHoldTimer);clearTimeout(this._deckSlideTimer);clearTimeout(this._paperFlightTimer);this._paperFlightGeneration++;this._paperPreviews?.cancel();this._paperTouch=null;this._paperLatest=null;this._paperSuppressTap=false;
     if(this.data.deckSettling||this.data.deckOffset)this.setData({deckSettling:false,deckOffset:0});
-    if(this.data.paperArmedId||this.data.paperDragStyle||this.data.paperPhase)this.setData({paperArmedId:'',paperVisualId:'',paperPhase:'',paperDragStyle:'',paperDragAction:'',paperDragDown:false,paperDragUp:false,paperDragProgress:0});
+    if(this.data.paperArmedId||this.data.paperDragStyle||this.data.paperPhase)this.setData({paperArmedId:'',paperVisualId:'',paperPhase:'',paperDragStyle:'',paperDragAction:'',paperDragDown:false,paperDragUp:false,paperDragProgress:0,paperFog:0});
   },
   shareJournal(e?:Touch,fromGesture=false){
     if(this.data.busy||this.data.exporting){if(fromGesture)this.returnPaper();return;}
@@ -289,16 +291,16 @@ Page({
       const doc=this.data.doc?.id===id?journalContent(this.data.doc):readJournals().find(item=>item.id===id);if(!doc){this.setData({error:'手帐未找到，请重新打开。'});if(fromGesture)this.returnPaper();return;}
       this._shareGeneration++;this._shareSnapshot=journalContent(doc);this._shareBefore=journalFingerprint(doc);
       const bitmap=this.data.doc?.id===id&&this.data.dirty?'':this.data.deckThumbnails[id]||'';const viewport=wx.getWindowInfo(),ratio=doc.width/doc.height,width=Math.min(160,(viewport.windowWidth-82)*.46,viewport.windowHeight*.23*ratio),height=width/ratio;
-      this.setData({shareOpen:true,shareId:id,shareTitle:doc.title,shareRatio:doc.ratio,shareBitmap:bitmap,sharePreviewWidth:width,sharePreviewHeight:height,sharePreview:bitmap?null:journalThumbnail(doc,height),shareError:''});syncNavigation(this);
+      this.setData({shareOpen:true,shareId:id,shareTitle:doc.title,shareRatio:doc.ratio,shareBitmap:bitmap,sharePreviewWidth:width,sharePreviewHeight:height,sharePreview:bitmap?null:journalThumbnail(doc,height),shareError:'',shareStatus:''});syncNavigation(this);
     }catch(error){this.setData({error:errorText(error)});if(fromGesture)this.returnPaper();}
   },
-  closeShare(){this._shareGeneration++;this._shareSnapshot=null;const open=this.data.shareOpen;if(open)this.setData({shareOpen:false,sharePreview:null,shareBitmap:'',shareError:''});if(open||this.data.paperPhase==='hidden')this.returnPaper();syncNavigation(this);},
+  closeShare(){this._shareGeneration++;this._shareSnapshot=null;const open=this.data.shareOpen;if(open)this.setData({shareOpen:false,sharePreview:null,shareBitmap:'',shareError:'',shareStatus:''});if(open||this.data.paperPhase==='hidden')this.returnPaper();syncNavigation(this);},
   sharePreviewFailed(){try{const document=this.data.doc?.id===this.data.shareId?this.data.doc:readJournals().find(item=>item.id===this.data.shareId);this.setData({shareBitmap:'',sharePreview:document?journalThumbnail(document,this.data.sharePreviewHeight||128):null});}catch{this.setData({shareBitmap:'',shareError:'预览暂不可读，手帐仍保留。请关闭后重新打开。'});}},
   chooseShare(e:Touch){const destination=Number(e.currentTarget.dataset.destination);if(this.data.shareOpen&&[0,1,2].includes(destination))void this.shareJournalImage(this.data.shareId,destination);},
   async shareJournalImage(id:string,destination:number){
     if(this.data.busy||this.data.exporting||![0,1,2].includes(destination))return;
     const generation=this._shareGeneration;
-    this.setData({exporting:true,shareError:'',error:''});
+    this.setData({exporting:true,shareError:'',shareStatus:'',error:''});
     const current=()=>generation===this._shareGeneration&&this._active;
     try{
       if(this.data.doc?.id===id&&this.data.dirty&&!await this.persistDraft())throw new Error('手帐保存尚未完成，请先保存后再分享。');
@@ -316,9 +318,9 @@ Page({
       }else if(typeof wx.showShareImageMenu==='function'){
         await new Promise<void>((resolve,reject)=>wx.showShareImageMenu({path,needShowEntrance:false,success:()=>resolve(),fail:reject}));
       }else throw new Error('当前微信版本暂不支持图片分享菜单，可选择保存到相册后分享。');
-      if(current())this.closeShare();
-    }catch(error){if(current()){if(/cancel/i.test(String((error as {errMsg?:string})?.errMsg||'')))this.closeShare();else this.setData({shareError:error instanceof Error?error.message:'分享未完成，手帐和原图仍保留。'});}}
-    finally{if(this._active)this.setData({exporting:false});else this.data.exporting=false;}
+      if(current())this.setData({shareStatus:destination===0?'已保存到相册，可继续选择其他分享方式。':destination===1?'已加入帖子草稿，可继续分享。':'已返回，可继续选择分享方式。'});
+    }catch(error){if(current()){if(/cancel/i.test(String((error as {errMsg?:string})?.errMsg||'')))this.setData({shareStatus:'已取消，可继续选择分享方式。'});else this.setData({shareError:error instanceof Error?error.message:'分享未完成，手帐和原图仍保留。'});}}
+    finally{if(this._active){this.setData({exporting:false});syncNavigation(this);}else this.data.exporting=false;}
   },
   deckImageFailed(e:Touch){const id=String(e.currentTarget.dataset.doc),partId=String(e.currentTarget.dataset.id),preview=this.data.deckPreviews[id],part=preview?.elements.find(e=>e.id===partId);if(!part?.src)return;const key=id+':'+partId;(this._failedCovers||(this._failedCovers=new Map())).set(key,part.src);this.setData({deckPreviews:{...this.data.deckPreviews,[id]:{...preview,elements:preview.elements.map(e=>e.id===partId?{...e,src:''}:e)}}});},
   coverFailed(e:Touch){const id=String(e.currentTarget.dataset.id),row=this.data.libraryRows.find(row=>row.id===id);if(row?.cover&&this._failedCovers?.get(id)!==row.cover){(this._failedCovers||(this._failedCovers=new Map())).set(id,row.cover);this.filterLibrary(false);}},

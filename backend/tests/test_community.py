@@ -881,3 +881,51 @@ def test_observation_date_cursor_is_stable_and_cannot_be_used_for_collection_ord
     assert not cursor
     first = client.get(MAP, headers=owner, params={"sort": "recent", "limit": 1}).json()
     assert client.get(MAP, headers=owner, params={"cursor": first["nextCursor"]}).status_code == 422
+
+
+def test_map_clusters_distinguish_the_owners_private_records_without_exposing_them_to_others(field):
+    client, (author, reader, _), _staff, store = field
+    row = dict(
+        key=76001,
+        datasetKey="6ff8b3b0-ef0f-4f79-a310-5a5615c6aa0b",
+        occurrenceStatus="DETECTED",
+        species="Passer montanus",
+        eventDate="2026-11-01",
+        decimalLatitude=39.9,
+        decimalLongitude=116.4,
+        license="http://creativecommons.org/licenses/by/4.0/legalcode",
+        coordinateUncertaintyInMeters=15,
+        recordedBy="Contributor",
+    )
+    assert snapshot(store, [row]) == 1
+    species = client.get("/api/v1/species", params={"q": "树麻雀"}).json()["items"][0]["id"]
+    photo = BytesIO()
+    Image.new("RGB", (40, 30), "green").save(photo, "JPEG")
+    media = client.post(
+        ROOT + "/media", headers=author, files={"file": ("bird.jpg", photo.getvalue())}
+    ).json()["id"]
+    response = client.post(
+        OBS,
+        headers=author,
+        json={
+            "reference": "private-cluster",
+            "analysis": "analysis-private",
+            "target": 1,
+            "species": species,
+            "date": "2026-11-28",
+            "time": "07:30",
+            "point": {"latitude": 39.9, "longitude": 116.4, "system": "GCJ-02"},
+            "place": "private location",
+            "media": media,
+        },
+    )
+    assert response.status_code == 201
+    own = client.get(MAP, params={"zoom": 3}, headers=author).json()
+    other = client.get(MAP, params={"zoom": 3}, headers=reader).json()
+    assert own["total"] == 2
+    assert sorted((group["visibility"], group["count"]) for group in own["clusters"]) == [
+        ("private", 1),
+        ("public", 1),
+    ]
+    assert other["total"] == 1
+    assert all(group["visibility"] == "public" for group in other["clusters"])

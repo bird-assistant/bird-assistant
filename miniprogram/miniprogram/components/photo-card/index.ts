@@ -1,3 +1,4 @@
+import {previewMedia} from '../../services/native-ui';
 const gestures=new WeakMap<object,{x:number;y:number;moved:boolean;until:number}>();
 Component({
   properties:{canSave:{type:Boolean,value:false},saving:{type:Boolean,value:false},src:{type:String,value:''},width:{type:Number,value:300},height:{type:Number,value:300},fileInfo:{type:Object,value:null},manualInfo:{type:Object,value:null},resolution:{type:String,value:''}},
@@ -12,6 +13,6 @@ Component({
     flip(){if(!this.data.fileInfo&&!this.data.manualInfo){wx.showToast({title:'暂无可用拍摄参数',icon:'none'});return;}this.setData({flipped:!this.data.flipped});},
     loaded(event:WechatMiniprogram.CustomEvent<{width:number;height:number}>){this.triggerEvent('loaded',event.detail);},
     failed(){this.triggerEvent('failed');},
-    preview(){if(this.data.src)wx.previewImage({current:this.data.src,urls:[this.data.src]});}
+    preview(){if(this.data.src)previewMedia([this.data.src],this.data.src);}
   }
 });

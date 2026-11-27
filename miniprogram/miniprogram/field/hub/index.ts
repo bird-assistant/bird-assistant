@@ -1,8 +1,10 @@
+import {previewMedia} from '../../services/native-ui';
 import {displayedDistance} from '../../services/map-ordering';
 import {acceptPickedMedia} from '../../services/media-import';
 import {savePublishedPhoto} from '../services/media-save';
 import {PostImage,postGallery,checkPostImages} from '../../services/post-media';
 import {cleanPhotoDetails,withPhotoDetails,withEmbeddedPhotoDetails,PhotoDetails} from '../../services/photo-details';
+import {forumReadStamp,rememberForumPost,patchForumPost,patchForumReaction} from '../../services/forum-state';
 import {installAdaptiveSheets,stopAdaptiveSheets} from '../../services/adaptive-sheets';
 import {navigate} from '../../services/navigation';
 import {api,community,Draft,getDraft,hub,imageUrl,key,openMap,Point,privatePhoto,sessionState,setCompose,setDraft,takeCompose,uploadPhoto} from '../../services/community';
@@ -62,12 +64,12 @@ Page({
     if(!routes[screen])return;
     this._mapGeneration++;this.setData({mapOpening:false,busy:true,error:'',photoFailed:false,displayResolution:''});
     try{
-      const result=screen==='external'?await api(routes.external,'GET',{limit:40,offset:this.data.externalPage*40}):await api(routes[screen]);if(generation!==this._generation)return;
+      const readStamp=forumReadStamp();const result=screen==='external'?await api(routes.external,'GET',{limit:40,offset:this.data.externalPage*40}):await api(routes[screen]);if(generation!==this._generation)return;
       if(screen==='library')this.setData({featured:(result.featured||[]).map((bird:{id:string;photo:object|null})=>({...bird,image:bird.photo?picture(bird.id):''}))});
       const items=(result.items||result.records||[]).map((row:any)=>({...row,image:imageUrl(row.image),placeName:chinesePlace(row.placeName)}));
       this.setData({items,externalNext:result.hasMore??items.length===40,record:{...result,image:imageUrl(result.image)},photo:imageUrl(result.image)});
       if(screen==='record'){
-        this._replyOffset=(result.replies||[]).length;
+        Object.assign(result,rememberForumPost(result,readStamp));this._replyOffset=(result.replies||[]).length;
         const pending=result.features?.threadedReplies?[]:this.data.pendingReplies;
         const replies=(result.replies||[]).concat(pending),record={...result,...forumPost(result),placeName:chinesePlace(result.placeName),place:chinesePlace(result.place),image:imageUrl(result.image),replies,replyCount:result.replyCount??(result.replies||[]).length};
         const recordGallery=postGallery(result).map(image=>({...image,image:imageUrl(image.image)}));
@@ -86,7 +88,7 @@ Page({
     try{await savePublishedPhoto(photo);if(!this._closed&&generation===this._generation)wx.showToast({title:'已保存公开图片',icon:'success'});}
     catch(error){if(!this._closed&&generation===this._generation)this.setData({error:message(error)});}finally{if(!this._closed)this.setData({savingPhoto:false});}
   },
-  previewGallery(event:Tap){const index=Number(event.currentTarget.dataset.index)||0,urls=this.data.publishAttachments.map(item=>item.path);if(urls[index])wx.previewImage({current:urls[index],urls});},
+  previewGallery(event:Tap){const index=Number(event.currentTarget.dataset.index)||0,urls=this.data.publishAttachments.map(item=>item.path);if(urls[index])previewMedia(urls,urls[index]);},
   selectRecordImage(event:Tap){const image=this.data.recordGallery[Number(event.currentTarget.dataset.index)];if(!image)return;
     this.setData({photo:image.image,photoFailed:false,displayResolution:'',photoInfo:photoInfo(image.camera),manualPhotoInfo:photoInfo(image.manualCamera,'作者填写')});
   },
@@ -128,7 +130,7 @@ Page({
   async changePollVote(retract:boolean){const poll=this.data.record?.poll;if(!poll||poll.result||this.data.pollBusy||this._closed||retract&&!poll.mine)return;
     const token=++this._pollGeneration,id=this.data.id;this.setData({pollBusy:true,pollError:''});
     try{const result=await api(community+'/publications/'+id+'/identification/vote',retract?'DELETE':'PUT',retract?undefined:{species:this.data.pollSelection});if(this._closed||token!==this._pollGeneration||id!==this.data.id)return;
-      const candidate=result.candidates.find((item:{id:string})=>item.id===result.mine);this.setData({record:{...this.data.record,poll:result},pollSelection:result.mine||'',pollSelectionName:candidate?.name||'',notice:retract?'已撤回你的鉴定票。':'已记录你的鉴定票。'});
+      patchForumPost(id,{poll:result});const candidate=result.candidates.find((item:{id:string})=>item.id===result.mine);this.setData({record:{...this.data.record,poll:result},pollSelection:result.mine||'',pollSelectionName:candidate?.name||'',notice:retract?'已撤回你的鉴定票。':'已记录你的鉴定票。'});
     }catch(error){if(!this._closed&&token===this._pollGeneration)this.setData({pollError:retract&&([404,405].includes(Number((error as {statusCode?:number}).statusCode))||/撤回或不可见/.test(message(error)))?'线上投票服务尚未更新撤票接口，当前票保留。请维护者更新业务服务。':message(error)});}
     finally{if(!this._closed&&token===this._pollGeneration)this.setData({pollBusy:false});}
   },
@@ -248,7 +250,7 @@ Page({
       const result=await api(base+(active?'/reactions/':'/')+op,active?'DELETE':'PUT');
       if(this._closed||generation!==this._generation||this.data.id!==id)return;
       const record=this.data.record,reactions=(record.reactions||[]).filter((item:string)=>item!==op);if(result.active)reactions.push(op);
-      this.setData({record:{...record,reactions,...(op==='like'?{liked:!!result.active,likes:result.likes??record.likes,hasLikes:typeof result.likes==='number'||record.hasLikes}:{bookmarked:!!result.active})}});
+      patchForumReaction(id,op,!!result.active,result.likes??record.likes);this.setData({record:{...record,reactions,...(op==='like'?{liked:!!result.active,likes:result.likes??record.likes,hasLikes:typeof result.likes==='number'||record.hasLikes}:{bookmarked:!!result.active})}});
     }catch(error){if(!this._closed&&generation===this._generation)this.setData({error:message(error)});}
     finally{if(!this._closed)this.setData({reactionBusy:{...this.data.reactionBusy,[op]:false}});}
   },
@@ -274,7 +276,7 @@ Page({
           {body:text,reference:this._submitKey,...(op==='reply'?{species:this.data.replySpecies||null,...(parent?{parentId:parent.id}:{})}:{})});
         if(this._closed)return;
         if(op==='reply'&&result.id)this.setData({pendingReplies:this.data.pendingReplies.concat({id:result.id,body:text,publicName:'我',memberId:this.data.self,species:this.data.replySpecies||'',parentId:parent?.id||'',replyToName:parent?.name||'',status:'pending',created:new Date().toISOString()})});
-        this._submitKey=key();this._replySignature='';this.setData({body:'',replyTarget:null,replyFocused:false,replySuggestOpen:false,replySpecies:'',selectedSpecies:'',notice:op==='reply'?'回复已提交，审核通过后公开显示。':'已发送。'});wx.hideKeyboard?.();
+        this._submitKey=key();this._replySignature='';this.setData({body:'',replyTarget:null,replyFocused:false,replySuggestOpen:false,replySpecies:'',selectedSpecies:'',notice:op==='reply'?'回复已提交，审核通过后公开显示。':'已发送。'});wx.hideKeyboard?.({fail:()=>{}});
       }
       if(op==='adopt'){await api('/api/v2/observations/'+this.data.record.ownedSighting+'/adopt','POST',{reply:id});this.setData({notice:'已更新私人观察的鸟种。'});}
       if(op==='unbookmark'){await api(community+'/publications/'+id+'/reactions/bookmark','DELETE');}

@@ -774,17 +774,18 @@ def map_records(
                 step *= 2
             args["step"] = step
             groups = db.execute(
-                """SELECT count(*) AS size, avg(lat) AS lat, avg(lon) AS lon,
+                """SELECT visibility, count(*) AS size, avg(lat) AS lat, avg(lon) AS lon,
                 min(lat) AS south, max(lat) AS north, min(lon) AS west, max(lon) AS east
                 FROM ("""
                 + source
-                + """) GROUP BY cast((lat+90)/:step AS integer),
+                + """) GROUP BY visibility, cast((lat+90)/:step AS integer),
                 cast((lon+180)/:step AS integer)""",
                 args,
             )
             clusters = [
                 dict(
                     count=row["size"],
+                    visibility=row["visibility"],
                     latitude=row["lat"],
                     longitude=row["lon"],
                     minLatitude=row["south"],

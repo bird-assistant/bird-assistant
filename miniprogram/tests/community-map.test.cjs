@@ -100,7 +100,7 @@ test('boundary drawers meet the tab bar with no clear footer while keeping at le
     if(!p.wide)assert.ok(p.sheetHeight<=p.mapHeight*.46);assert.equal(p.listHeight+p.sheetHeaderHeight+p.creditReserve,p.sheetHeight);
   }
   const single=clusterMarker({latitude:39,longitude:116,count:1},0,INDIVIDUAL_PIN_ZOOM-1);assert.equal(single.callout.content,'1 条');assert.equal(single.label,undefined);
-  const pin=clusterMarker({latitude:39,longitude:116,count:1},0,INDIVIDUAL_PIN_ZOOM);assert.equal(pin.label,undefined);assert.equal(pin.width,26);
+  const pin=clusterMarker({latitude:39,longitude:116,count:1},0,INDIVIDUAL_PIN_ZOOM);assert.equal(pin.label,undefined);assert.equal(pin.width,40);assert.ok(!pin.iconPath.endsWith('pin.png'));
   const fs=require('node:fs'),markup=fs.readFileSync('miniprogram/components/field-map/index.wxml','utf8');assert.match(markup,/height:\{\{mapHeight\}\}px/);assert.doesNotMatch(markup,/mapHeight-sheetHeight|catch(?:touch|:touch)/);
 });
 test('species search dismisses the keyboard and discards a late response after edit, close and page hide',async t=>{

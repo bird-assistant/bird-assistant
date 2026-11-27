@@ -137,5 +137,5 @@ test('saving a temporary original while the share sheet is open preserves the pr
   e.fs.saveFile=o=>o.success({savedFilePath:'/user/durable-original.jpg'});
   const canvas=require('../.test-build/services/canvas.js'),render=require('../.test-build/services/journal-render.js');let saved=0;
   t.mock.method(canvas,'getCanvas',async()=>({}));t.mock.method(canvas,'exportCanvas',async()=>'/tmp/export.png');t.mock.method(render,'renderJournal',async(_canvas,document)=>assert.equal(document.elements.find(e=>e.type==='photo').src,'/user/durable-original.jpg'));
-  global.wx.saveImageToPhotosAlbum=async()=>saved++;p.shareJournal(tap(doc.id));await p.shareJournalImage(doc.id,0);assert.equal(p.data.shareError,'');assert.equal(saved,1);assert.equal(p.data.shareOpen,false);p.onUnload();
+  global.wx.saveImageToPhotosAlbum=async()=>saved++;p.shareJournal(tap(doc.id));await p.shareJournalImage(doc.id,0);assert.equal(p.data.shareError,'');assert.equal(saved,1);assert.equal(p.data.shareOpen,true);p.onUnload();
 });

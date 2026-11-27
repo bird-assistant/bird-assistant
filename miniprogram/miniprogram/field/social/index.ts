@@ -24,7 +24,7 @@ function merged(history:ChatLine[], incoming:ChatLine[]) {
 }
 
 Page({
-  data:{pageTitle:'社区账号',screen:'account',id:'',self:'',active:false,ready:false,working:false,editing:false,error:'',
+  data:{friendTab:'accepted',pageTitle:'社区账号',screen:'account',id:'',self:'',active:false,ready:false,working:false,editing:false,error:'',
     registered:false,form:{...defaults},account:null as (Card & typeof defaults)|null,
     avatars:['owl','finch','leaf','mountain','water','letter'],visibilities:['private','friends','public'],
     visibilityNames:['仅自己','好友','公开'], term:'', searched:false, matches:[] as Card[],friends:[] as Friend[],
@@ -34,7 +34,7 @@ Page({
   _timer:0,_generation:0,_operation:0,_pending:false,_visible:false,_reference:'',_groupReference:'',_seen:'',
   onLoad(options:Record<string,string|undefined>){
     const screen=options.screen && screens[options.screen]?options.screen:'account';
-    this.setData({screen,id:options.id || '',pageTitle:screens[screen]});
+    this.setData({screen,id:options.id || '',pageTitle:screens[screen],friendTab:['accepted','incoming','outgoing'].includes(options.tab||'')?options.tab!:'accepted'});
     wx.setNavigationBarTitle({title:screens[screen]});
   },
   onShow(){
@@ -81,6 +81,8 @@ Page({
       if(current()){this.setData({editing:false});await this.start();}
     });
   },
+  friendTab(event:Tap){const tab=String(event.currentTarget.dataset.tab);if(['accepted','incoming','outgoing'].includes(tab))this.setData({friendTab:tab});},
+  friendRequests(){hub('friends');},
   back(){wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/community/index'})});},
   go(event:Tap){hub(String(event.currentTarget.dataset.screen),String(event.currentTarget.dataset.id||''));},
   input(event:Input){const field=String(event.currentTarget.dataset.field);this.setData({[field]:event.detail.value});

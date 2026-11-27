@@ -21,7 +21,7 @@ Component({
     search(){void searches.get(this)?.search(this.data.query);},
     more(){void searches.get(this)?.more();},
     clear(){this.setData({query:''});searches.get(this)?.close();},
-    close(){searches.get(this)?.close();wx.hideKeyboard?.();},
+    close(){searches.get(this)?.close();wx.hideKeyboard?.({fail:()=>{}});},
     openGuide(event:WechatMiniprogram.TouchEvent){
       const id=event.currentTarget.dataset.id;
       if(!this.data.showGuide||guideVisits.has(this)||!this.data.matches.some(bird=>bird.id===id))return;
@@ -36,6 +36,6 @@ Component({
     },
     select(event:WechatMiniprogram.TouchEvent){const id=String(event.currentTarget.dataset.id);if((this.data.selectedIds as string[]).includes(id))return;
       const row=this.data.matches.find(item=>item.id===id);if(!row)return;
-      this.triggerEvent('select',{id:row.id,name:row.name||row.english||row.scientific||'',scientific:row.scientific||''});this.clear();wx.hideKeyboard?.();}
+      this.triggerEvent('select',{id:row.id,name:row.name||row.english||row.scientific||'',scientific:row.scientific||''});this.clear();wx.hideKeyboard?.({fail:()=>{}});}
   }
 });

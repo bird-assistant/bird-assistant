@@ -1,8 +1,9 @@
+import {approximateRegion} from '../../services/region-label';
 import {navigate} from '../../services/navigation';
 import {api,hub,key,openMap,sessionRevision,sessionState} from '../../services/community';
 import {beijingDate,beijingDateTime} from '../../services/observation-context';
 import {presentTrip,TripPlan as Plan} from '../services/trip-plan';
-import {readTripHistory,saveTripHistory,tripHistoryOwner,TripConversation,TripConditions} from '../services/trip-history';
+import {readTripHistory,saveTripHistory,removeTripHistory,tripHistoryOwner,TripConversation,TripConditions} from '../services/trip-history';
 import {adviceParagraphs,adviceSections} from '../services/trip-advice';
 
 type Tap = WechatMiniprogram.TouchEvent;
@@ -13,7 +14,7 @@ const ranges = [10,30,80];
 const times = Array.from({length:24},(_,hour)=>String(hour).padStart(2,'0')+':00');
 
 Page({
-  data:{filterOpen:false,filterField:'',filterOptions:[] as string[],filterSelected:0,filterTitle:'',calendarOpen:false,answerExpanded:false,tripExpanded:{} as Record<string,boolean>,accountChecking:false,showHistory:false,historyLoading:false,historyRows:[] as {id:string;question:string;place:string;updated:string}[],historyNotice:'',historySaved:'',point:null as Point|null,place:'还未选择起点',today:'',lastDay:'',date:'',hour:7,times,
+  data:{regionLabel:'',filterMaxBody:216,filterOpen:false,filterField:'',filterOptions:[] as string[],filterSelected:0,filterTitle:'',calendarOpen:false,answerExpanded:false,tripExpanded:{} as Record<string,boolean>,accountChecking:false,showHistory:false,historyLoading:false,historyRows:[] as {id:string;question:string;place:string;updated:string;date:string;conditions:string;excerpt:string;turns:number}[],historyNotice:'',historySaved:'',point:null as Point|null,place:'还未选择起点',today:'',lastDay:'',date:'',hour:7,times,
     hours:2,durations:[1,2,3,4],radius:30,ranges,species:'',speciesLabel:'所有鸟种',question:'',
     sections:[] as {title:string;lines:string[]}[],paragraphs:[] as string[],sourcesOpen:false,detailOpen:false,historyOpen:false,exchanges:[] as {turn:string;question:string;answer:string}[],answer:null as Plan|null,asked:'',busy:false,error:'',windowLabel:''},
   _owner:'',_accountVersion:0,_version:0,_conversation:null as TripConversation|null,
@@ -24,31 +25,32 @@ Page({
     const nextHour=Number(beijingDateTime(instant).slice(11,13))+1;
     const latitude=Number(options.lat),longitude=Number(options.lon);
     const point=Number.isFinite(latitude)&&Number.isFinite(longitude)?{latitude,longitude}:null;
-    this.setData({point,place:point?'当前地图中心':'还未选择起点',today,lastDay:beijingDate(new Date(now+6*day).toISOString()),
+    this.setData({point,place:point?(options.place?decodeURIComponent(options.place):'当前地图中心'):'还未选择起点',regionLabel:approximateRegion(point),today,lastDay:beijingDate(new Date(now+6*day).toISOString()),
       date:nextHour>17?beijingDate(new Date(now+day).toISOString()):today,hour:nextHour>17?7:Math.max(6,nextHour),
       species:options.species||'',speciesLabel:decodeURIComponent(options.label||'所有鸟种')});
   },
   onHide(){this.setData({filterOpen:false,calendarOpen:false});this._version++;this._accountVersion++;this.setData({busy:false,accountChecking:!!this._owner});},
   onShow(){if(this.data.accountChecking)void this.checkAccount();},
   onUnload(){this._version++;this._accountVersion++;},
-  clearAccount(){this._conversation=null;this._owner='';this._pendingId='';this._pendingBody='';this.setData({answer:null,exchanges:[],historyRows:[],point:null,place:'还未选择起点',asked:'',question:'',historyNotice:'',historySaved:'',accountChecking:false,busy:false,error:'请先登录当前社区账号，再打开咨询记录。'});},
+  clearAccount(){this._conversation=null;this._owner='';this._pendingId='';this._pendingBody='';this.setData({answer:null,exchanges:[],historyRows:[],point:null,place:'还未选择起点',regionLabel:'',asked:'',question:'',historyNotice:'',historySaved:'',accountChecking:false,busy:false,error:'请先登录当前社区账号，再打开咨询记录。'});},
   async checkAccount(){const token=++this._accountVersion,revision=sessionRevision();if(sessionState()==='out'){this.clearAccount();return;}try{const owner=await tripHistoryOwner();if(token!==this._accountVersion||revision!==sessionRevision())return;if(owner!==this._owner)this.clearAccount();else this.setData({accountChecking:false});}catch{if(token===this._accountVersion)this.setData({error:'暂时无法确认当前账号，请重试。'});}},
   newConsultation(){this.restart();this.onLoad({});this.setData({showHistory:false});wx.setNavigationBarTitle?.({title:'观鸟出行顾问'});},
   changed(){this._conversation=null;this._version++;this._pendingBody='';this._pendingId='';this.setData({answer:null,asked:'',exchanges:[],historyOpen:false,error:'',busy:false});},
   restart(){this.changed();this.setData({historyNotice:'',historySaved:''});},
-  async loadHistory(){const version=++this._version,revision=sessionRevision();this.setData({historyLoading:true,error:''});try{const owner=await tripHistoryOwner();if(version!==this._version||revision!==sessionRevision())return;this._owner=owner;const rows=readTripHistory(owner);this.setData({historyRows:rows.map(row=>({id:row.id,question:row.turns[row.turns.length-1]?.question||'观鸟咨询',place:row.conditions.place,updated:beijingDateTime(row.updated)}))});}catch(error){if(version===this._version)this.setData({error:error instanceof Error?error.message:'记录暂时无法读取。'});}finally{if(version===this._version)this.setData({historyLoading:false});}},
+  async loadHistory(){const version=++this._version,revision=sessionRevision();this.setData({historyLoading:true,error:''});try{const owner=await tripHistoryOwner();if(version!==this._version||revision!==sessionRevision())return;this._owner=owner;const rows=readTripHistory(owner);this.setData({historyRows:rows.map(row=>({id:row.id,question:row.turns[row.turns.length-1]?.question||'观鸟咨询',place:row.conditions.place,updated:beijingDateTime(row.updated),date:row.conditions.date,conditions:row.conditions.hours+'小时 · '+row.conditions.radius+'公里 · '+row.conditions.speciesLabel,excerpt:row.turns[row.turns.length-1]?.plan.brief?.headline||row.turns[row.turns.length-1]?.plan.answer.slice(0,110)||'',turns:row.turns.length}))});}catch(error){if(version===this._version)this.setData({error:error instanceof Error?error.message:'记录暂时无法读取。'});}finally{if(version===this._version)this.setData({historyLoading:false});}},
+  async removeHistory(event:Tap){const id=String(event.currentTarget.dataset.id);if(!id||!this._owner)return;const owner=this._owner,revision=sessionRevision();const result=await wx.showModal({title:'删除这次咨询记录？',content:'只删除当前账号保存在本机的这段咨询，不影响其他记录。',confirmText:'删除记录'});if(!result.confirm||owner!==this._owner||revision!==sessionRevision())return;try{removeTripHistory(owner,id);void this.loadHistory();}catch(error){this.setData({error:error instanceof Error?error.message:'记录未删除。'});}},
   async openHistory(event:Tap){const version=++this._version,revision=sessionRevision();try{const owner=await tripHistoryOwner();if(version!==this._version||revision!==sessionRevision())return;this._owner=owner;const row=readTripHistory(owner).find(item=>item.id===event.currentTarget.dataset.id);if(!row)return;this._conversation=row;const last=row.turns[row.turns.length-1];this.onLoad({});this._conversation=row;const answer=presentTrip(last.plan),expired=Date.now()-Date.parse(last.saved)>=3600000;
-    this.setData({...row.conditions,...(row.conditions.date<this.data.today?{date:this.data.date,hour:this.data.hour}:{}),showHistory:false,answer,asked:last.question,sections:adviceSections(answer.brief),paragraphs:adviceParagraphs(answer.answer),exchanges:row.turns.slice(0,-1).map(turn=>({turn:turn.plan.turn,question:turn.question,answer:turn.plan.answer})),historyNotice:expired?'这是保存的历史建议，天气和鸟讯可能已变化。追问将开启新一轮咨询。':'这是保存的咨询，可在原对话有效期内继续追问。',windowLabel:answer.start.slice(0,16).replace('T',' ')+' 至 '+answer.end.slice(5,16).replace('T',' ')});
+    this.setData({...row.conditions,regionLabel:approximateRegion(row.conditions.point),...(row.conditions.date<this.data.today?{date:this.data.date,hour:this.data.hour}:{}),showHistory:false,answer,asked:last.question,sections:adviceSections(answer.brief),paragraphs:adviceParagraphs(answer.answer),exchanges:row.turns.slice(0,-1).map(turn=>({turn:turn.plan.turn,question:turn.question,answer:turn.plan.answer})),historyNotice:expired?'这是保存的历史建议，天气和鸟讯可能已变化。追问将开启新一轮咨询。':'这是保存的咨询，可在原对话有效期内继续追问。',windowLabel:answer.start.slice(0,16).replace('T',' ')+' 至 '+answer.end.slice(5,16).replace('T',' ')});
     wx.setNavigationBarTitle?.({title:'观鸟出行顾问'});wx.pageScrollTo?.({scrollTop:0,duration:0});
   }catch(error){if(version===this._version)this.setData({error:error instanceof Error?error.message:'记录未打开。'});}},
   listHistory(){this.setData({showHistory:true});void this.loadHistory();},
   setPoint(point:Point,place:string){
-    this.changed();this.setData({point:{latitude:Number(point.latitude.toFixed(1)),longitude:Number(point.longitude.toFixed(1))},place});
+    this.changed();this.setData({point:{latitude:Number(point.latitude.toFixed(1)),longitude:Number(point.longitude.toFixed(1))},place,regionLabel:approximateRegion(point)});
   },
   async locate(){try{const point=await wx.getLocation({type:'gcj02'});this.setPoint(point,'我的位置附近');}
     catch{this.setData({error:'未取得定位，可以使用地图中心或手动选点。'});}},
-  pick(){navigate({url:'/field/picker/index',events:{point:(point:Point)=>this.setPoint(point,'手动选择的区域')}});},
-  openCondition(event:Tap){const field=String(event.currentTarget.dataset.field);if(field==='date'){this.setData({calendarOpen:true});return;}const options=field==='hour'?this.data.times:field==='hours'?this.data.durations.map(value=>String(value)+' 小时'):this.data.ranges.map(value=>String(value)+' 公里');this.setData({filterOpen:true,filterField:field,filterTitle:field==='hour'?'出发时间':field==='hours'?'停留时长':'搜索范围',filterOptions:options,filterSelected:field==='hour'?this.data.hour:field==='hours'?this.data.hours-1:this.data.ranges.indexOf(this.data.radius)});},
+  pick(){navigate({url:'/field/picker/index',events:{point:(point:Point&{name?:string;address?:string})=>this.setPoint(point,point.address||point.name||'手动选择的区域')}});},
+  openCondition(event:Tap){const field=String(event.currentTarget.dataset.field);if(field==='date'){this.setData({calendarOpen:true});return;}const options=field==='hour'?this.data.times:field==='hours'?this.data.durations.map(value=>String(value)+' 小时'):this.data.ranges.map(value=>String(value)+' 公里');this.setData({filterMaxBody:field==='hour'?216:270,filterOpen:true,filterField:field,filterTitle:field==='hour'?'出发时间':field==='hours'?'停留时长':'搜索范围',filterOptions:options,filterSelected:field==='hour'?this.data.hour:field==='hours'?this.data.hours-1:this.data.ranges.indexOf(this.data.radius)});},
   closeCondition(){this.setData({filterOpen:false,calendarOpen:false});},
   chooseCondition(event:WechatMiniprogram.CustomEvent<{value:number}>){this.filters({currentTarget:{dataset:{field:this.data.filterField}},detail:{value:String(event.detail.value)}} as unknown as Input);this.closeCondition();},
   chooseDate(event:WechatMiniprogram.CustomEvent<{from:string}>){if(event.detail.from)this.filters({currentTarget:{dataset:{field:'date'}},detail:{value:event.detail.from}} as unknown as Input);this.closeCondition();},

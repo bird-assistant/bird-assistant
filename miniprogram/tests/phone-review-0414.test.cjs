@@ -44,10 +44,10 @@ test('location picker results survive hide/show in either native callback order 
  }
 });
 
-test('a sighting location action centers and highlights that displayed region without claiming a public precise capture point',t=>{
+test('a sighting location action centers and highlights that displayed region without claiming a public precise capture point',async t=>{
  const {p}=map(t,{createMapContext:()=>({moveToLocation(){}})});
  p.data.selected=[{id:'public1',speciesName:'丑鸭',placeName:'北京',date:'2017-02-20',visibility:'public',displayLocation:{latitude:40,longitude:116.4},precisionLabel:'约十公里公开区域'}];
- p.focusRecord(tap('public1'));assert.equal(p.data.scale,12);assert.match(p.data.focusLabel,/公开区域/);p.renderClusters(12);assert.ok(p.data.markers.some(marker=>marker.id===2147483600&&marker.latitude===40));
+ await p.focusRecord(tap('public1'));assert.equal(p.data.scale,12);assert.match(p.data.focusLabel,/公开区域/);p.renderClusters(12);assert.ok(p.data.circles.some(circle=>circle.latitude===40));assert.ok(!p.data.markers.some(marker=>marker.iconPath.endsWith('pin.png')));
 });
 
 test('distance choice stays selected against an older service and missing distances use only displayed region coordinates',async t=>{

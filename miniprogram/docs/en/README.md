@@ -1,3 +1,11 @@
+# Bird Assistant native mini-program — candidate0.4.17
+
+[Interaction stability and acceptance](INTERACTION-0.4.17.md) · [CloudBase preparation](CLOUDBASE-0.4.17.md) · [social design](SOCIAL-0.4.17.md) · [next steps](NEXT-STEPS.md).
+
+Map ripple/zoom/row anchoring, cancellable calendar, fixed journal viewport and hold recovery, retained share choices, forum interaction synchronization, vertical drafts and friend-request states.416 client tests,22 WXML/24 WXSS compile; backend510 passed/53 skipped,86.76% coverage.900 source layout projections; native Compile/phone acceptance remains. CloudBase is prepared and inactive. Keep local config/data/helper terminal, run npm ci/setup/verify then Compile. Existing hosted writing404/404 and withdrawal405 require backend rollout.
+
+---
+
 # Bird Assistant native WeChat mini-program · 0.4.16 candidate
 
 [Changes, evidence and native acceptance](INTERACTION-0.4.16.md) · [Canonical English next steps](https://github.com/NoctisBaguette/bird-assistant-miniprogram/blob/main/docs/NEXT-STEPS.md) · [中文](../../README.md)

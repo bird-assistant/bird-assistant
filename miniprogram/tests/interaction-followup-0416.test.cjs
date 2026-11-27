@@ -38,7 +38,7 @@ test('calendar drag selects a backward date range and ignores the synthetic tap 
 });
 
 test('reopening a calendar releases an interrupted drag and short outer screens retain a bounded scroller',()=>{
-  environment({getWindowInfo:()=>({windowHeight:327})});const {p,definition,events}=component('date-calendar',{from:'2026-11-10'});p.data.dragging=true;definition.observers.open.call(p,false);definition.observers.open.call(p,true);assert.equal(p.data.dragging,false);assert.equal(p.data.bodyHeight,117);assert.equal(events.length,0);
+  environment({getWindowInfo:()=>({windowHeight:327})});const {p,definition,events}=component('date-calendar',{from:'2026-11-10'});p.data.dragging=true;definition.observers.open.call(p,false);definition.observers.open.call(p,true);assert.equal(p.data.dragging,false);assert.equal(p.data.bodyHeight,57);assert.equal(events.length,0);
 });
 
 test('map custom choices apply the selected scope and dismiss without changing an untouched filter',()=>{
@@ -55,8 +55,8 @@ test('journal filter sheets and confirmed ranges use the existing library withou
   p.openCalendar(tap('target','library'));p.closeCalendar();assert.equal(p.data.libraryFrom,'');p.openCalendar(tap('target','library'));p.calendarChange({detail:{from:'2026-11-01',to:'2026-11-30'}});assert.equal(p.data.libraryFrom,'2026-11-01');assert.equal(p.data.calendarOpen,false);
 });
 
-test('deck sizing uses its measured position and safe area, and never resizes underneath a held card',t=>{
-  const p=journal(t);let callback;global.wx.createSelectorQuery=()=>({select(){return this;},boundingClientRect(fn){callback=fn;return this;},exec(){}});p.fitDeck();callback({top:400});assert.equal(p.data.deckHeight,346);assert.equal(p.data.deckPreviewHeight,182);p.data.paperPhase='armed';p.data.deckHeight=300;p.fitDeck();callback({top:450});assert.equal(p.data.deckHeight,300);
+test('deck sizing uses available frame height, and never resizes underneath a held card',t=>{
+  const p=journal(t);let callback;global.wx.createSelectorQuery=()=>({select(){return this;},boundingClientRect(fn){callback=fn;return this;},exec(){}});p.fitDeck();callback({top:400,height:408});assert.equal(p.data.deckHeight,346);assert.equal(p.data.deckPreviewHeight,214);p.data.paperPhase='armed';p.data.deckHeight=300;p.fitDeck();callback({top:450,height:358});assert.equal(p.data.deckHeight,300);
 });
 
 test('deliberate sharing finishes departure before opening the sheet, stays hidden, and returns without glow',t=>{
@@ -65,9 +65,9 @@ test('deliberate sharing finishes departure before opening the sheet, stays hidd
   assert.equal(p.data.shareOpen,true);assert.equal(p.data.paperPhase,'hidden');assert.equal(p.data.paperVisualId,id);assert.equal(p.data.paperArmedId,'');p.closeShare();assert.equal(p.data.paperPhase,'returning');assert.equal(p.data.shareOpen,false);t.mock.timers.tick(340);assert.equal(p.data.paperPhase,'');assert.equal(p.data.paperVisualId,'');
 });
 
-test('aborting a departure by hiding cannot open a late share and an idle armed card releases page input',t=>{
+test('aborting a departure by hiding cannot open a late share and blank cancellation releases an idle armed card',t=>{
   const p=journal(t),id=p.data.libraryRows[0].id;p.deckTouchStart(touch(id));t.mock.timers.tick(1000);p.deckTouchMove(touch(id,100,50));p.deckTouchEnd();p.onHide();t.mock.timers.tick(1000);assert.equal(p.data.shareOpen,false);assert.equal(p.data.paperPhase,'');
-  p.onShow();p.deckTouchStart(touch(id));t.mock.timers.tick(1000);p.deckTouchEnd();t.mock.timers.tick(45000);assert.equal(p.data.paperArmedId,'');assert.equal(p.data.deckSettling,false);assert.equal(p._paperTouch,null);
+  p.onShow();p.deckTouchStart(touch(id));t.mock.timers.tick(1000);p.deckTouchEnd();t.mock.timers.tick(45000);assert.equal(p.data.paperArmedId,id);p.cancelPaper();assert.equal(p.data.paperArmedId,'');assert.equal(p.data.deckSettling,false);assert.equal(p._paperTouch,null);
 });
 
 test('cancelled deletion returns the original card and does not delete the saved journal',t=>{
@@ -84,11 +84,11 @@ test('deleting the focused card selects its right neighbour or falls back to the
   await p.confirmDeleteJournal(ids[2]);assert.equal(p.data.libraryRows[p.data.deckIndex].id,ids[0]);assert.equal(p.data.deckArrival,'left');assert.equal(model.readJournals().length,1);
 });
 
-test('cancellation in each external share destination closes the sheet and clears the armed state',async t=>{
+test('cancellation in each external share destination returns to the sheet and keeps the deck unarmed',async t=>{
   environment();const p=page('pages/journal');p.onLoad();const doc=model.makeJournal([],'Cancelled');storage.saveJournalState(doc,storage.editorHistory([],[]));
   const canvas=require('../.test-build/services/canvas.js'),render=require('../.test-build/services/journal-render.js'),drafts=require('../.test-build/services/post-draft.js');t.mock.method(canvas,'getCanvas',async()=>({}));t.mock.method(canvas,'exportCanvas',async()=>'/tmp/page.png');t.mock.method(render,'renderJournal',async()=>{});
   const cancellation=()=>Promise.reject({errMsg:'operation:fail cancel'});global.wx.saveImageToPhotosAlbum=cancellation;global.wx.showShareImageMenu=options=>options.fail({errMsg:'share:fail cancel'});t.mock.method(drafts,'savePostDraft',cancellation);
-  for(const destination of [0,1,2]){p.data.paperVisualId=doc.id;p.data.paperPhase='hidden';p.shareJournal(tap('id',doc.id),true);await p.shareJournalImage(doc.id,destination);assert.equal(p.data.shareOpen,false);assert.equal(p.data.paperArmedId,'');assert.equal(p.data.exporting,false);}
+  for(const destination of [0,1,2]){p.data.paperVisualId=doc.id;p.data.paperPhase='hidden';p.shareJournal(tap('id',doc.id),true);await p.shareJournalImage(doc.id,destination);assert.equal(p.data.shareOpen,true);assert.equal(p.data.paperArmedId,'');assert.equal(p.data.exporting,false);}
   p.onUnload();
 });
 

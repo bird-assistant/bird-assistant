@@ -15,17 +15,17 @@ test('one option uses one row, three rows bound long searches and small viewport
   assert.equal(speciesResultsHeight(1,false,500),44);assert.equal(speciesResultsHeight(100,true,500),132);assert.equal(speciesResultsHeight(2,true,500),132);assert.equal(speciesResultsHeight(1,false,30),30);assert.equal(speciesResultsHeight(0,false,500),0);
 });
 test('all imported photos are selected independently of the active audio preview, failure does not lose later results',async()=>{
-  storage();const p=page('pages/identify');p.data.view='import';
+  storage();const p=page('pages/identify');p.data.view='review';
   const a=p.addEvidence('a.jpg','photo','album'),b=p.addEvidence('b.jpg','photo','album'),audio=p.addEvidence('temporary.mp3','audio','album',false,{name:'林间鸟鸣-清晨.mp3',size:102400});
   assert.equal(p.data.currentId,audio.id);assert.equal(a.selected&&b.selected&&audio.selected,true);assert.equal(audio.name,'林间鸟鸣-清晨.mp3');assert.match(audio.sizeLabel,/100 KB/);
   const sent=[];p.analyse=async()=>{sent.push(p.data.currentId);if(p.data.currentId===a.id){p.setData({error:'网络超时'});return false;}b.analysis={state:'candidate'};return true;};
-  await p.sendImported();assert.deepEqual(sent,[a.id,b.id]);assert.match(a.status,/网络超时/);assert.match(b.status,/候选/);assert.match(p.data.batchProgress,/已完成 1 \/ 2/);assert.equal(p.data.view,'import');
+  await p.analyseSelected();assert.deepEqual(sent,[a.id,b.id]);assert.match(a.status,/网络超时/);assert.match(b.status,/候选/);assert.match(p.data.batchProgress,/已完成 1 \/ 2/);assert.equal(p.data.view,'review');
   p.toggleImportEvidence(tap({id:a.id}));assert.equal(a.selected,false);p.activateEvidence(a.id);assert.equal(b.selected,true);
 });
 test('cancelled batch never starts its next photo and preserves completed and unprocessed materials',async()=>{
-  storage();const p=page('pages/identify');p.data.view='import';const a=p.addEvidence('a.jpg','photo','album'),b=p.addEvidence('b.jpg','photo','album');
+  storage();const p=page('pages/identify');p.data.view='review';const a=p.addEvidence('a.jpg','photo','album'),b=p.addEvidence('b.jpg','photo','album');
   let resolve;const sent=[];p.analyse=()=>{sent.push(p.data.currentId);return new Promise(r=>resolve=r);};
-  const work=p.sendImported();await settle();const duplicate=p.sendImported();assert.equal(sent.length,1);p.cancelAnalysis();resolve(true);await Promise.all([work,duplicate]);
+  const work=p.analyseSelected();await settle();const duplicate=p.analyseSelected();assert.equal(sent.length,1);p.cancelAnalysis();resolve(true);await Promise.all([work,duplicate]);
   assert.deepEqual(sent,[a.id]);assert.equal(p.data.assets.find(item=>item.id===b.id).status,'未识别');assert.match(p.data.assets[0].status,/已取消/);assert.equal(p.data.batching,false);
 });
 test('audio original filename survives saving and reopening a local record',async()=>{
@@ -65,6 +65,12 @@ test('legacy A references expand their own source labels and never inherit a car
   const old=presentTrip({...plan(),answer:'先看A3区域，再到P1。',sources:[{id:'A3',label:'北京附近公开区域'},{id:'P1',label:'颐和园'}],stops:[{name:'北京',point:{latitude:40,longitude:116}}]});
   assert.doesNotMatch(old.answer,/\b[AP]\d/);assert.match(old.answer,/颐和园/);assert.equal(old.referenceMap,undefined);assert.match(old.legacyWarning,/坐标/);
   const fresh=presentTrip({...plan(),answer:'先到P1。',referenceMap:[{id:'P1',name:'颐和园',point:{latitude:40,longitude:116.3},kind:'park'}]});assert.equal(fresh.answer,'先到颐和园。');assert.equal(fresh.legacyWarning,'');
+});
+
+test('cited community experience keeps the original post link and dates when rendering and restoring a consultation',()=>{
+  const stored=storage(),source={id:'D1',label:'社区经验 · 发布2026-11-25',record:'post_approved'},experience={id:'D1',record:'post_approved',title:'冬日岸线观察',published:'2026-11-25',observed:'2026-11-20',excerpt:'安静观察。',basis:'公开区域约十公里'};
+  const value=presentTrip({...plan(),sources:[source],communityCards:[experience]});history.saveTripHistory('owner',{id:'forum-context',updated:new Date().toISOString(),conditions,turns:[{question:'附近怎么找？',plan:value,saved:new Date().toISOString()}]});
+  const saved=history.readTripHistory('owner')[0].turns[0].plan;assert.deepEqual(saved.sources,[source]);assert.deepEqual(saved.communityCards,[experience]);assert.equal(saved.referenceMap,undefined);assert.equal(stored.size,1);
 });
 test('consultations are bounded, account-separated, and corrupt history is never overwritten',()=>{
   const stored=storage();for(let i=0;i<22;i++)history.saveTripHistory('owner-a',{id:'c'+i,updated:new Date().toISOString(),conditions,turns:Array.from({length:8},(_,n)=>({question:'问题'+n,plan:plan(n),saved:new Date().toISOString()}))});

@@ -7,7 +7,8 @@ export type TripStop={id?:string;name:string;point:TripPoint;km:number;count:num
 export type TripReference={id:string;name:string;kind:'area'|'park';point:TripPoint;km:number;precisionLabel:string};
 export type TripVisit={destination:string;name:string;why:string;habitats:string[];watchFor:string[];timing:string;uncertainty:string};
 export type TripPlan={engine:string;model:string;turn:string;answer:string;focus:string;start:string;end:string;brief?:TripBrief|null;legacyWarning?:string;
-  sources:{id:string;label:string;url?:string}[];guideCards:{id:string;name:string}[];referenceMap?:TripReference[];visits?:TripVisit[];
+  sources:{id:string;label:string;url?:string;record?:string}[];guideCards:{id:string;name:string}[];referenceMap?:TripReference[];visits?:TripVisit[];
+  communityCards?:{id:string;record:string;title:string;published:string;observed:string;excerpt:string;basis:string}[];
   weatherCards:{id:string;area:string;available:boolean;source:string;hours:{hour:string;wind:number;temp:number;rain:number|null}[]}[];
   stops:TripStop[];parks:TripPark[];stages:{time:string;action:string}[]};
 

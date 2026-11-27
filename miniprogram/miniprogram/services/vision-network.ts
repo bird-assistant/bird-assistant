@@ -1,6 +1,7 @@
 import { RecognitionResponse, RecognitionTransport, recognitionFailure } from './recognition';
 
 export const VISION_ORIGIN = 'https://api.auroraliu.cn:8080';
+export const LOCAL_VISION_SETTING = 'bird-assistant.vision.devtools-local.v1';
 const LOOPBACK = 'http://127.0.0.1:18000';
 export interface VisionConnection {origin:string; header:Record<string,string>;}
 let cached: {connection:VisionConnection; expires:number}|undefined;
@@ -8,7 +9,8 @@ let authenticating:Promise<VisionConnection>|undefined;
 
 function endpoint():string {
   const override = wx.getExtConfigSync?.()?.visionOrigin;
-  if (!override && wx.getDeviceInfo().platform === 'devtools') return LOOPBACK;
+  // Public HTTPS is the normal path on every client. Local SSH is an explicit developer opt-in.
+  if (!override && wx.getDeviceInfo?.().platform === 'devtools' && wx.getStorageSync?.(LOCAL_VISION_SETTING) === true) return LOOPBACK;
   const origin = override || VISION_ORIGIN;
   if (typeof origin === 'string' && /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(origin)) return origin;
   throw new Error('请配置小程序的 HTTPS 视觉服务地址。');
@@ -20,7 +22,10 @@ function requestJson(url:string, method:'POST'|'DELETE', header:Record<string,st
       if(res.statusCode>=200 && res.statusCode<300) return resolve(res.data);
       if(res.statusCode===401) cached=undefined;
       reject(recognitionFailure({statusCode:res.statusCode,data:JSON.stringify(res.data),header:res.header}));
-    }, fail:()=>reject(new Error('视觉服务连接失败，请检查网络或本机联调隧道。'))}));
+    }, fail:error=>reject(new Error(/domain list|不在.*合法域名/i.test(error.errMsg)
+      ? '微信阻止了服务请求，请检查小程序的服务器域名配置。'
+      : url.startsWith('http://127.0.0.1:') ? '本机视觉联调未连接，请检查开发隧道是否已启动。'
+      : '视觉服务连接失败，原素材仍保留，请检查网络后重试。'))}));
 }
 
 async function login(origin:string):Promise<VisionConnection> {

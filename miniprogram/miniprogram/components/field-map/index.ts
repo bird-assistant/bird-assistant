@@ -8,6 +8,8 @@ import {spacedClusters} from '../../services/map-clusters';
 import {mapPanes,clusterMarker,speciesResultsHeight} from '../../services/map-presentation';
 import {MapTargets} from '../../services/map-targets';
 import {chinesePlace} from '../../services/place-names';
+import {getCanvas} from '../../services/canvas';
+import {MapIconCache} from '../../services/map-icons';
 
 interface Pin {id:string;speciesId:string;speciesName:string;source:string;placeName:string;date:string;displayLocation:{latitude:number;longitude:number};}
 type Input=WechatMiniprogram.CustomEvent<{value:string}>;
@@ -19,24 +21,32 @@ const observations='/api/v1/map/observations';
 const searches=new WeakMap<object,ReturnType<typeof speciesSearch>>();
 const targets=new WeakMap<object,MapTargets>();
 const cellQueries=new WeakMap<object,Record<string,unknown>>();
+const icons=new WeakMap<object,MapIconCache>();
 Component({
-  data:{recordOrder:'collected',focusLabel:'',nativeActive:true,_tripSeq:0,_watchTimer:0,mapMoving:false,_restoreExpanded:true,sheetCollapsed:false,recordsLoading:false,recordsError:'',_recordSeq:0,_moving:false,_motionTimer:0,_recordQuery:{} as Record<string,unknown>,searchHeight:176,drawerWidth:366,searchMore:false,headerHeight:88,fieldHeight:600,toolbarHeight:112,mapHeight:488,sheetHeight:224,sheetHeaderHeight:64,creditReserve:0,compact:false,listHeight:160,listTotal:0,listTitle:'本区域观察',wide:false,searching:false,searchError:'',_searchSeq:0,_visible:true,_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:4,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
+  data:{_iconSeq:0,_locationSeq:0,locating:false,showUserLocation:false,recordOrder:'collected',focusLabel:'',nativeActive:true,_tripSeq:0,_watchTimer:0,mapMoving:false,_restoreExpanded:true,sheetCollapsed:false,recordsLoading:false,recordsError:'',_recordSeq:0,_moving:false,_motionTimer:0,_recordQuery:{} as Record<string,unknown>,searchHeight:176,drawerWidth:366,searchMore:false,headerHeight:88,fieldHeight:600,toolbarHeight:112,mapHeight:488,sheetHeight:224,sheetHeaderHeight:64,creditReserve:0,compact:false,listHeight:160,listTotal:0,listTitle:'本区域观察',wide:false,searching:false,searchError:'',_searchSeq:0,_visible:true,_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:12,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
     origin:0,origins:['全部来源','羽迹鸟友','外部鸟讯'],period:0,periods:['所有日期','今天','近七天','近三十天'],keyword:'',species:'',speciesLabel:'所有鸟种',matches:[] as any[],
     markers:[] as Array<{id:number;latitude:number;longitude:number;iconPath:string;width:number;height:number}>,selected:[] as Pin[],total:0,error:'',loading:false,dirty:false},
-  lifetimes:{attached(){const view=readMapView();if(view)this.setData(view);},ready(){this.resizeMap();this.watchViewport();if(wx.nextTick)wx.nextTick(()=>void this.load());else void this.load();},detached(){this.suspend();searches.delete(this);targets.delete(this);cellQueries.delete(this);hints.delete(this);this.data._ready=false;}},
+  lifetimes:{attached(){const view=readMapView();if(view)this.setData(view);},ready(){this.resizeMap();this.watchViewport();if(wx.nextTick)wx.nextTick(()=>void this.load());else void this.load();},detached(){this.suspend();icons.get(this)?.close();icons.delete(this);searches.delete(this);targets.delete(this);cellQueries.delete(this);hints.delete(this);this.data._ready=false;}},
   pageLifetimes:{resize(){this.resizeMap();this.queueLoad();},hide(){this.suspend();},show(){this.data._visible=true;hints.delete(this);const focus=takeMapFocus();if(focus)this.closeList();this.setData({nativeActive:true,...(focus?{...focus,origin:0,period:0}:readMapView()||{})},()=>{this.watchViewport();if(this.data._ready){if(wx.nextTick)wx.nextTick(()=>void this.load());else void this.load();}});}},
   methods:{
-    suspend(){this.data._tripSeq++;clearTimeout(this.data._watchTimer);this.data._watchTimer=0;hints.delete(this);this.data._visible=false;this.data._moving=false;searches.get(this)?.close();this.data._viewRead++;this.data._seq++;this.data._recordSeq++;this.data._searchSeq++;clearTimeout(this.data._timer);clearTimeout(this.data._motionTimer);this.data._timer=0;this.data._motionTimer=0;this.setData({nativeActive:false,mapMoving:false,loading:false,recordsLoading:false,searching:false,matches:[],searchError:''});},
+    suspend(){this.data._iconSeq++;this.data._locationSeq++;this.data._tripSeq++;clearTimeout(this.data._watchTimer);this.data._watchTimer=0;hints.delete(this);this.data._visible=false;this.data._moving=false;searches.get(this)?.close();this.data._viewRead++;this.data._seq++;this.data._recordSeq++;this.data._searchSeq++;clearTimeout(this.data._timer);clearTimeout(this.data._motionTimer);this.data._timer=0;this.data._motionTimer=0;this.setData({locating:false,nativeActive:false,mapMoving:false,loading:false,recordsLoading:false,searching:false,matches:[],searchError:''});},
     watchViewport(){
       if(!this.data._visible||this.data._watchTimer)return;
       this.data._watchTimer=setTimeout(()=>{this.data._watchTimer=0;if(!this.data._visible)return;void this.updateViewport(false).finally(()=>this.watchViewport());},240);
     },
     renderClusters(scale:number){
+      const version=++this.data._iconSeq;
       const groups=spacedClusters(this.data._groups,scale),registry=targets.get(this)||new MapTargets();
       targets.set(this,registry);
       const ids=registry.assign(groups,cellQueries.get(this)||this.data._query,scale);
-      const markers=groups.map((group,index)=>({...clusterMarker(group,index,scale),id:ids[index]}));
+      let cache=icons.get(this);if(!cache){cache=new MapIconCache(()=>getCanvas(this,'#map-marker-canvas',96,96),path=>{try{wx.getFileSystemManager().unlink({filePath:path,fail:()=>{}});}catch{}});icons.set(this,cache);}
+      const markers=groups.map((group,index)=>{const marker={...clusterMarker(group,index,scale),id:ids[index]};const image=marker.anchor&&cache!.get(group.count);return image?{...marker,iconPath:image}:marker;});
       if(JSON.stringify(markers)!==JSON.stringify(this.data.markers))this.setData({markers});
+      const counts=groups.filter((_group,index)=>!!markers[index].anchor).map(group=>group.count);
+      if(counts.some(count=>!cache!.get(count)))void cache.prepare(counts).then(()=>{
+        if(!this.data._visible||version!==this.data._iconSeq)return;
+        this.setData({markers:markers.map((marker,index)=>marker.anchor&&cache!.get(groups[index].count)?{...marker,iconPath:cache!.get(groups[index].count)!}:marker)});
+      }).catch(()=>{});
     },
     resizeMap(){const box=layout(),panes=mapPanes(box.width,box.height);this.setData({headerHeight:box.headerHeight,...panes,searchHeight:speciesResultsHeight(this.data.matches.length,this.data.searchMore,Math.max(0,panes.mapHeight-36))});},
     query(){let query=searches.get(this);if(!query){query=speciesSearch(state=>{if(this.data._visible)this.setData({...state,searchHeight:speciesResultsHeight(state.matches.length,state.searchMore,Math.max(0,this.data.mapHeight-36))});});searches.set(this,query);}return query;},
@@ -181,7 +191,16 @@ Component({
     list(){if(this.data.listOpen){this.closeList();return;}this.closeSearch();this.data._restoreExpanded=true;this.data._bounds={};this.setData({sheetCollapsed:false,listTotal:this.data.total,listTitle:'本区域观察'});void this.showRecords(false);},
     guide(event:WechatMiniprogram.TouchEvent){hub('species',event.currentTarget.dataset.id||this.data.species);},
     go(event:WechatMiniprogram.TouchEvent){hub('record',event.currentTarget.dataset.id);},
-    async position(){try{const point=await wx.getLocation({type:'gcj02'});hints.delete(this);this.setData({focusLabel:'',latitude:point.latitude,longitude:point.longitude,scale:11},()=>this.queueLoad());}catch{this.setData({error:'定位不可用，可拖动地图选区。'});}},
-    async place(){this.closeSearch();try{const point=await wx.chooseLocation({});hints.delete(this);this.setData({focusLabel:'',latitude:point.latitude,longitude:point.longitude,scale:12},()=>this.queueLoad());}catch(error){if(!/cancel/i.test(String((error as {errMsg?:string})?.errMsg)))this.setData({error:'地点选择未完成，可拖动地图选区。'});}}
+    async position(){
+      if(this.data.locating)return;const token=++this.data._locationSeq;this.setData({locating:true,error:''});
+      try{const point=await wx.getLocation({type:'gcj02',isHighAccuracy:true,highAccuracyExpireTime:6000});
+        if(token!==this.data._locationSeq||!this.data._visible)return;
+        if(!Number.isFinite(point.latitude)||!Number.isFinite(point.longitude)||Math.abs(point.latitude)>90||Math.abs(point.longitude)>180)throw new Error('invalid native location');
+        hints.delete(this);this.closeList();saveMapView({latitude:point.latitude,longitude:point.longitude,scale:16});
+        this.setData({showUserLocation:true,focusLabel:point.accuracy>100?'定位精度约'+Math.ceil(point.accuracy)+'米，可重试':'',latitude:point.latitude,longitude:point.longitude,scale:16},()=>this.queueLoad());
+      }catch{if(token===this.data._locationSeq&&this.data._visible)this.setData({error:'定位不可用，请检查微信与系统定位授权；仍可手动选区。'});}
+      finally{if(token===this.data._locationSeq&&this.data._visible)this.setData({locating:false});}
+    },
+    async place(){this.closeSearch();try{const point=await wx.chooseLocation({latitude:this.data.latitude,longitude:this.data.longitude});if(!this.data._visible)return;hints.delete(this);saveMapView({latitude:point.latitude,longitude:point.longitude,scale:16});this.setData({focusLabel:point.name||'',latitude:point.latitude,longitude:point.longitude,scale:16},()=>this.queueLoad());}catch(error){if(!/cancel/i.test(String((error as {errMsg?:string})?.errMsg)))this.setData({error:'地点选择未完成，可拖动地图选区。'});}}
   }
 });

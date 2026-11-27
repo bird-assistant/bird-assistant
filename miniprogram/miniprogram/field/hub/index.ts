@@ -1,3 +1,6 @@
+import {acceptPickedMedia} from '../../services/media-import';
+import {savePublishedPhoto} from '../../services/media-save';
+import {PostImage,postGallery,checkPostImages} from '../../services/post-media';
 import {cleanPhotoDetails,withPhotoDetails,withEmbeddedPhotoDetails,PhotoDetails} from '../../services/photo-details';
 import {navigate} from '../../services/navigation';
 import {api,community,Draft,getDraft,hub,imageUrl,key,openMap,Point,privatePhoto,sessionState,setCompose,setDraft,takeCompose,uploadPhoto} from '../../services/community';
@@ -15,11 +18,13 @@ type Input=WechatMiniprogram.CustomEvent<{value:string}>;
 function message(error:unknown){return error instanceof Error?error.message:'请求失败，请重试。';}
 
 Page({
-  data:{reactionBusy:{like:false,bookmark:false},placesError:'',postsError:'',placeSort:'recent',placePoint:null as {latitude:number;longitude:number}|null,mapOpening:false,displayResolution:'',manualCamera:{} as PhotoDetails,manualPhotoInfo:null as ReturnType<typeof photoInfo>,photoInfo:null as ReturnType<typeof photoInfo>,postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
+  data:{savingPhoto:false,publishAttachments:[] as PostImage[],recordGallery:[] as any[],reactionBusy:{like:false,bookmark:false},placesError:'',postsError:'',placeSort:'recent',placePoint:null as {latitude:number;longitude:number}|null,mapOpening:false,displayResolution:'',manualCamera:{} as PhotoDetails,manualPhotoInfo:null as ReturnType<typeof photoInfo>,photoInfo:null as ReturnType<typeof photoInfo>,postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
     draft:null as Draft|null,anonymous:true,shareDate:false,shareCamera:false,sharePhoto:true,map:false,post:true,
     externalPage:0,externalNext:false,preview:null as any,previewLines:[] as string[],photo:'',replySpecies:'',self:'',selectedSpecies:'',matches:[] as any[]},
+  _galleryUploads:null as unknown as Map<string,{id:string;camera:Record<string,string>}>,
   _placesSequence:0,_mapGeneration:0,_cameraDetails:{} as Record<string,string>,_media:'',_sighting:'',_generation:0,_submitKey:'',_replySignature:'',_path:'',_closed:false,_replyOffset:0,_replyLoading:false,
   onLoad(options:Record<string,string|undefined>){
+    this._galleryUploads=new Map();
     const screen=options.screen&&names[options.screen]?options.screen:'feed';
     this._submitKey=key();
     const placePoint=readMapView();this.setData({screen,id:options.id||'',placePoint,placeSort:placePoint?'distance':'recent'});wx.setNavigationBarTitle({title:names[screen]});
@@ -27,7 +32,7 @@ Page({
       const draft=options.id==='compose'?null:getDraft();
       this._media=draft?.storedMedia||'';this._path=draft?.path||'';
       const compose=options.id==='compose'?takeCompose():null;
-      this.setData({manualCamera:cleanPhotoDetails(compose?.manualCamera),draft,sourceId:compose?.sourceId||'',title:compose?.title||'',photo:draft?.path||compose?.photo||'',body:draft?.note||compose?.body||'',sharePhoto:!!(draft?.path||compose?.photo),postSpecies:compose?.speciesId||'',postSpeciesName:compose?.speciesName||'',speciesSupported:compose?.speciesSupported===true});
+      this.setData({publishAttachments:compose?.attachments||[],manualCamera:cleanPhotoDetails(compose?.attachments?.[0]?.manualCamera||compose?.manualCamera),draft,sourceId:compose?.sourceId||'',title:compose?.title||'',photo:draft?.path||compose?.attachments?.[0]?.path||compose?.photo||'',body:draft?.note||compose?.body||'',sharePhoto:!!(draft?.path||compose?.photo),postSpecies:compose?.speciesId||'',postSpeciesName:compose?.speciesName||'',speciesSupported:compose?.speciesSupported===true});
     }
     void this.load();
   },
@@ -61,7 +66,8 @@ Page({
         this._replyOffset=(result.replies||[]).length;
         const pending=result.features?.threadedReplies?[]:this.data.pendingReplies;
         const replies=(result.replies||[]).concat(pending),record={...result,...forumPost(result),placeName:chinesePlace(result.placeName),place:chinesePlace(result.place),image:imageUrl(result.image),replies,replyCount:result.replyCount??(result.replies||[]).length};
-        this.setData({record,photoInfo:photoInfo(Object.keys(result.camera||{}).length?result.camera:record.embeddedCamera,Object.keys(result.camera||{}).length?'照片附带 / 已分享的参数':'从照片文件读取'),manualPhotoInfo:photoInfo(record.manualCamera,'作者填写'),replyThreads:forumThreads(replies)});wx.setNavigationBarTitle({title:result.channel==='post'?'帖子详情':'观察详情'});
+        const recordGallery=postGallery(result).map(image=>({...image,image:imageUrl(image.image)}));
+        this.setData({recordGallery,record,photoInfo:photoInfo(Object.keys(result.camera||{}).length?result.camera:record.embeddedCamera,Object.keys(result.camera||{}).length?'照片附带 / 已分享的参数':'从照片文件读取'),manualPhotoInfo:photoInfo(record.manualCamera,'作者填写'),replyThreads:forumThreads(replies)});if(result.gallery?.length)this.setData({photo:recordGallery[0].image,photoInfo:photoInfo(recordGallery[0].camera),manualPhotoInfo:photoInfo(recordGallery[0].manualCamera,'作者填写')});wx.setNavigationBarTitle({title:result.channel==='post'?'帖子详情':'观察详情'});
       }
       if(screen==='species'){
         await Promise.all([this.loadPlaces(false),api(community+'/posts','GET',{species:id}).then(posts=>{if(generation===this._generation)this.setData({speciesPosts:posts.items,postsError:''});}).catch(error=>{if(generation===this._generation)this.setData({postsError:message(error)});})]);
@@ -71,13 +77,22 @@ Page({
     }catch(error){if(generation===this._generation)this.setData({error:message(error)});}
     finally{if(generation===this._generation)this.setData({busy:false});}
   },
+  async saveRecordImage(){if(this.data.savingPhoto||this.data.record?.visibility!=='public'||!this.data.photo)return;
+    const generation=this._generation,photo=this.data.photo;this.setData({savingPhoto:true,error:''});
+    try{await savePublishedPhoto(photo);if(!this._closed&&generation===this._generation)wx.showToast({title:'已保存公开图片',icon:'success'});}
+    catch(error){if(!this._closed&&generation===this._generation)this.setData({error:message(error)});}finally{if(!this._closed)this.setData({savingPhoto:false});}
+  },
+  previewGallery(event:Tap){const index=Number(event.currentTarget.dataset.index)||0,urls=this.data.publishAttachments.map(item=>item.path);if(urls[index])wx.previewImage({current:urls[index],urls});},
+  selectRecordImage(event:Tap){const image=this.data.recordGallery[Number(event.currentTarget.dataset.index)];if(!image)return;
+    this.setData({photo:image.image,photoFailed:false,displayResolution:'',photoInfo:photoInfo(image.camera),manualPhotoInfo:photoInfo(image.manualCamera,'作者填写')});
+  },
   photoDetails(event:WechatMiniprogram.CustomEvent<PhotoDetails>){this.setData({manualCamera:cleanPhotoDetails(event.detail),preview:null});},
   photoError(){this.setData({photoFailed:true});},
   photoLoaded(event:WechatMiniprogram.CustomEvent<{width:number;height:number}>){
     const {width,height}=event.detail;if(width>0&&height>0)this.setData({displayResolution:width+' × '+height+' px',photoHeight:Math.max(60,Math.min(420,(Math.min(620,wx.getWindowInfo().windowWidth)-32)*height/width)),photoWidth:Math.min(Math.min(620,wx.getWindowInfo().windowWidth)-32,420*width/height)});
   },
   field(event:Input){const field=String(event.currentTarget.dataset.field);if(['keyword','title','body','replySpecies'].includes(field))this.setData({[field]:event.detail.value,preview:null});},
-  flag(event:Tap){const field=event.currentTarget.dataset.field as 'post'|'map'|'anonymous'|'shareDate'|'shareCamera'|'sharePhoto';this.setData({[field]:!this.data[field],preview:null});},
+  flag(event:Tap){if(this.data.busy)return;const field=event.currentTarget.dataset.field as 'post'|'map'|'anonymous'|'shareDate'|'shareCamera'|'sharePhoto';this.setData({[field]:!this.data[field],preview:null});},
   go(event:Tap){hub(event.currentTarget.dataset.screen,event.currentTarget.dataset.id||'');},
   sparrowPair(){compareBirds(['avibase-C22FBF8D','avibase-240E3390']);},
   compareSpecies(){compareBirds(this.data.screen==='species'?[this.data.id]:[]);},
@@ -137,7 +152,7 @@ Page({
   pickSpecies(event:Tap){const item=this.data.matches.find(row=>row.id===event.currentTarget.dataset.id);if(!item)return;
     if(this.data.draft){this._sighting='';this.setData({draft:{...this.data.draft,species:item.id,speciesName:item.name||item.english||item.scientific},preview:null});}
     this.setData({replySpecies:item.id,selectedSpecies:item.name||item.english||item.scientific,matches:[]});},
-  async attach(){try{const result=await wx.chooseImage({count:1,sizeType:['original'],sourceType:['album']});this._media='';this.setData({photo:result.tempFilePaths[0],manualCamera:{},sharePhoto:true,preview:null});}catch{}},
+  async attach(){if(this.data.publishAttachments.length){wx.showToast({title:'请返回帖子编辑中调整素材',icon:'none'});return;}try{const result=await wx.chooseImage({count:1,sizeType:['original'],sourceType:['album']});const files=await acceptPickedMedia(result.tempFilePaths.map(path=>({path,kind:'photo' as const})),()=>!this._closed);if(this._closed||!files.length)return;this._media='';this.setData({photo:files[0].path,manualCamera:{},sharePhoto:true,preview:null});}catch{}},
   discussExternal(){
     const record=this.data.record;
     if(!record?.sourceUrl)return;
@@ -156,6 +171,24 @@ Page({
     if(this.data.busy)return;this.setData({busy:true,error:'',notice:'',preview:null});
     try{
       const d=this.data,draft=d.draft;
+      const images=d.publishAttachments;checkPostImages(images);
+      let gallery:object[]|undefined;
+      if(!draft&&d.sharePhoto&&(images.length>1||images.some(item=>item.kind==='journal'))){
+        let capability;try{capability=await api(community+'/capabilities');}catch{if(images.length>1)throw new Error('服务暂未支持多图发布，素材仍在草稿中；请稍后重试。');}
+        if(capability?.postGallery!==1&&images.length>1)throw new Error('服务暂未支持当前图片数量，素材仍保留。');
+        if(capability?.postGallery===1){
+        if(capability.maxImages<images.length)throw new Error('服务暂未支持当前图片数量，素材仍保留。');
+        gallery=[];
+        for(const image of images){
+          if(!image.path)throw new Error('有照片未保留，请返回重新选择。');
+          this._galleryUploads??=new Map();let uploaded=this._galleryUploads.get(image.path);
+          if(!uploaded){uploaded=await uploadPhoto(image.path);this._galleryUploads.set(image.path,uploaded);}
+          if(this._closed)return;
+          gallery.push({media:uploaded.id,kind:image.kind,label:image.label,manual_camera:cleanPhotoDetails(image.manualCamera)});
+        }
+        this._media=(gallery[0] as {media:string}).media;this._path=d.photo;this._cameraDetails=this._galleryUploads.get(images[0].path)?.camera||{};
+        }
+      }
       const privateOnly=!!draft&&event.currentTarget.dataset.mode==='private';
       if(!privateOnly&&!d.post&&!d.map)throw new Error('请选择一个发布渠道。');
       if(!privateOnly&&d.map&&(!draft?.point||!draft.species))throw new Error('地图鸟讯需要选择鸟种和地点。');
@@ -172,12 +205,12 @@ Page({
       if(privateOnly){this.setData({screen:'record',id:this._sighting,notice:'已保存到云端私人观察。'});await this.load();return;}
       const preview=await api(community+'/previews','POST',{sighting:this._sighting||null,media:this._media||null,
         ...(d.postSpecies&&d.speciesSupported?{species:d.postSpecies}:{}),
-        external:d.sourceId||null,title:d.title,body:withPhotoDetails(!draft&&d.shareCamera?withEmbeddedPhotoDetails(d.body,this._cameraDetails):d.body,d.manualCamera),anonymous:d.anonymous,share_camera:d.shareCamera,share_photo:d.sharePhoto,share_date:d.shareDate,
+        ...(gallery?{gallery}:{}),external:d.sourceId||null,title:d.title,body:withPhotoDetails(!draft&&d.shareCamera?withEmbeddedPhotoDetails(d.body,this._cameraDetails):d.body,gallery?{}:d.manualCamera),anonymous:d.anonymous,share_camera:d.shareCamera,share_photo:d.sharePhoto,share_date:d.shareDate,
         channels:[...(d.post?['post']:[]),...(d.map?['map']:[])]});
       const previewLines=Object.keys(preview.display).map(channel=>{const row=preview.display[channel];
-        return [channel==='map'?'地图鸟讯':'讨论帖',row.publicName,row.title,row.body,row.date,row.sourceRecord?'附外部鸟讯来源卡':'',row.media?'含照片':'无照片',
+        return [channel==='map'?'地图鸟讯':'讨论帖',row.publicName,row.title,row.body,row.date,row.sourceRecord?'附外部鸟讯来源卡':'',row.media?(gallery?'含'+gallery.length+'张图片':'含照片'):'无照片',
           ...Object.values(row.camera||{}),row.displayLocation?'区域中心 '+row.displayLocation.latitude+', '+row.displayLocation.longitude:'隐藏位置'].filter(Boolean).join(' · ');});
-      this.setData({preview,previewLines});
+      if(!this._closed)this.setData({preview,previewLines});
     }catch(error){this.setData({error:message(error)});}finally{this.setData({busy:false});}
   },
   async submit(){if(this.data.busy||!this.data.preview)return;this.setData({busy:true,error:''});

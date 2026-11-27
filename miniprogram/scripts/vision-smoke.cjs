@@ -16,6 +16,7 @@ async function main() {
   }
   function bytes(buffer) {return Uint8Array.from(buffer).buffer;}
   global.wx = {
+    getStorageSync: key => key === 'bird-assistant.vision.devtools-local.v1',
     getDeviceInfo: () => ({platform:'devtools'}), getSetting: async () => ({authSetting:{}}),
     getImageInfo: async () => ({width:1000,height:750}), compressImage: async () => ({tempFilePath:path}),
     getFileSystemManager: () => ({readFile:options => options.success({data:bytes(jpeg)})}),

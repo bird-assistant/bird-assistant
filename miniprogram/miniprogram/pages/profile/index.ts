@@ -1,4 +1,5 @@
 import {api,community,Draft,hub,sessionState,setDraft} from '../../services/community';
+import {LocalAudioPlayback} from '../../services/audio-playback';
 import { localRepository, Observation, isSampleObservation, observationStats } from '../../services/repository';
 import { choosePhoto, errorText, persistImage } from '../../services/media';
 import { selectTab } from '../../services/tabs';
@@ -19,6 +20,7 @@ const avatars = [
 Page({
   data: {localCloudId:'',localChannels:[] as {channel:string;status:string;reason:string;id:string}[],localStatusError:'',communityName:'',communityAvatar:'',numberEditing:'',numberDrafts:{} as Record<string,string>,cropBusy:false,name:'观鸟者',avatar:'/assets/avatars/owl.png',draftName:'',draftAvatar:'',edit:false,busy:false,avatarPersisted:true,error:'',records:[] as RecordView[],avatars,nativeAvatar:wx.canIUse('button.open-type.chooseAvatar'),view:'profile',observationCount:0,speciesCount:0,favoriteCount:0,favorites:[] as string[],shownRecords:[] as RecordView[],detail:null as RecordView|null,crop:false,cropPath:'',cropWidth:0,cropHeight:0,cropDisplayW:220,cropDisplayH:220,cropZoom:1,cropRotation:0,cropX:0,cropY:0,storageKB:0,menu:[{id:'account',icon:'user',name:'社区账号与隐私'},{id:'groups',icon:'chat',name:'观鸟群聊'},{id:'cloud',icon:'pin',name:'云端私人观察'},{id:'publications',icon:'leaf',name:'我的社区发布'},{id:'history',icon:'clock',name:'观察与识别历史'},{id:'tripHistory',icon:'leaf',name:'观鸟咨询记录'},{id:'collection',icon:'collection',name:'我的收藏'},{id:'saved',icon:'collection',name:'保存的他人内容'},{id:'places',icon:'pin',name:'地点收藏与打卡'},{id:'friends',icon:'user',name:'我的好友'},{id:'chat',icon:'chat',name:'私信与通知'},{id:'badges',icon:'leaf',name:'徽章与成长'},{id:'settings',icon:'settings',name:'设置与缓存'}],pageTitle:'羽迹',savedPlaces:[] as Array<{name:string;saved:boolean;checked:boolean}>,savedPosts:[] as Array<{id:string;title:string}>},
   _pickToken: 0,
+  _player:null as LocalAudioPlayback|null,
   _cropDrag:null as {x:number;y:number;offsetX:number;offsetY:number}|null,
   onShow() {
     selectTab(this, 4);
@@ -35,7 +37,8 @@ Page({
       if(this.data.view==='detail' && this.data.detail)void this.loadLocalStatus(this.data.detail);
     } catch (error) { this.setData({ error: errorText(error) }); }
   },
-  onUnload() { this._pickToken++; },
+  onHide(){this._player?.stop();},
+  onUnload() { this._player?.stop();this._pickToken++; },
   edit() { this.setData({edit:true,view:'edit',pageTitle:'编辑资料',draftName:this.data.name,draftAvatar:this.data.avatar,avatarPersisted:true,error:''});resetPageScroll(this); },
   changeName(event: WechatMiniprogram.CustomEvent<{ value: string }>) { this.setData({ draftName: event.detail.value }); },
   chooseDefault(event: WechatMiniprogram.TouchEvent) {
@@ -91,10 +94,10 @@ Page({
     setDraft({...draft,path:detail.imagePath});hub('publish');
   },
   localSpecies(){const species=this.data.detail?.communityDraft?.species;if(species)hub('species',species);},
-  openRecord(e:WechatMiniprogram.TouchEvent){const detail=this.data.records.find(r=>r.id===e.currentTarget.dataset.id);if(detail){this.setData({detail,view:'detail',pageTitle:'观察详情'});void this.loadLocalStatus(detail);resetPageScroll(this);}},
-  playAudio(){if(!this.data.detail)return;const player=wx.createInnerAudioContext();player.src=this.data.detail.imagePath;player.onEnded(()=>player.destroy());player.onError(()=>{player.destroy();this.setData({error:'声音暂时无法回放，记录仍保留。'});});player.play();},
+  openRecord(e:WechatMiniprogram.TouchEvent){this._player?.stop();const detail=this.data.records.find(r=>r.id===e.currentTarget.dataset.id);if(detail){this.setData({detail,view:'detail',pageTitle:'观察详情'});void this.loadLocalStatus(detail);resetPageScroll(this);}},
+  playAudio(){if(!this.data.detail)return;if(!this._player)this._player=new LocalAudioPlayback(()=>this.setData({error:'声音暂时无法回放，记录仍保留。'}));this._player.play(this.data.detail.imagePath);},
   favorite(){const r=this.data.detail;if(!r)return;const favorites=this.data.favorites.includes(r.id)?this.data.favorites.filter(id=>id!==r.id):[...this.data.favorites,r.id];try{wx.setStorageSync('bird-assistant.favorites.v1',favorites);this.setData({favorites,...observationStats(this.data.records,favorites)});wx.showToast({title:favorites.includes(r.id)?'已加入我的收藏':'已移除收藏',icon:'none'});}catch(error){this.setData({error:errorText(error)});}},
-  back(){if(this.data.crop){this.setData({crop:false});return;}if(this.data.edit){this.cancel();return;}this.setData({view:'profile',pageTitle:'羽迹',error:''});resetPageScroll(this);},
+  back(){this._player?.stop();if(this.data.crop){this.setData({crop:false});return;}if(this.data.edit){this.cancel();return;}this.setData({view:'profile',pageTitle:'羽迹',error:''});resetPageScroll(this);},
   fitCrop(){const d=this.data,box=avatarCrop(d.cropWidth,d.cropHeight,d.cropZoom,d.cropRotation,d.cropX,d.cropY);this.setData({cropDisplayW:round2(box.cropDisplayW),cropDisplayH:round2(box.cropDisplayH),cropX:round2(box.cropX),cropY:round2(box.cropY)});},
   setCropValue(key:string,value:number){if(!Number.isFinite(value))return;if(key==='cropZoom')this.setData({cropZoom:round2(clamp(value,1,3))});else if(key==='cropRotation')this.setData({cropRotation:round2(clamp(value,-180,180))});else return;this.fitCrop();},
   cropZoom(e:WechatMiniprogram.CustomEvent<{value:number}>){this.setData({numberEditing:''});this.setCropValue('cropZoom',Number(e.detail.value));},

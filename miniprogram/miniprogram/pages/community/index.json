@@ -2,7 +2,8 @@
   "navigationBarTitleText": "讨论",
   "usingComponents": {
     "app-header": "/components/app-header/index",
-    "photo-editor": "/components/photo-editor/index"
+    "photo-editor": "/components/photo-editor/index",
+    "speech-note": "../../components/speech-note/index"
   },
   "enablePullDownRefresh": false,
   "disableScroll": true

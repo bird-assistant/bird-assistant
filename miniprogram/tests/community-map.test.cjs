@@ -17,7 +17,7 @@ test('a circle tap zooms a spread cluster and immediately opens a paged shared-l
   let cluster=group();const requests=[];
   t.mock.method(service,'api',async(_p,_m,q)=>{requests.push(q);return q.zoom?{total:320,clusters:[cluster]}:{items:[{id:q.cursor?'second':'first'}],nextCursor:q.cursor?'':'next',total:320};});
   const {instance}=mapInstance(t,{createMapContext:nativeMap()});await instance.load();
-  assert.equal(requests[0].zoom,8);assert.equal(instance.data.markers[0].label.content,'320');
+  assert.equal(requests[0].zoom,8);assert.equal(instance.data.markers[0].callout.content,'320 条');assert.equal(instance.data.markers[0].label,undefined);
   let queued=0;instance.queueLoad=()=>queued++;
   instance.marker({detail:{markerId:instance.data.markers[0].id}});assert.equal(instance.data.scale,10);assert.equal(queued,1);
   cluster={...group(),minLongitude:116.4,maxLongitude:116.4};await instance.load();
@@ -99,7 +99,7 @@ test('boundary drawers meet the tab bar with no clear footer while keeping at le
     const p=mapPanes(width,height);assert.equal(p.toolbarHeight+p.mapHeight,height);assert.equal(p.creditReserve,0);assert.ok(p.listHeight>0);
     if(!p.wide)assert.ok(p.sheetHeight<=p.mapHeight*.46);assert.equal(p.listHeight+p.sheetHeaderHeight+p.creditReserve,p.sheetHeight);
   }
-  const single=clusterMarker({latitude:39,longitude:116,count:1},0,INDIVIDUAL_PIN_ZOOM-1);assert.equal(single.label.content,'1');
+  const single=clusterMarker({latitude:39,longitude:116,count:1},0,INDIVIDUAL_PIN_ZOOM-1);assert.equal(single.callout.content,'1 条');assert.equal(single.label,undefined);
   const pin=clusterMarker({latitude:39,longitude:116,count:1},0,INDIVIDUAL_PIN_ZOOM);assert.equal(pin.label,undefined);assert.equal(pin.width,26);
   const fs=require('node:fs'),markup=fs.readFileSync('miniprogram/components/field-map/index.wxml','utf8');assert.match(markup,/height:\{\{mapHeight\}\}px/);assert.doesNotMatch(markup,/mapHeight-sheetHeight|catch(?:touch|:touch)/);
 });

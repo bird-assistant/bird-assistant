@@ -1,3 +1,4 @@
+@import "../../styles/writing-feedback.wxss";
 .post-writing-sheet{position:fixed;z-index:150;bottom:0;left:0;right:0;width:100%;height:78vh;background:#fafbf5;border-radius:22px 22px 0 0;overflow:hidden}
 
 .post-writing-body{padding:10px 19px calc(28px + env(safe-area-inset-bottom));box-sizing:border-box}
@@ -86,3 +87,12 @@
 @media(prefers-reduced-motion:reduce){.pull-flight.is-flying .flight-bird{animation:none;opacity:1;left:3px}.pull-flight.is-flying .bird-two{left:20px}.pull-flight.is-flying .bird-three{left:37px}}
 
 .post-action-hover{background:#edf3e7}
+
+.compose-tools{flex-wrap:wrap;gap:8px}.compose-tools .compose-tool{flex:1;min-width:90px;padding:10px 6px}.compose-footer{margin-top:22px}
+
+.drafts-entry{width:auto;min-height:38px;margin:0;padding:8px 11px;font-size:12px;background:#e9f0e2;border:1px solid #cfddc5;color:#385d45}.draft-resume{width:100%;min-height:38px;margin:4px 0 14px;padding:9px 12px;background:#edf3e7;color:#285b49;text-align:left;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.draft-shelf-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 18px}.draft-shelf-top>view{flex:1;min-width:0}.draft-shelf-top button{width:auto;min-width:90px;margin:0;padding:10px;font-size:12px}.draft-shelf-card{border:1px solid #dce5d7;border-radius:14px;background:#fffef9;padding:14px;margin:12px 0}.draft-shelf-content{display:flex;gap:12px;align-items:flex-start}.draft-shelf-content>view{flex:1;min-width:0}.draft-shelf-cover{width:72px;height:80px;flex:none;border-radius:8px;background:#edf1e5}.draft-excerpt{font-size:13px;line-height:1.7;color:#71836a;margin:6px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.draft-card-actions{display:flex;gap:10px;margin-top:12px}.draft-card-actions button{flex:1;width:0;min-width:0;min-height:36px;padding:8px;font-size:12px}.draft-compose-status{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#819175;gap:12px;margin-bottom:8px}.draft-compose-status button{width:auto;margin:0;min-height:30px;padding:5px 8px;font-size:12px}.post-writing-photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0}.writing-photo{width:100%;min-width:0;padding:7px;background:#f3f6ed;border:1px solid #d5e1cc;text-align:left;font-size:12px;line-height:1.5}.writing-photo-selected{border:2px solid #285b49;padding:6px;background:#eaf1e2}.writing-photo image{display:block;width:100%;height:96px;border-radius:7px;margin-bottom:6px}.post-ai-answer{font-size:14px;line-height:1.9;white-space:pre-wrap;margin:12px 0}
+
+.ai-result-editor,.ai-caption-preview textarea,.post-ai-answer{box-sizing:border-box;width:100%;min-height:70px;font-size:14px;line-height:1.85;background:#fffef9;border:1px solid #d8e3d1;border-radius:10px;padding:10px 12px;margin:10px 0;white-space:pre-wrap}
+
+/* Native button defaults use a row; give each association card its own column. */
+.writing-photo{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;height:140px;min-height:140px;white-space:normal}.writing-photo image{flex:none;width:100%;height:96px}.writing-photo-label{display:block;width:100%;min-width:0;height:20px;min-height:20px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}.draft-times{font-size:11px;line-height:1.7;color:#819175;margin:7px 0}.draft-times view{white-space:normal;overflow-wrap:break-word}

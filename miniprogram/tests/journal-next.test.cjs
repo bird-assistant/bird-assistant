@@ -1,3 +1,4 @@
+const {journalHeading}=require('../.test-build/services/journal-writing.js');
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {registerPage}=require('./helpers/page-lifecycle.cjs');
@@ -18,10 +19,10 @@ test('photo-to-journal sends selected copies, previews a bounded suggestion, the
   let sent;ai.installJournalAiTransport({generate:input=>{sent=input;return {result:Promise.resolve({version:1,requestId:input.requestId,title:'枝头的一刻',body:'鸟停在枝头，羽色映着周围的绿。',design:{style:'minimal',variant:2}}),cancel(){}};}});
   t.after(()=>ai.installJournalAiTransport(null));
   const {p}=page();p._catalog=assets(2).map(a=>({...a,src:'wxfile://'+a.id+'.jpg',sample:false,persisted:true}));
-  await p.generateFromPhotos();assert.equal(sent.purpose,'照片手帐');assert.equal(sent.images.length,2);assert.equal(sent.maxChars,60);
+  await p.generateFromPhotos();assert.equal(sent,undefined,'opening the photo writing sheet must not call the provider');assert.equal(p.data.prompt,'');p.prompt({detail:{value:'根据照片写自然简短的观察，分别说明每张照片。'}});await p.prepareAi();assert.equal(sent.purpose,'照片手帐');assert.equal(sent.images.length,2);assert.equal(sent.maxChars,120);
   assert.ok(p.data.aiSuggestion);assert.notEqual(p.data.doc.title,'枝头的一刻');
   const before=structuredClone(p.data.doc);p.applyAi({currentTarget:{dataset:{design:'yes'}}});
-  assert.equal(p.data.doc.title,'枝头的一刻');assert.equal(p.data.doc.style,'minimal');assert.deepEqual(p.data.doc.elements.filter(e=>e.type==='photo').map(e=>e.src),before.elements.filter(e=>e.type==='photo').map(e=>e.src));
+  assert.equal(p.data.doc.title,before.title);assert.equal(journalHeading(p.data.doc).title,'枝头的一刻');assert.equal(p.data.doc.style,'minimal');assert.deepEqual(p.data.doc.elements.filter(e=>e.type==='photo').map(e=>e.src),before.elements.filter(e=>e.type==='photo').map(e=>e.src));
   p.undo();assert.deepEqual(p.data.doc,before);p.onUnload();
 });
 test('closing, hiding, reopening or changing a journal brief during photo persistence prevents a late upload',async t=>{
@@ -83,7 +84,7 @@ test('AI close/cancel and later document edits ignore stale results without over
   t.after(()=>ai.installJournalAiTransport(null));let resolve,cancelled=0,request;
   ai.installJournalAiTransport({generate:input=>{request=input;return {result:new Promise(r=>resolve=r),cancel:()=>cancelled++};}});
   const {p}=page();p.openDocument(journal.makeJournal(assets(1),'Keep'),false);p.openAi();p.prompt({detail:{value:'简短感想'}});const running=p.prepareAi(),before=structuredClone(p.data.doc);p.closeAi();assert.equal(cancelled,1);resolve({version:1,requestId:request.requestId,title:'Late',body:'Late result',design:{style:'nature',variant:1}});await running;assert.equal(p.data.aiSuggestion,null);assert.deepEqual(p.data.doc,before);
-  ai.installJournalAiTransport({generate:input=>({result:Promise.resolve({version:1,requestId:input.requestId,title:'New',body:'Suggested words',design:{style:'nature',variant:1}}),cancel(){}})});p.openAi();await p.prepareAi();p.data.doc.title='Changed meanwhile';p.applyAi({currentTarget:{dataset:{}}});assert.match(p.data.error,/已修改/);assert.equal(p.data.doc.title,'Changed meanwhile');
+  ai.installJournalAiTransport({generate:input=>({result:Promise.resolve({version:1,requestId:input.requestId,title:'New',body:'Suggested words',design:{style:'nature',variant:1}}),cancel(){}})});p.openAi();p.prompt({detail:{value:'A new explicit request'}});await p.prepareAi();p.data.doc.title='Changed meanwhile';p.applyAi({currentTarget:{dataset:{}}});assert.match(p.data.error,/已修改/);assert.equal(p.data.doc.title,'Changed meanwhile');
 });
 test('recognition handoff uses the existing contract parser and cancellation semantics without owning a Page',async t=>{
   t.after(()=>provider.installRecognitionProvider(null));assert.throws(()=>provider.recognizeWithProvider({kind:'photo',filePath:'local',reference:'x'}),/尚未安装/);assert.throws(()=>provider.installRecognitionProvider({contract:'wrong',createTransport(){}}));

@@ -1,3 +1,21 @@
+27 November 2026 · **Current candidate0.4.14:** [Phone review, evidence and acceptance](PHONE-REVIEW-0.4.14.md). PR26 is merged; uploaded0.4.13 stays available for debugging. Client map/import/sheet/deck changes and bounded capture/share work are ready for native testing. Hosted writing404, vision502 and old global ordering remain open. All existing backlog IDs below are preserved.
+
+| ID | Phone-feedback work and current boundary |
+| --- | --- |
+| R47 / X01 | Remove character-based filter/navigation symbols; existing icons/CSS used. Native visual consistency remains open. |
+| R48 / Q05/X02 | Lazy metadata shelf and cached composed-page bitmaps; warm bridge proxy improves. First migration, cache quota and native swipe FPS require phone review. |
+| R49 / M01 | Distance/date selection stays selected; loaded-batch ordering and honest old-server warning. Global ordering/pagination requires deployment. |
+| R50 / M01 | Native location selection survives hide/show; selected sighting centers and highlights its displayed public region. Native timing/privacy acceptance remains. |
+| R51 / Q03 | Hosted writing readiness and writing/config/caption port. Live404 persists; maintainer deployment plus real user generation required. |
+| R52 / X01 | Keyboard/safe-area-aware sheets and compact one-result drawer; empty/long projection checks pass. Wider popup/whitespace audit and native profiles remain. |
+| R53 / I02 | Original-photo import directly; original-quality shutter request and durable capture. Actual Pura output dimensions and OEM limitations remain. |
+| R54 / X01/F01 | Trip disclosures and bookmark cards implemented; test native spacing, long text, open/remove actions. |
+| R55 / I01/I02 | Adaptive quick/wait sampling, bounded returned-frame recovery, per-target durable observation review. Full pre-capture ring, live audio/fusion and heat/battery experiments remain. |
+| R56 / R34/R46 | Local redacted fault summary, package-only services moved, regression/layout/proxy tools added. Native auth/null root cause and bundled media-size optimization remain open. |
+
+
+---
+
 # Current candidate: 0.4.13
 
 [Experience handoff and preserved R40–R45 follow-up requirements](EXPERIENCE-0.4.13.md). User acceptance now covers draft dates, persistent Undo/Redo, abandoning an old Redo branch, deletion and photo labels. Photo-only explicit generation, adaptive shared sheets and composed thumbnails are implemented;307 client checks pass. Native Compile/phone/provider acceptance remain separate. Existing helper stays running. The private repository retains the canonical English update plan. All original48 IDs and R01–R39 remain below.

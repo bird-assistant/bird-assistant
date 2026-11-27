@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const save=require('../.test-build/services/media-save.js');
+const save=require('../.test-build/field/services/media-save.js');
 const origin='https://api.auroraliu.cn:8080',path='/api/v1/community/publications/post_example/photos/1';
 function environment(){const calls=[];global.wx={getExtConfigSync:()=>({}),downloadFile:o=>{calls.push(['download',o]);o.success({statusCode:200,tempFilePath:'wxfile://download-owned'});},saveImageToPhotosAlbum:o=>{calls.push(['album',o]);o.success();},getFileSystemManager:()=>({unlink:o=>calls.push(['unlink',o.filePath])})};return calls;}
 test('saving a public image uses its redacted route and cleans only the downloaded temporary copy',async()=>{

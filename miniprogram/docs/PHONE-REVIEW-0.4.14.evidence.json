@@ -1,0 +1,930 @@
+{
+  "version": "0.4.14",
+  "baseTeamCommit": "36c3e34212dc57bed6d041255352c06800cdc109",
+  "client": {
+    "command": "npm run verify",
+    "passed": 329,
+    "failed": 0,
+    "skipped": 0
+  },
+  "backend": {
+    "command": "python -m pytest",
+    "passed": 493,
+    "skipped": 51,
+    "coveragePercent": 87.02
+  },
+  "nativeCompile": "NOT RUN",
+  "experienceUpload": "NOT RUN",
+  "productionDeployment": "NOT RUN",
+  "providerCalls": "MOCKED ONLY",
+  "sourceLayoutProjection": {
+    "fixtures": 21,
+    "sizes": [
+      "320x568",
+      "412x931",
+      "768x1024"
+    ],
+    "horizontalOverflow": 0,
+    "unreachableAiFooter": 0,
+    "oversizedEmptyHistory": 0,
+    "nativeEmulation": false
+  },
+  "deckProxy": {
+    "scenario": "Warm shelf; 18 six-photo journals with eight extra text boxes and bounded edit history; open home then 100 deck changes",
+    "sourceBytes": 424941,
+    "baseline": {
+      "home": {
+        "fullLibraryReads": 1,
+        "fullLibraryBytes": 424941,
+        "setDataCalls": 5,
+        "serializedBridgeBytes": 52844
+      },
+      "swipes": {
+        "fullLibraryReads": 0,
+        "setDataCalls": 200,
+        "serializedBridgeBytes": 4743817
+      }
+    },
+    "updated": {
+      "home": {
+        "fullLibraryReads": 0,
+        "fullLibraryBytes": 0,
+        "setDataCalls": 3,
+        "serializedBridgeBytes": 9735
+      },
+      "swipes": {
+        "fullLibraryReads": 0,
+        "setDataCalls": 100,
+        "serializedBridgeBytes": 1541
+      }
+    },
+    "limits": "Node storage/bridge proxy; excludes first migration, thumbnail creation, native decoding and animation FPS."
+  },
+  "publicReadOnlyProbe": {
+    "checked": "2026-11-27T08:55:40.322Z",
+    "origin": "https://api.auroraliu.cn:8080",
+    "readOnly": true,
+    "vision": {
+      "status": 502,
+      "ready": false,
+      "models": []
+    },
+    "audio": {
+      "status": 404,
+      "ready": false,
+      "actualRecognition": "NOT TESTED"
+    },
+    "writing": {
+      "suggestionsStatus": 404,
+      "capabilitiesStatus": 404,
+      "routePresent": false,
+      "configured": "NOT CHECKED WITHOUT A USER SESSION",
+      "action": "Deploy the active business checkout and journal proxy route; a working trip endpoint does not establish writing readiness."
+    },
+    "trip": {
+      "status": 405,
+      "routePresent": true
+    },
+    "privateMapProtection": {
+      "status": 401,
+      "passed": true
+    },
+    "placesOrdering": {
+      "status": 200,
+      "current": false,
+      "action": "Deploy the reviewed business-service changes before testing distance ordering and new trip advice."
+    },
+    "acceptance": {
+      "realIdentification": "NOT TESTED",
+      "wechatLogin": "NOT TESTED",
+      "qwen": "NOT CALLED",
+      "publications": "NOT CREATED"
+    }
+  },
+  "runtimeFiles": [
+    {
+      "path": "miniprogram/app.json",
+      "sha256": "1abbb2124d494a652b222cc0cd6ae128268a2ca4a07a01eccbb3cb65fba7c029"
+    },
+    {
+      "path": "miniprogram/app.ts",
+      "sha256": "cb31f01214d19fa83017813dc48bec232489e4a65eb4d291b495a6454d2c022b"
+    },
+    {
+      "path": "miniprogram/app.wxss",
+      "sha256": "dbc8c7548e3d86d042514749855499b5d36d32d4adef6a25e2b582c08ff8afc7"
+    },
+    {
+      "path": "miniprogram/assets/avatars/finch.png",
+      "sha256": "c2707d27690ebebef6be44054e8a25762e6e1c81603e1693874cdbab52114742"
+    },
+    {
+      "path": "miniprogram/assets/avatars/leaf.png",
+      "sha256": "d80e046ab6f1694b4e68de5064f71ce3366d7bbabcc6e9c611c6ccae6ec1031f"
+    },
+    {
+      "path": "miniprogram/assets/avatars/letter.png",
+      "sha256": "98f99da2307331e44c15fa7cf5c11e4de79161ec9996e5996fe543895fa50fd6"
+    },
+    {
+      "path": "miniprogram/assets/avatars/mountain.png",
+      "sha256": "2201fbd0316f1eff8a7e8b902e81be8eb80cbc2b3d878c98f68cadc494a9b315"
+    },
+    {
+      "path": "miniprogram/assets/avatars/owl.png",
+      "sha256": "b0324d61c1b6234e6279ccd353877a6c7b1bcf7188735aab782c99ed99b93cdd"
+    },
+    {
+      "path": "miniprogram/assets/avatars/water.png",
+      "sha256": "2a9a07cda9331de222d03c0fb06fbded5edd07c13fcf8e3c8184743ac1f22b5d"
+    },
+    {
+      "path": "miniprogram/assets/bird-preview.png",
+      "sha256": "592636ab84521865570181ba0164aed382f7d9a852032a80a8455385d3af1732"
+    },
+    {
+      "path": "miniprogram/assets/decorations/compass.png",
+      "sha256": "ffa9d551e452cc913204867dc0484e29517b1cf74cc79cc154b08e5ce0261625"
+    },
+    {
+      "path": "miniprogram/assets/decorations/feather.png",
+      "sha256": "b639ff36861214877df1c4978b96cb57e92a604280b012f3f840f5acf8c3b906"
+    },
+    {
+      "path": "miniprogram/assets/decorations/flower.png",
+      "sha256": "916e2c0566ec86e0c22171e141ec097a540f0353b62676e909b8e6cbe04ed952"
+    },
+    {
+      "path": "miniprogram/assets/decorations/grass.png",
+      "sha256": "e556c292ff1b1b2ec21ffa73f2306b3638e9757631869c4207ab33b140f06c52"
+    },
+    {
+      "path": "miniprogram/assets/decorations/leaf.png",
+      "sha256": "399d73bfe3be759f5a0d9268f2fb5039f1a2429cbcac225cfe54bb53eea5d779"
+    },
+    {
+      "path": "miniprogram/assets/decorations/moon.png",
+      "sha256": "a6016994ae80c9be0980b8708ec60292de689066de0a654cf0784c81035686ba"
+    },
+    {
+      "path": "miniprogram/assets/decorations/sprig.png",
+      "sha256": "84333a73a21c6624a527af4d64605f1824106a3d0bf53648f53ed90146fb33d7"
+    },
+    {
+      "path": "miniprogram/assets/decorations/stamp.png",
+      "sha256": "f351048ef0d3d56a077421e8bd96be9fc3322bf8a856f1206a4e9c55750aa539"
+    },
+    {
+      "path": "miniprogram/assets/decorations/star.png",
+      "sha256": "3acd96994c108a73291433ed7827e4e35ed67644084f53425c756f44b99b1db3"
+    },
+    {
+      "path": "miniprogram/assets/decorations/sun.png",
+      "sha256": "324ac8b40b698836eb23c692a452c5c4f484f3f9b168e5650bc6f51298402edd"
+    },
+    {
+      "path": "miniprogram/assets/decorations/waves.png",
+      "sha256": "41a089d36112abbd9d90c3ea48f38681cc18fe86a5b46b2911407ad1ebd1a51a"
+    },
+    {
+      "path": "miniprogram/assets/icons/arrow.png",
+      "sha256": "699f5df77f20cb70fecdea4f9f9596b25462bd2fe182d0ad16006ddfb1461602"
+    },
+    {
+      "path": "miniprogram/assets/icons/back.png",
+      "sha256": "3781ba0a00070cd6bee1ddd45fa1c5e3349de92063e496355abb3468018b09a1"
+    },
+    {
+      "path": "miniprogram/assets/icons/camera.png",
+      "sha256": "5d45eb505225a67a9736a20dd4488acd01c4432942865a80bc655abfcb6800bf"
+    },
+    {
+      "path": "miniprogram/assets/icons/chat.png",
+      "sha256": "f12a333b9af4e9f968d4dc1ad9d052ae15e8769a8106ece648659ca26c04c855"
+    },
+    {
+      "path": "miniprogram/assets/icons/check.png",
+      "sha256": "d4c2b61aaf7afcf22c6053d8bc996810ef177a929ee5f95ef01902a3238db806"
+    },
+    {
+      "path": "miniprogram/assets/icons/chevron.png",
+      "sha256": "522a9b6c4f875d5b968af9a2396aa560da749e882772d2a0241ba694fd084d68"
+    },
+    {
+      "path": "miniprogram/assets/icons/clock.png",
+      "sha256": "a8af511d7be953bb061c9391f5707e8cc66968003ef56243ca86d337d191f677"
+    },
+    {
+      "path": "miniprogram/assets/icons/close.png",
+      "sha256": "751c1653ba75340b747da6106b7c5138773a73f446ca237c2415ab530220a0c0"
+    },
+    {
+      "path": "miniprogram/assets/icons/collection.png",
+      "sha256": "aab8a672f35d5ba4b1357df70191d8436912fc9dc146f53ab53bcb265765558c"
+    },
+    {
+      "path": "miniprogram/assets/icons/heart.png",
+      "sha256": "2626388b9e621cef88fd9edd40b09cd30d4e776755777ed815e10b344b56371c"
+    },
+    {
+      "path": "miniprogram/assets/icons/home.png",
+      "sha256": "6ba69cd0da71d054e6d26429c08a64a0a193f462fd042e685ac92b12df0c8a08"
+    },
+    {
+      "path": "miniprogram/assets/icons/image.png",
+      "sha256": "316f4ee7e157b8565c53285e5cb3c23c70cd609e3b637849e0c5933b9ce48dcc"
+    },
+    {
+      "path": "miniprogram/assets/icons/journal.png",
+      "sha256": "1fc82a30891472f894bf4e52aa2719952805fc64624b080f32ca43d997863e2d"
+    },
+    {
+      "path": "miniprogram/assets/icons/leaf.png",
+      "sha256": "095b2a4f5fc7f99f9bf401837eede4b195ea2eaad182fd4375ecc83c3a2afd91"
+    },
+    {
+      "path": "miniprogram/assets/icons/locate.png",
+      "sha256": "6256ad918064b68b5359e816a5b35106e57659da55fd914016aca2dc7aa2fac1"
+    },
+    {
+      "path": "miniprogram/assets/icons/map-cluster.png",
+      "sha256": "117083405ce98e304ddac08b7cf4466a2a932961b7ee812e02ddfc53c92b3182"
+    },
+    {
+      "path": "miniprogram/assets/icons/mic.png",
+      "sha256": "ca5a3424445f533400e9c7c55148ee67f0817e9e24970a15ec2c4be1378339bf"
+    },
+    {
+      "path": "miniprogram/assets/icons/minus.png",
+      "sha256": "7d1bf0dace8657fb07f542335145c6a3937a888b3e1d9ece69cdb71df23d5b13"
+    },
+    {
+      "path": "miniprogram/assets/icons/pin.png",
+      "sha256": "859690e2d4e77a59ed32b6c31d9196f819f50410e1c0581167ad2f210fb31206"
+    },
+    {
+      "path": "miniprogram/assets/icons/plus.png",
+      "sha256": "5425de97402bef9799966e820595be3a753935d61859cf02b13d244bed2df4b0"
+    },
+    {
+      "path": "miniprogram/assets/icons/redo.png",
+      "sha256": "d105d1159106a591826d2e9510c2e06add4efb78c2155e298f8708c84cd0589f"
+    },
+    {
+      "path": "miniprogram/assets/icons/scan-white.png",
+      "sha256": "400555787c09126d22b494697dcfaf02fd30e0a11280196b64e723930196caf6"
+    },
+    {
+      "path": "miniprogram/assets/icons/scan.png",
+      "sha256": "4c8b17af4118ae7822e937214a626dcf75c3e60ce1627b11f3578b04692d146a"
+    },
+    {
+      "path": "miniprogram/assets/icons/search.png",
+      "sha256": "0ab6f6c683e86dde480090795ce197874861a52d8fdd00ed3dee50d06e804167"
+    },
+    {
+      "path": "miniprogram/assets/icons/settings.png",
+      "sha256": "e9e796eb97e8eac7f4b7cfb60a6ff61dc8678d07ac5f0f22f66a42aba22f2daa"
+    },
+    {
+      "path": "miniprogram/assets/icons/sound.png",
+      "sha256": "9912a9bbfa92280ebc1eeb7c89b2412c5ba16df5cc8dc73941e9090c6a0e9d14"
+    },
+    {
+      "path": "miniprogram/assets/icons/undo.png",
+      "sha256": "60d10cf227ac6339ac7f0320af4ce446ed7bb59d2a48bb20ec7ae17410956d4d"
+    },
+    {
+      "path": "miniprogram/assets/icons/user.png",
+      "sha256": "55764ce9c60bab32cc89189a64385a9554f64f5768c05a70fa0f8dcfdc3c44aa"
+    },
+    {
+      "path": "miniprogram/assets/icons/video.png",
+      "sha256": "3ccb5667b5a89d15cdc8c84ef615ffb139967ef5982d68738777be05994d75e6"
+    },
+    {
+      "path": "miniprogram/assets/map-preview.png",
+      "sha256": "a3db4739c27c7e5d8b390788d509c0c230c6945a76d496625641ab916afcc3e1"
+    },
+    {
+      "path": "miniprogram/assets/papers/dots.png",
+      "sha256": "ad22bee4497800bfa770239f2dd6ffd3c318f67215627b1eb22e9639a1a53f27"
+    },
+    {
+      "path": "miniprogram/assets/papers/fiber.png",
+      "sha256": "16df93a66ace4a8bd2f20795cd834f0862d6189695a11c0ecc518b5867241115"
+    },
+    {
+      "path": "miniprogram/assets/papers/grid.png",
+      "sha256": "68590930c4b6e5430fb51bed560bc5bc498b99e6914bb6db5d0d29108acf7474"
+    },
+    {
+      "path": "miniprogram/assets/papers/linen.png",
+      "sha256": "bc4604723dbf46186d54a23cb1cd197c32d5ec5deb946a5e7b46998198c8ce01"
+    },
+    {
+      "path": "miniprogram/assets/papers/ruled.png",
+      "sha256": "1610de40e6501a698f54fcbdf4d387257314ef63c1bc291bc73e930e559d4595"
+    },
+    {
+      "path": "miniprogram/assets/samples/field-0.png",
+      "sha256": "5c98bc7e172220811f4f8f4ebb08748fd53ded3068540663e1d7b53877a2fe9c"
+    },
+    {
+      "path": "miniprogram/assets/samples/field-1.png",
+      "sha256": "318ee84424a756635c5b559d464bf11ee05fc6aed95acc45eef45776f12e6a54"
+    },
+    {
+      "path": "miniprogram/assets/samples/field-2.png",
+      "sha256": "6c697405357939f1feea3b78eca09c994e323cf820facf198cd451ed681d9287"
+    },
+    {
+      "path": "miniprogram/assets/samples/field-3.png",
+      "sha256": "bfa67ae2ffbedecf6e854896f87c756f1eec12a52f8e04fda84756c82a09e4d3"
+    },
+    {
+      "path": "miniprogram/assets/samples/live-scene.png",
+      "sha256": "e1d93756505b701f5b64f94905c316112ece6975e5b9f3111f98811585f9b56c"
+    },
+    {
+      "path": "miniprogram/components/app-header/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+    },
+    {
+      "path": "miniprogram/components/app-header/index.ts",
+      "sha256": "7f49bc61a17dfbadcfd5aaefae6b17d0b1dfafda44e03c366f8721f23246928f"
+    },
+    {
+      "path": "miniprogram/components/app-header/index.wxml",
+      "sha256": "92524b1f9c33f0ff9ce8589fa504522502cf5385cf8d2c3120a4c5e3ae1ad49d"
+    },
+    {
+      "path": "miniprogram/components/app-header/index.wxss",
+      "sha256": "83305ba549c457f0428d9ddef566cff6143e8f0fcdb83a89f747b61d6dfdc263"
+    },
+    {
+      "path": "miniprogram/components/bird-crop/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+    },
+    {
+      "path": "miniprogram/components/bird-crop/index.ts",
+      "sha256": "038d3d340416938426549043a1f7e9f2827a9a9266057e69eebf5a2520b43430"
+    },
+    {
+      "path": "miniprogram/components/bird-crop/index.wxml",
+      "sha256": "553a466ec8210bdceb3f24b1c16e1d51d91f97667d1e3e2feda64974836f41d8"
+    },
+    {
+      "path": "miniprogram/components/bird-crop/index.wxss",
+      "sha256": "c6db78406fdd45558312b3b6c93a5cf656cd8038be5b3f22ccc545728c6a389c"
+    },
+    {
+      "path": "miniprogram/components/field-map/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+    },
+    {
+      "path": "miniprogram/components/field-map/index.ts",
+      "sha256": "9a5dc621362eeea232e063c13d19b1a14dc97b40a3136dc0ecdeb4042f4584e9"
+    },
+    {
+      "path": "miniprogram/components/field-map/index.wxml",
+      "sha256": "b298b22ac980a4d076cacbc9d80c6ac090e038a881313a7bdedacc00ed5b4802"
+    },
+    {
+      "path": "miniprogram/components/field-map/index.wxss",
+      "sha256": "1af27039cc30d2380aa0f97453f68d215f55fdc823ddb5d2e60b10db0698fcde"
+    },
+    {
+      "path": "miniprogram/components/photo-card/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+    },
+    {
+      "path": "miniprogram/components/photo-card/index.ts",
+      "sha256": "7f661f24ca24026f33f4d8244b7829635585241ef60602f866e3811e43b91015"
+    },
+    {
+      "path": "miniprogram/components/photo-card/index.wxml",
+      "sha256": "e0ba1ffdd958dc702822ac9f59be3eeda3a35a8b1c19c8f86e3fed0e42bb938d"
+    },
+    {
+      "path": "miniprogram/components/photo-card/index.wxss",
+      "sha256": "a6c43b56d1375d29e792b7a28e641121ce5ba218dd45b851f86f4f122a553474"
+    },
+    {
+      "path": "miniprogram/components/photo-editor/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+    },
+    {
+      "path": "miniprogram/components/photo-editor/index.ts",
+      "sha256": "318f7f6947a44600245441b62f9f8c592cb52cafee915f4447dba872d95d6df7"
+    },
+    {
+      "path": "miniprogram/components/photo-editor/index.wxml",
+      "sha256": "c5afa3ed3f024f2f0bf8e78ad6c7261b49d2ee1e1f6ddabfd6f9f3e714908a0e"
+    },
+    {
+      "path": "miniprogram/components/photo-editor/index.wxss",
+      "sha256": "a8fb19b45f1bafbed58336cef4b1a8c977c3c6bcfa42b104daab6a24b16eb683"
+    },
+    {
+      "path": "miniprogram/components/profile-avatar/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+    },
+    {
+      "path": "miniprogram/components/profile-avatar/index.ts",
+      "sha256": "72cfd6779a6f7a768470c8372a03bd0913015c6eb109b8591c9e9b0487f81421"
+    },
+    {
+      "path": "miniprogram/components/profile-avatar/index.wxml",
+      "sha256": "e40d772967b1a9399df07f81d850abd0645bca68f6a6d6cfa52636c5f8d06769"
+    },
+    {
+      "path": "miniprogram/components/profile-avatar/index.wxss",
+      "sha256": "f0c71bdcd9a618a333982c23cf3e45aedd391a45750ac7143ff2d90f995ba2d5"
+    },
+    {
+      "path": "miniprogram/components/species-search/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+    },
+    {
+      "path": "miniprogram/components/species-search/index.ts",
+      "sha256": "9156eded9c71740b691e4eb875109698ba48ecf624706c77cf6720b211770ad2"
+    },
+    {
+      "path": "miniprogram/components/species-search/index.wxml",
+      "sha256": "e536a3989966054df3f647b06adbd77130fa2f4a7ec214752a43ec0a38bb3c6d"
+    },
+    {
+      "path": "miniprogram/components/species-search/index.wxss",
+      "sha256": "7d8378711ef7b464917219bd1b9bf44c1eebf6c37d2c2631bf6bad486bc62374"
+    },
+    {
+      "path": "miniprogram/components/speech-note/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+    },
+    {
+      "path": "miniprogram/components/speech-note/index.ts",
+      "sha256": "afb2438fbd021fd81f369b863d2acfb1c5f8482fe3eefd5edabd988ea973c0f3"
+    },
+    {
+      "path": "miniprogram/components/speech-note/index.wxml",
+      "sha256": "ad6b2611427b61d21f3a213a25395bab13170ae8cc35d7dad8bcde49d2dca2b8"
+    },
+    {
+      "path": "miniprogram/components/speech-note/index.wxss",
+      "sha256": "6fec64ed03ab859d0e020c47ca30734bbe0e333148d1a6ea2b29d3834034fed3"
+    },
+    {
+      "path": "miniprogram/custom-tab-bar/index.json",
+      "sha256": "e7b657f5a4b032a68e9e084639b3a5564ce552896d269c3f8c4463bf7a7fa3b5"
+    },
+    {
+      "path": "miniprogram/custom-tab-bar/index.ts",
+      "sha256": "60f2f286dc26f50560e4c290caaf7e33bc3da5c53a5f8c66d408142441796d00"
+    },
+    {
+      "path": "miniprogram/custom-tab-bar/index.wxml",
+      "sha256": "1c404d4fdcfeb28628a53c20fc6a78cd797d4c8ef92c9c08163f9148b1e26fac"
+    },
+    {
+      "path": "miniprogram/custom-tab-bar/index.wxss",
+      "sha256": "a67f7de4f31628afde156a5c964f09e0339233287e70ffdb6268ce9afa2dadda"
+    },
+    {
+      "path": "miniprogram/field/compare/index.json",
+      "sha256": "a5ad755bd43db8136d6e4213462430884d5e9f0d0465ebde6b8391a5bfec0a6c"
+    },
+    {
+      "path": "miniprogram/field/compare/index.ts",
+      "sha256": "b8043697d4f0f3673c6714bdcd7b2065486a1b5c994dc310c61ce66b4c49207c"
+    },
+    {
+      "path": "miniprogram/field/compare/index.wxml",
+      "sha256": "e6c0d545c7e9201f4ed65cf63ff224ed82b3ca7e4afff2589934ff9926d4a04c"
+    },
+    {
+      "path": "miniprogram/field/compare/index.wxss",
+      "sha256": "5d3cb6db062473664de3251fe4f80b57c589c33c39a0ea11916a22fd89119b50"
+    },
+    {
+      "path": "miniprogram/field/guide-card/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+    },
+    {
+      "path": "miniprogram/field/guide-card/index.ts",
+      "sha256": "65401040e15d7a72650263301cabfaca036ad368722c674db89180d08c26daf7"
+    },
+    {
+      "path": "miniprogram/field/guide-card/index.wxml",
+      "sha256": "f3eba491a92376b91df38b648cc8304d8d5ed63ed48a6285987abd881afb2015"
+    },
+    {
+      "path": "miniprogram/field/guide-card/index.wxss",
+      "sha256": "b2772b836666f3a57720ab6e9b8e20c9a7f609ead5fc13e844fb268a3a840c3b"
+    },
+    {
+      "path": "miniprogram/field/hub/index.json",
+      "sha256": "87825e5c576466480ba5ab8d136a52a5e2c5bedec260ba36eb801fc56ba3944f"
+    },
+    {
+      "path": "miniprogram/field/hub/index.ts",
+      "sha256": "dea87bcb5e22b56fa3f629358500012be03572682e9eff1d22d410c624339baf"
+    },
+    {
+      "path": "miniprogram/field/hub/index.wxml",
+      "sha256": "cc92a3e2d9bbcfdbe16197921dcf7c631ac1908743fded9c0d3b9413eac33b4e"
+    },
+    {
+      "path": "miniprogram/field/hub/index.wxss",
+      "sha256": "f71e922452b6cc1e05e78437e82a349c5e2a80272e289b58ac516c622d4cb9c6"
+    },
+    {
+      "path": "miniprogram/field/picker/index.json",
+      "sha256": "7074ce2a3d9c2d64e7e14abfc75e117d4135850ca50779e666f700372bf7b2b6"
+    },
+    {
+      "path": "miniprogram/field/picker/index.ts",
+      "sha256": "bc6770e443240d66edc880cb97ab8e0b699bb6ad072889197997ecc3b7f1cabb"
+    },
+    {
+      "path": "miniprogram/field/picker/index.wxml",
+      "sha256": "bdd82ad1504461cc4dc8b660c89b39536dbeec66a3efa35b7e5562b73deb1a41"
+    },
+    {
+      "path": "miniprogram/field/picker/index.wxss",
+      "sha256": "f7f47a88f7e66d83d95b45897f0997ee133d4b953afa0e8cadc753756546ec64"
+    },
+    {
+      "path": "miniprogram/field/services/media-save.ts",
+      "sha256": "248070b71db12d315b41f1ebbcb7536d12214026c55ec571cfadca06dc53d8bf"
+    },
+    {
+      "path": "miniprogram/field/services/trip-advice.ts",
+      "sha256": "6bca800dd42bfc672132f68cc42d9867ad566beed7d737ae9e5be5e4f1539867"
+    },
+    {
+      "path": "miniprogram/field/services/trip-history.ts",
+      "sha256": "568e81c2b27a9915b87fcec9c48279ddb6038506e818fefbe00f218bf5904dca"
+    },
+    {
+      "path": "miniprogram/field/services/trip-plan.ts",
+      "sha256": "1c8de42c83448829c8dec1132ac328dad494f44533eb15c624da406b96bc8fbf"
+    },
+    {
+      "path": "miniprogram/field/social/index.json",
+      "sha256": "42444b44cf47dec5904f7750f7cbe10d7bdb37314f25afd93c7a0fe1bd8c370c"
+    },
+    {
+      "path": "miniprogram/field/social/index.ts",
+      "sha256": "e2ef44c1f5205a19f927642c4d1276f28b5302fe970ecd0d5c5bff1cf431b216"
+    },
+    {
+      "path": "miniprogram/field/social/index.wxml",
+      "sha256": "263538a04137f6c29cc71e550db946ed76311dff90bf0af6a2ac43b84d25fc18"
+    },
+    {
+      "path": "miniprogram/field/social/index.wxss",
+      "sha256": "ae6cdcbd739c2d21f1e4c78131349039100bab27d877fcd075fc7a781b7e2350"
+    },
+    {
+      "path": "miniprogram/field/trip/index.json",
+      "sha256": "2d2f82fa8f55c32aafe167da93e959a5da01375c5d47145e03a7e79366487fb9"
+    },
+    {
+      "path": "miniprogram/field/trip/index.ts",
+      "sha256": "e25d288155335adfeb2320f4dadb1fa047b79a178cf6119ae34a793bb9c141dd"
+    },
+    {
+      "path": "miniprogram/field/trip/index.wxml",
+      "sha256": "35a1b969e893e2c2cc97df39e254d6ce7f17b53476abc168c4b2e298a2b54db8"
+    },
+    {
+      "path": "miniprogram/field/trip/index.wxss",
+      "sha256": "6be6fffedfcae608df0c3c0fdc114ab09c09aa9dd2059dc4fd100ba22e508594"
+    },
+    {
+      "path": "miniprogram/pages/community/index.json",
+      "sha256": "6a1045d6a2da0e4ce2db56862ccca4345517cb4c9106763910c993b3716fdb4e"
+    },
+    {
+      "path": "miniprogram/pages/community/index.ts",
+      "sha256": "6bbd601e1e66be8c87d634e410d1d01a04b484965e6b5dd21ba671e618552e53"
+    },
+    {
+      "path": "miniprogram/pages/community/index.wxml",
+      "sha256": "61abd6bbcb4f5bf0227978be95bf78306fced5b41547b6e948b1c140d0b60d60"
+    },
+    {
+      "path": "miniprogram/pages/community/index.wxss",
+      "sha256": "8b440db63c19960ac41449216c800086fe80abdad4f503101bce5d9f8d8fabd5"
+    },
+    {
+      "path": "miniprogram/pages/home/index.json",
+      "sha256": "4c9e0295b9e8a78158ad843b5e00e8320a7290315a95a53df7262394a1b64674"
+    },
+    {
+      "path": "miniprogram/pages/home/index.ts",
+      "sha256": "5ea94624a26258fc6d972dc03d17188e5b0904c45e8a1eacf5ea12a41ed74e6e"
+    },
+    {
+      "path": "miniprogram/pages/home/index.wxml",
+      "sha256": "006e36ce556ec540e4989d44b5f8a94f62ac784cb6c0d55346296906e23a2eec"
+    },
+    {
+      "path": "miniprogram/pages/home/index.wxss",
+      "sha256": "81d37f42bcfaa2e91913cb4bea144952498eda44d64e2bee2ff61d14b7f3477b"
+    },
+    {
+      "path": "miniprogram/pages/identify/index.json",
+      "sha256": "0ba4a2574c03bec873c2238559440af6bbf283e5d9a4b418e8affff0f8cc0bef"
+    },
+    {
+      "path": "miniprogram/pages/identify/index.ts",
+      "sha256": "e6fc06b9d77d26616555120e593115f99ff1860f90b316b00b5ea9d2cfe81198"
+    },
+    {
+      "path": "miniprogram/pages/identify/index.wxml",
+      "sha256": "cf19ae56f3278e4be917caa57eb1166b6d51b7bbfb8c5c419c5e99d726fc714c"
+    },
+    {
+      "path": "miniprogram/pages/identify/index.wxss",
+      "sha256": "e57fcd0178ff2c4e186790168b0a5b7575922cc3ccad700bf6e9bcfb20be7a2d"
+    },
+    {
+      "path": "miniprogram/pages/journal/index.json",
+      "sha256": "d9e657f511f25e29ec383399723d5d115e1afe88931ec32664a440c71d243a2b"
+    },
+    {
+      "path": "miniprogram/pages/journal/index.ts",
+      "sha256": "62f8d41e47c11cd41e22ff2024d3c0fdf3c3cbf5acd80b514dffbc65ebdb516f"
+    },
+    {
+      "path": "miniprogram/pages/journal/index.wxml",
+      "sha256": "d9cd2d37e66505aa2b299a9280d0eb01555fe7e84d1e1d1a8916c66a579946fc"
+    },
+    {
+      "path": "miniprogram/pages/journal/index.wxss",
+      "sha256": "e12defdb8ca5ed723c35958afe4fc4c0aae83d5f3413643b63c47fc7940c2353"
+    },
+    {
+      "path": "miniprogram/pages/profile/index.json",
+      "sha256": "853456561e2223bb5ac9b390529e31e4196cfa87495cf140bdf479b2d6e1dcf3"
+    },
+    {
+      "path": "miniprogram/pages/profile/index.ts",
+      "sha256": "b3cf4de1d6e6ccb7eac616c57d8ac496573e4a942666aedeea8105d290d3d1c9"
+    },
+    {
+      "path": "miniprogram/pages/profile/index.wxml",
+      "sha256": "8a0e878fcdbf0a384d6dc80e1dda372e6f0c9896f92292882f9fd4d3679068ca"
+    },
+    {
+      "path": "miniprogram/pages/profile/index.wxss",
+      "sha256": "d264e2b9a3ed06a974dda51d2958c2dd2a40568d0021b8a176df4ab57fa51882"
+    },
+    {
+      "path": "miniprogram/services/adaptive-sheets.ts",
+      "sha256": "e589e9f8c78fef6223fe6036a460d3cf8313b90c2b492d155d64ef1d8b823f02"
+    },
+    {
+      "path": "miniprogram/services/audio-network.ts",
+      "sha256": "de2fb7dca220cbd15e48a241b581364a72c48e1ba53a105876e2d713ccc1f99a"
+    },
+    {
+      "path": "miniprogram/services/audio-playback.ts",
+      "sha256": "32151e2c25c433c305e879581075e5a5f919469dfad0538d0dca24cf696b65e8"
+    },
+    {
+      "path": "miniprogram/services/camera-zoom.ts",
+      "sha256": "e5c4d5eefeb7c2b598eb8949b1aac94e42deb8fda700da23d38cd7b8ace8f7eb"
+    },
+    {
+      "path": "miniprogram/services/canvas.ts",
+      "sha256": "d38312c804cebe430d945832c4bf45df514bf3a6dc9ded9ffc094c2e912a8770"
+    },
+    {
+      "path": "miniprogram/services/community.ts",
+      "sha256": "3df1ec45948fa2a9ba30f7d5fd3a56dfb5df5443669937c37b29d846995700d6"
+    },
+    {
+      "path": "miniprogram/services/crop.ts",
+      "sha256": "f0c95ce2c78ec82129485521ae4cc6aa1da34cedc4c72ee067082ea33789858d"
+    },
+    {
+      "path": "miniprogram/services/diagnostics.ts",
+      "sha256": "94a788248eeeebea86314061f457aabd1988e9a1ce9028da7e3a2dd25a47d06d"
+    },
+    {
+      "path": "miniprogram/services/draft-navigation.ts",
+      "sha256": "f9c3360dcce2d9aaf356619875325bb456f8e108add848fae566bcba96736321"
+    },
+    {
+      "path": "miniprogram/services/field-guide.ts",
+      "sha256": "cd35465f51de787626f4c9fc1ad1b7790ecc4fcbd96ca660666a2c83299c26d4"
+    },
+    {
+      "path": "miniprogram/services/forum.ts",
+      "sha256": "044eaee5f67e53dca8167aeb483dd80da1ce44217bba899dad5a41cbf51110e3"
+    },
+    {
+      "path": "miniprogram/services/journal-ai.ts",
+      "sha256": "bf073d4a35d3a945a6bcde0b73fab9ce717ff638b196d575d08bbc450eb5e49a"
+    },
+    {
+      "path": "miniprogram/services/journal-gateway.ts",
+      "sha256": "a0e8de81978bc3611bb2effe9413c3fe193d5053ad63d7202896590805ca810f"
+    },
+    {
+      "path": "miniprogram/services/journal-library.ts",
+      "sha256": "89684ec4252b37c39322aca024801174469315b9c8a0d9ce0bc4bee82362aea1"
+    },
+    {
+      "path": "miniprogram/services/journal-model.ts",
+      "sha256": "35bdc172adcdd3349aa65804daf4cb3ca1e00362ed836080297a507562cf21d4"
+    },
+    {
+      "path": "miniprogram/services/journal-paper.ts",
+      "sha256": "8a4aa30f58d40dac5a6e8744e2e4eb8c59d87001b9ff5f35c35b871bb9f46b25"
+    },
+    {
+      "path": "miniprogram/services/journal-preview.ts",
+      "sha256": "d5cdb26dee9c6f1d3a7664649836d92c710b4c5294a2f4eb90d2cc0e2de67f21"
+    },
+    {
+      "path": "miniprogram/services/journal-render.ts",
+      "sha256": "85702347fff4d3f1b5496327567e6760c00b7bca422dddf510124d63e6dee7e3"
+    },
+    {
+      "path": "miniprogram/services/journal-resize.ts",
+      "sha256": "7bc767c014af4f9130af810b09acb6b2edc38a3c727d9b4e1168ad9e39cd367f"
+    },
+    {
+      "path": "miniprogram/services/journal-shelf.ts",
+      "sha256": "a3a335df0189078d6273048c8494113f3562cc5dbb24b4c998244e0d39fe7689"
+    },
+    {
+      "path": "miniprogram/services/journal-storage.ts",
+      "sha256": "c605dd58d08557223f1f5193ee31c8861b6e468b2cddc0d5eeaab78f80668f02"
+    },
+    {
+      "path": "miniprogram/services/journal-thumbnail.ts",
+      "sha256": "168f232cdc73ebb247a9d30085077a2a23012e2daf7971c9a180c1e4b4ecec31"
+    },
+    {
+      "path": "miniprogram/services/journal-writing.ts",
+      "sha256": "14f3c252acbaba45c2effdea7f405f5ad50de7ba58196b2f0a7881c5c5614776"
+    },
+    {
+      "path": "miniprogram/services/layout.ts",
+      "sha256": "8d31d3f9ff741cf445a39859671d71c7b9ec8b34f9f7b4031f8b694405461cc1"
+    },
+    {
+      "path": "miniprogram/services/live-sampling.ts",
+      "sha256": "41370e0646190840040e56999e181f7cae6f4be537619568a21eb0e600b1057a"
+    },
+    {
+      "path": "miniprogram/services/map-clusters.ts",
+      "sha256": "33c4188fcc301d08f90322732952327094f0595353c14777197274a34e7cddcf"
+    },
+    {
+      "path": "miniprogram/services/map-icons.ts",
+      "sha256": "688aca6ae4e889bdfffbe117673bfde3e74768b37dd40b7594586779dea3b573"
+    },
+    {
+      "path": "miniprogram/services/map-model.ts",
+      "sha256": "c211b424d5a9558dfbb6fbd221fb7b29ee7b73f4b2e80a6aba7bb69b8e551938"
+    },
+    {
+      "path": "miniprogram/services/map-motion.ts",
+      "sha256": "0220538f3016fdd0e7dc280183ca63757ad49a0291b23051da949f0b8bf5749a"
+    },
+    {
+      "path": "miniprogram/services/map-ordering.ts",
+      "sha256": "295ea982ea2b27f5fdc86afcdbbe17f6fdb18d74b13aeeb495de278971ffbd8c"
+    },
+    {
+      "path": "miniprogram/services/map-presentation.ts",
+      "sha256": "ebc0ee77aed097184a9a5d9f8487431ae2ee69cb7834843d47f54f12f9fe144d"
+    },
+    {
+      "path": "miniprogram/services/map-targets.ts",
+      "sha256": "801fd6c5baef8157fe3133c69a8771cce35d8a830fb064efe29b0295edf69a39"
+    },
+    {
+      "path": "miniprogram/services/map-view.ts",
+      "sha256": "43ee5f855305664b323e6eb8f4ebe838fcfce53bb3371dcc376e679698d889ac"
+    },
+    {
+      "path": "miniprogram/services/media-import.ts",
+      "sha256": "e446abfb47cbbc19129426dae7424afcff44322fb77fcab2bea6644aafd00d32"
+    },
+    {
+      "path": "miniprogram/services/media.ts",
+      "sha256": "31eee554e9c981ad396ce48c0fc71c54f34e534772462e94c91620ba8b54571b"
+    },
+    {
+      "path": "miniprogram/services/navigation.ts",
+      "sha256": "b69ed44325545dbb4ce14ff49f760d251b8e347ac483f7d39416ae08b5f6a318"
+    },
+    {
+      "path": "miniprogram/services/numbers.ts",
+      "sha256": "c1ea9a3d0eaac5e38d8afe18ad741434881986a0e91715bd6364b6b0261b360b"
+    },
+    {
+      "path": "miniprogram/services/observation-context.ts",
+      "sha256": "ec67b7ac37471f03d381cc5b65a1d449f4f99ec14b55770bde67b77c777545ad"
+    },
+    {
+      "path": "miniprogram/services/paper-gesture.ts",
+      "sha256": "71fb6d38abffb3c8d7ed1bf34d81e6f4f40c5107d63028115394f85290cc2c18"
+    },
+    {
+      "path": "miniprogram/services/photo-context.ts",
+      "sha256": "9d818094a599ef96f1604d4d63e73f0e4e0e93e5088e1170b4d76ab55139165e"
+    },
+    {
+      "path": "miniprogram/services/photo-details.ts",
+      "sha256": "97dabdb66b01f18647f0c1ddcfc0e46819eb8c1e444f0ea2efb6e40df5e8db8b"
+    },
+    {
+      "path": "miniprogram/services/photo-info.ts",
+      "sha256": "5057b7f962614832ca74737220813254e73cc8aedcfd40070ba65fc3b0811a27"
+    },
+    {
+      "path": "miniprogram/services/photo-metadata.ts",
+      "sha256": "0291e01f0e52c4a5c768adb221a67c2c903526ac7109371bdbcb9064e42a6960"
+    },
+    {
+      "path": "miniprogram/services/place-names.ts",
+      "sha256": "1c3576ba34da1f67922632837b44354487c6170d657cf306ba74bf7c8fd3775d"
+    },
+    {
+      "path": "miniprogram/services/post-draft.ts",
+      "sha256": "beacbc7a85ea4a865406a4fb94ace0ded0afad906e31b64496ace47ebe418e67"
+    },
+    {
+      "path": "miniprogram/services/post-media.ts",
+      "sha256": "09ecfec5648a843831b97986bae96e2c68eb1d5f1d04f5bc5c784268c171148b"
+    },
+    {
+      "path": "miniprogram/services/post-writing.ts",
+      "sha256": "b819370c6f71c0e68f5cc8a115c674a56d0c50f0656f8e3d94d3640ad4d82162"
+    },
+    {
+      "path": "miniprogram/services/profile-initials.ts",
+      "sha256": "3ddf660a3ed1622932000e63f92afb7fc390c8af0ef795bba1038e19c1c5642f"
+    },
+    {
+      "path": "miniprogram/services/recognition-provider.ts",
+      "sha256": "5062c54c77995d7f1e3efa92d649027eaa34bfa97be4ae7c79083162616a5236"
+    },
+    {
+      "path": "miniprogram/services/recognition.ts",
+      "sha256": "f38a9061da39772359d583e07be8c4d344d8291473d1563bb571827467032e50"
+    },
+    {
+      "path": "miniprogram/services/repository.ts",
+      "sha256": "6e28638340488f5832f1b8d48bc03fc644b35231c0c2035655c5f72034096ea2"
+    },
+    {
+      "path": "miniprogram/services/species-search.ts",
+      "sha256": "96fa15bca6d5a86104ce99fdab93037501af49eee65357c45ee75fb0179a6c81"
+    },
+    {
+      "path": "miniprogram/services/speech-capture.ts",
+      "sha256": "fe74fd5bf42f31db4e689df4316ac535fd7a9d1ca33179a0e646b86721e00f5f"
+    },
+    {
+      "path": "miniprogram/services/tabs.ts",
+      "sha256": "b475a1254f639b286c97200409aec769d7e6ff729d0aa84eb291c42bd65a22d2"
+    },
+    {
+      "path": "miniprogram/services/transcription-network.ts",
+      "sha256": "94ee924443231c22f38656772f3be84af0eacdfc3fbd95def4ed5511f9c2a778"
+    },
+    {
+      "path": "miniprogram/services/vision-live.ts",
+      "sha256": "a3b4e82c7305c5aeb7ce90a3d7fc33bc512d0439e7a6e7b9b10e2cbbdcc0788a"
+    },
+    {
+      "path": "miniprogram/services/vision-network.ts",
+      "sha256": "2ac751125035ccc945bfe55f4ea557b5f628f735e14659b1013511f4c95ab735"
+    },
+    {
+      "path": "miniprogram/services/writing-history.ts",
+      "sha256": "6eb47a3be8e080d6b790456e62052dcf89939ca35385e390429fbb7d9ca2ec79"
+    },
+    {
+      "path": "miniprogram/services/writing-network.ts",
+      "sha256": "a7d9711243367a1cb5320516aa5daec890faafd87adf8c80f7932bc6a8bba2bc"
+    },
+    {
+      "path": "miniprogram/sitemap.json",
+      "sha256": "08a3e32c6e53af53ce8ed043382515dadc4f230db8c054477b5a99e06db7131b"
+    },
+    {
+      "path": "miniprogram/styles/writing-feedback.wxss",
+      "sha256": "cfbb35497e19cc79fee715d4af786b4fc7c53a27587f0cafdf83ddc72147e5d0"
+    }
+  ]
+}

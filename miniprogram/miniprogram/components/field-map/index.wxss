@@ -38,3 +38,5 @@
 
 
 .map-marker-canvas{position:fixed;left:-200px;top:-200px;width:96px;height:96px;pointer-events:none}
+
+.record-locate{display:flex;flex-direction:column;gap:2px;flex:none;width:42px;min-height:44px;padding:4px;background:transparent;font-size:10px}.record-locate image{width:20px;height:20px}.drawn-chevron{width:8px;height:8px;border-top:1.6px solid #72866b;border-right:1.6px solid #72866b;transform:rotate(45deg);flex:none;margin:0 4px}.record-main{height:auto;min-height:74px}.sheet-scroll-tail{height:16px}.sheet-fade{height:18px}.sheet-order{white-space:normal;font-size:9px;line-height:12px}.sheet-header-copy{max-height:100%;overflow:hidden}

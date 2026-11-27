@@ -36,3 +36,5 @@
 
 
 .search-panel-above{top:auto;bottom:calc(100% + 6px)}
+
+.check-symbol{width:15px;height:15px;flex:none}

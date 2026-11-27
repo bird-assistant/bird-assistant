@@ -1,5 +1,6 @@
 import { RecognitionCandidate, RecognitionResult, trackCandidates, recognitionFailure } from './recognition';
 import { connectVision, sendImage, sessionRequest, VisionConnection } from './vision-network';
+import {LiveSampling} from './live-sampling';
 
 const sessions='/api/v1/vision/sessions';
 type Box = {x1:number;y1:number;x2:number;y2:number};
@@ -61,6 +62,7 @@ export async function liveLocation():Promise<Record<string,number>> {
 }
 
 export class LiveVision {
+  private sampling=new LiveSampling();
   private connection?:VisionConnection;
   private path='';
   private socket?:WechatMiniprogram.SocketTask;
@@ -128,7 +130,8 @@ export class LiveVision {
           if(msg.type!=='vision.frame.result'||!Array.isArray(msg.tracks)||msg.tracks.length>1000||!(msg.image_width>0&&msg.image_height>0))throw new Error();
           this.retries=0;
           const context=msg.observation_context;
-          this.result({...pending,width:msg.image_width,height:msg.image_height,tracks:msg.tracks.map(readTrack),revision:this.revision,
+          const tracks=msg.tracks.map(readTrack);this.sampling.feedback(tracks);
+          this.result({...pending,width:msg.image_width,height:msg.image_height,tracks,revision:this.revision,
             context:{sessionId:msg.session_id,capturedAt:pending.capturedAt,latitude:context?.latitude??null,longitude:context?.longitude??null,regionCode:context?.region_code??null}});
         }
       }catch{this.fail('实时结果无法读取，可重新开启或拍照复核。');}
@@ -136,7 +139,8 @@ export class LiveVision {
   }
   private frame(frame:WechatMiniprogram.OnCameraFrameCallbackResult){
     if(this.stopped||!this.ready||this.pending||this.upload||Date.now()<this.next||!this.connection)return;
-    this.next=Date.now()+Math.max(this.interval,this.mode()==='wait'?1800:250);
+    if(!this.sampling.allow(Date.now(),this.mode(),this.interval,frame.data))return;
+    this.next=Date.now()+Math.max(this.interval,250);
     if(this.timeout)clearTimeout(this.timeout);
     try{
       if(this.canvas.width!==frame.width)this.canvas.width=frame.width;

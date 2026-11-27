@@ -1,4 +1,4 @@
-import {businessOrigin} from './vision-network';
+import {businessOrigin} from '../../services/vision-network';
 
 /** Only public, server-redacted publication images. Never expose an upload or private file URL. */
 export function publishedPhotoUrl(value:string):string {

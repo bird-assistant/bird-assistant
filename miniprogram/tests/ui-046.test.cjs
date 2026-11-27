@@ -1,8 +1,8 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const service=require('../.test-build/services/community.js');
-const history=require('../.test-build/services/trip-history.js');
-const {presentTrip}=require('../.test-build/services/trip-plan.js');
+const history=require('../.test-build/field/services/trip-history.js');
+const {presentTrip}=require('../.test-build/field/services/trip-plan.js');
 const {speciesResultsHeight}=require('../.test-build/services/map-presentation.js');
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
 const tap=(data)=>({currentTarget:{dataset:data}});

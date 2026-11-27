@@ -163,7 +163,7 @@ test('autosaved text survives navigation and a fresh page resumes the last opene
   const {p}=page('journal',390,844,extra);p.sample();p.generate();await p.save();const id=p.data.doc.id,text=p.data.doc.elements.find(e=>e.type==='text');p.select(tap(text.id));
   p.text({currentTarget:{dataset:{key:'text'}},detail:{value:'Automatically durable observation'}});p.back();await new Promise(resolve=>setImmediate(resolve));
   assert.equal(p.data.view,'home');assert.equal(p.data.dirty,false);assert.ok(p._past.length>0);assert.equal(storage.get(journal.JOURNAL_KEY).length,1);
-  const fresh=page('journal',390,844,extra).p;fresh.onShow();assert.equal(fresh.data.doc.id,id);fresh.resume();assert.equal(fresh.data.doc.elements.find(e=>e.id===text.id).text,'Automatically durable observation');assert.ok(fresh._past.length>0,'saved editing history must survive a fresh page');assert.equal(fresh.data.canUndo,true);assert.equal(fresh.data.dirty,false);
+  const fresh=page('journal',390,844,extra).p;fresh.onShow();assert.equal(fresh.data.doc,null);assert.equal(fresh.data.resumeRow.id,id);fresh.resume();assert.equal(fresh.data.doc.elements.find(e=>e.id===text.id).text,'Automatically durable observation');assert.ok(fresh._past.length>0,'saved editing history must survive a fresh page');assert.equal(fresh.data.canUndo,true);assert.equal(fresh.data.dirty,false);
   p.onUnload();fresh.onUnload();
 });
 test('background touch dismisses search and keyboard while marker targets are outside the gesture catcher',()=>{

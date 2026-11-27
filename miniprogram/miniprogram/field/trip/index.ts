@@ -1,9 +1,9 @@
 import {navigate} from '../../services/navigation';
 import {api,hub,key,openMap,sessionRevision,sessionState} from '../../services/community';
 import {beijingDate,beijingDateTime} from '../../services/observation-context';
-import {presentTrip,TripPlan as Plan} from '../../services/trip-plan';
-import {readTripHistory,saveTripHistory,tripHistoryOwner,TripConversation,TripConditions} from '../../services/trip-history';
-import {adviceParagraphs,adviceSections} from '../../services/trip-advice';
+import {presentTrip,TripPlan as Plan} from '../services/trip-plan';
+import {readTripHistory,saveTripHistory,tripHistoryOwner,TripConversation,TripConditions} from '../services/trip-history';
+import {adviceParagraphs,adviceSections} from '../services/trip-advice';
 
 type Tap = WechatMiniprogram.TouchEvent;
 type Input = WechatMiniprogram.CustomEvent<{value:string}>;
@@ -13,7 +13,7 @@ const ranges = [10,30,80];
 const times = Array.from({length:24},(_,hour)=>String(hour).padStart(2,'0')+':00');
 
 Page({
-  data:{accountChecking:false,showHistory:false,historyLoading:false,historyRows:[] as {id:string;question:string;place:string;updated:string}[],historyNotice:'',historySaved:'',point:null as Point|null,place:'还未选择起点',today:'',lastDay:'',date:'',hour:7,times,
+  data:{answerExpanded:false,tripExpanded:{} as Record<string,boolean>,accountChecking:false,showHistory:false,historyLoading:false,historyRows:[] as {id:string;question:string;place:string;updated:string}[],historyNotice:'',historySaved:'',point:null as Point|null,place:'还未选择起点',today:'',lastDay:'',date:'',hour:7,times,
     hours:2,durations:[1,2,3,4],radius:30,ranges,species:'',speciesLabel:'所有鸟种',question:'',
     sections:[] as {title:string;lines:string[]}[],paragraphs:[] as string[],sourcesOpen:false,detailOpen:false,historyOpen:false,exchanges:[] as {turn:string;question:string;answer:string}[],answer:null as Plan|null,asked:'',busy:false,error:'',windowLabel:''},
   _owner:'',_accountVersion:0,_version:0,_conversation:null as TripConversation|null,
@@ -83,7 +83,7 @@ Page({
       if(version!==this._version)return;
       this._conversation=conversation;
       const exchanges=data.answer?[...data.exchanges,{turn:data.answer.turn,question:data.asked,answer:data.answer.answer}].slice(-3):[];
-      this._pendingBody='';this.setData({answer,historySaved,historyNotice:expired?'原对话已过期，本次已开启新咨询。':'',sections:adviceSections(answer.brief),paragraphs:adviceParagraphs(answer.answer),sourcesOpen:false,detailOpen:false,asked:question,question:'',exchanges,
+      this._pendingBody='';this.setData({answer,historySaved,historyNotice:expired?'原对话已过期，本次已开启新咨询。':'',sections:adviceSections(answer.brief),paragraphs:adviceParagraphs(answer.answer),sourcesOpen:false,detailOpen:false,answerExpanded:false,tripExpanded:{},asked:question,question:'',exchanges,
         windowLabel:answer.start.slice(0,16).replace('T',' ')+' 至 '+answer.end.slice(5,16).replace('T',' ')});
     }catch(error){if(version===this._version){if(error instanceof Error&&/对话已过期/.test(error.message)&&this._conversation?.turns.length)this._conversation.turns[this._conversation.turns.length-1].saved='1970-01-01T00:00:00Z';this.setData({error:error instanceof Error?error.message:'生成失败，请重试。'});}}
     finally{if(version===this._version)this.setData({busy:false});}
@@ -92,6 +92,8 @@ Page({
   map(event:Tap){const stop=this.data.answer?.stops[Number(event.currentTarget.dataset.index)];
     if(stop)openMap(stop.point,this.data.species,this.data.speciesLabel,1);},
   history(){this.setData({historyOpen:!this.data.historyOpen});},
+  toggleAnswer(){this.setData({answerExpanded:!this.data.answerExpanded});},
+  toggleTripSection(event:Tap){const id=String(event.currentTarget.dataset.id);this.setData({tripExpanded:{...this.data.tripExpanded,[id]:!this.data.tripExpanded[id]}});},
   details(){this.setData({detailOpen:!this.data.detailOpen});},
   copySource(event:Tap){const url=event.currentTarget.dataset.url;if(typeof url==='string'&&url.startsWith('https://'))void wx.setClipboardData({data:url});},
   sources(){this.setData({sourcesOpen:!this.data.sourcesOpen});},

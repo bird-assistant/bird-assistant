@@ -1,4 +1,5 @@
 import {JournalDocument,JournalEditHistory,Snapshot,JOURNAL_KEY,journalContent,readJournals,validJournal} from './journal-model';
+import {updateJournalShelf,removeJournalShelf} from './journal-shelf';
 
 export const JOURNAL_EDIT_LIMIT=20;
 export const JOURNAL_HISTORY_BYTES=350000;
@@ -42,11 +43,13 @@ export function saveJournalState(document:JournalDocument,history:JournalEditHis
     while(excess>0&&(state.past.length||state.future.length)){dropFarthest(state);const next=bytes(state);excess+=next-previous;previous=next;}
   }
   wx.setStorageSync(JOURNAL_KEY,items);
+  updateJournalShelf(saved);
   try{wx.setStorageSync(LAST_JOURNAL,content.id);}catch{/* This navigation hint is independent of the saved content. */}
   return journalContent(saved);
 }
 /** Delete the document and its embedded history; media can be shared elsewhere. */
 export function deleteJournalState(id:string){
   const items=readJournals().filter(item=>item.id!==id);wx.setStorageSync(JOURNAL_KEY,items);
+  removeJournalShelf(id);
   try{if(wx.getStorageSync(LAST_JOURNAL)===id){if(items.length)wx.setStorageSync(LAST_JOURNAL,items[0].id);else wx.removeStorageSync(LAST_JOURNAL);}}catch{}
 }

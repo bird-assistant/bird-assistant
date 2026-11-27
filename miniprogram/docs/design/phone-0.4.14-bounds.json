@@ -1,0 +1,317 @@
+{
+  "kind": "Browser source projections, not native WeChat emulation",
+  "bounds": [
+    {
+      "fixture": "bookmarks-320x568",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "saved-card",
+          "x": 16,
+          "y": 145.59375,
+          "w": 288,
+          "h": 216.578125
+        }
+      ]
+    },
+    {
+      "fixture": "bookmarks-412x931",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "saved-card",
+          "x": 16,
+          "y": 145.59375,
+          "w": 380,
+          "h": 194.078125
+        }
+      ]
+    },
+    {
+      "fixture": "bookmarks-768x1024",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "saved-card",
+          "x": 90,
+          "y": 145.59375,
+          "w": 588,
+          "h": 173.6875
+        }
+      ]
+    },
+    {
+      "fixture": "cameraCapture-320x568",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "live-bottom",
+          "x": 0,
+          "y": 252,
+          "w": 320,
+          "h": 236
+        },
+        {
+          "class": "capture-row",
+          "x": 12,
+          "y": 399,
+          "w": 296,
+          "h": 57
+        }
+      ]
+    },
+    {
+      "fixture": "cameraCapture-412x931",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "live-bottom",
+          "x": 0,
+          "y": 566,
+          "w": 412,
+          "h": 285
+        },
+        {
+          "class": "capture-row",
+          "x": 12,
+          "y": 731,
+          "w": 388,
+          "h": 74
+        }
+      ]
+    },
+    {
+      "fixture": "cameraCapture-768x1024",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "live-bottom",
+          "x": 59,
+          "y": 659,
+          "w": 650,
+          "h": 285
+        },
+        {
+          "class": "capture-row",
+          "x": 71,
+          "y": 824,
+          "w": 626,
+          "h": 74
+        }
+      ]
+    },
+    {
+      "fixture": "emptyHistory-320x568",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "writing-history-sheet sheet-frame",
+          "x": 0,
+          "y": 272,
+          "w": 320,
+          "h": 296
+        },
+        {
+          "class": "sheet-scroll",
+          "x": 0,
+          "y": 344,
+          "w": 320,
+          "h": 224
+        }
+      ],
+      "shortHistoryCompact": true
+    },
+    {
+      "fixture": "emptyHistory-412x931",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "writing-history-sheet sheet-frame",
+          "x": 0,
+          "y": 679,
+          "w": 412,
+          "h": 252
+        },
+        {
+          "class": "sheet-scroll",
+          "x": 0,
+          "y": 751,
+          "w": 412,
+          "h": 180
+        }
+      ],
+      "shortHistoryCompact": true
+    },
+    {
+      "fixture": "emptyHistory-768x1024",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "writing-history-sheet sheet-frame",
+          "x": 0,
+          "y": 815,
+          "w": 768,
+          "h": 209
+        },
+        {
+          "class": "sheet-scroll",
+          "x": 0,
+          "y": 887,
+          "w": 768,
+          "h": 137
+        }
+      ],
+      "shortHistoryCompact": true
+    },
+    {
+      "fixture": "import-320x568",
+      "horizontalOverflow": false,
+      "panels": []
+    },
+    {
+      "fixture": "import-412x931",
+      "horizontalOverflow": false,
+      "panels": []
+    },
+    {
+      "fixture": "import-768x1024",
+      "horizontalOverflow": false,
+      "panels": []
+    },
+    {
+      "fixture": "journalAI-320x568",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "ai-sheet sheet-frame",
+          "x": 0,
+          "y": 91,
+          "w": 320,
+          "h": 477
+        },
+        {
+          "class": "sheet-scroll",
+          "x": 0,
+          "y": 163,
+          "w": 320,
+          "h": 405
+        }
+      ],
+      "generateButton": {
+        "x": 20,
+        "y": 497.234375,
+        "width": 280,
+        "height": 45.59375
+      },
+      "footerReachable": true
+    },
+    {
+      "fixture": "journalAI-412x931",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "ai-sheet sheet-frame",
+          "x": 0,
+          "y": 149,
+          "w": 412,
+          "h": 782
+        },
+        {
+          "class": "sheet-scroll",
+          "x": 0,
+          "y": 221,
+          "w": 412,
+          "h": 710
+        }
+      ],
+      "generateButton": {
+        "x": 20,
+        "y": 860.4375,
+        "width": 372,
+        "height": 45.59375
+      },
+      "footerReachable": true
+    },
+    {
+      "fixture": "journalAI-768x1024",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "ai-sheet sheet-frame",
+          "x": 0,
+          "y": 164,
+          "w": 768,
+          "h": 860
+        },
+        {
+          "class": "sheet-scroll",
+          "x": 0,
+          "y": 236,
+          "w": 768,
+          "h": 788
+        }
+      ],
+      "generateButton": {
+        "x": 20,
+        "y": 953.046875,
+        "width": 728,
+        "height": 45.59375
+      },
+      "footerReachable": true
+    },
+    {
+      "fixture": "singleSighting-320x568",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "record-sheet ",
+          "x": 0,
+          "y": 365,
+          "w": 320,
+          "h": 132
+        }
+      ]
+    },
+    {
+      "fixture": "singleSighting-412x931",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "record-sheet ",
+          "x": 0,
+          "y": 660,
+          "w": 412,
+          "h": 200
+        }
+      ]
+    },
+    {
+      "fixture": "singleSighting-768x1024",
+      "horizontalOverflow": false,
+      "panels": [
+        {
+          "class": "record-sheet ",
+          "x": 16,
+          "y": 753,
+          "w": 307,
+          "h": 200
+        }
+      ]
+    },
+    {
+      "fixture": "trip-320x568",
+      "horizontalOverflow": false,
+      "panels": []
+    },
+    {
+      "fixture": "trip-412x931",
+      "horizontalOverflow": false,
+      "panels": []
+    },
+    {
+      "fixture": "trip-768x1024",
+      "horizontalOverflow": false,
+      "panels": []
+    }
+  ]
+}

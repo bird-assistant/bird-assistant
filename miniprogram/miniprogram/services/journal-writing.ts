@@ -22,16 +22,25 @@ export function journalWritingBrief(d:JournalDocument,o:JournalWritingOptions):{
   if(photos.some(p=>!p)||new Set(o.photoIds).size!==o.photoIds.length)throw new Error('照片选择已变化，请重新选择。');
   const instructions=o.prompt.trim()||(photos.length?'根据所选照片写一小段自然、简短的观鸟记录，只描述可见细节。不猜鸟名、时间、地点、天气、心情或经历，不用诗句或比喻。':o.destination==='selected'&&(selected?.title.trim()||selected?.text.trim())?'把所选文字整理得自然、简洁，保留原意、事实与不确定性。':'');
   if(!instructions)throw new Error('请补充写作要求、关联照片，或选择已有文字，再生成建议。');
-  const prompt=JSON.stringify({instructions,contentPurpose:o.purpose,
+  let maxChars=o.purpose==='照片手帐'?120:o.destination==='new'?(d.elements.filter(e=>e.type==='photo').length>=3?120:240):o.destination==='overview'?160:Math.max(80,Math.min(400,Math.floor((target!.w*Math.max(target!.h,d.height-target!.y))/(24*24*1.4))));
+  const context:JournalWritingContext={docId:d.id,before:journalFingerprint(d),target:target?.id||'',destination:o.destination,placement:o.placement,includeTitle:o.includeTitle,includeCaptions:o.includeCaptions,photoIds:[...o.photoIds],purpose:o.purpose};
+  // Supply the model with bounded choices and a layout-derived writing budget.
+  // It can choose a style/variant; it cannot invent image paths or edit geometry.
+  const layoutPlan={ratio:d.ratio,photos:photos.map(p=>({id:p!.id,shape:p!.iw>p!.ih?'landscape':p!.iw<p!.ih?'portrait':'square'})),captionMaxChars:20,
+    titleMaxChars:40,keepSavedName:true,keepOriginalPhotos:true,allowedStyles:['nature','magazine','minimal'],allowedVariants:d.elements.filter(e=>e.type==='photo').length<=2?[1,2,3]:[1,2]};
+  let low=20,high=maxChars,best=0;
+  while(low<=high){const count=Math.floor((low+high)/2);try{applyJournalWriting(d,context,{version:1,requestId:'fit-check',title:'题'.repeat(40),body:'字'.repeat(count),design:{style:'nature',variant:1},captions:o.includeCaptions?photos.map(p=>({id:p!.id,text:'字'.repeat(20)})):[]});best=count;low=count+1;}catch{high=count-1;}}
+  if(!best)throw new Error('这一页暂时放不下建议文字，请调整照片或选择其他应用位置后再生成。');
+  maxChars=Math.min(maxChars,best);
+  const prompt=JSON.stringify({instructions,contentPurpose:o.purpose,layoutPlan,
     destination:o.destination==='selected'?'改写所选文本框':o.destination==='overview'?'更新页首概述':'新增独立文字框',
     existingText:target?{title:target.title,body:target.text}:null,
     selectedNotes:photos.map(p=>({id:p!.id,text:d.elements.filter(e=>e.photoId===p!.id).map(e=>e.text).join('\n')})),
-    rules:['保留已有事实与不确定性，不补写未知经历。','建议标题用于页面文字，不修改手帐名称。','默认自然日常的中文，不用诗化表达。']});
+    rules:['保留已有事实与不确定性，不补写未知经历。','建议标题用于页面文字，不修改手帐名称。','按用户要求决定重点、语气与信息密度；未提供的事实保持未知。','用布局字数预算写完整短句，逐图说明各不超过20字；概述与图注避免重复。','默认自然日常的中文，不用诗化表达。']});
   if(prompt.length>2000)throw new Error('原文与写作要求合计过长，请缩短要求或所选文本后再试。');
-  const maxChars=o.purpose==='照片手帐'?120:o.destination==='new'?(d.elements.filter(e=>e.type==='photo').length>=3?120:240):o.destination==='overview'?160:Math.max(80,Math.min(400,Math.floor((target!.w*Math.max(target!.h,d.height-target!.y))/(24*24*1.4))));
   const input:JournalAiInput={version:1,requestId:'journal-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),prompt,purpose:o.purpose,maxChars,
     images:photos.map(p=>({id:p!.id,path:p!.src,label:'照片 '+p!.photoNumber}))};
-  return {input,context:{docId:d.id,before:journalFingerprint(d),target:target?.id||'',destination:o.destination,placement:o.placement,includeTitle:o.includeTitle,includeCaptions:o.includeCaptions,photoIds:[...o.photoIds],purpose:o.purpose}};
+  return {input,context};
 }
 export function writingDestinationLabel(context:Pick<JournalWritingContext,'destination'|'placement'>){
   if(context.destination==='selected')return '仅更新所选文本框';

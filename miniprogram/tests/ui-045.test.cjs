@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const {MapTargets}=require('../.test-build/services/map-targets.js');
 const {chinesePlace}=require('../.test-build/services/place-names.js');
 const {profileInitials}=require('../.test-build/services/profile-initials.js');
-const {adviceParagraphs,adviceSections}=require('../.test-build/services/trip-advice.js');
+const {adviceParagraphs,adviceSections}=require('../.test-build/field/services/trip-advice.js');
 const cell=n=>({latitude:39.9,longitude:116.4+n*.001,count:n+1,minLatitude:39.9,maxLatitude:39.9,minLongitude:116.4+n*.001,maxLongitude:116.4+n*.001});
 
 test('cold marker IDs survive repeated zoom renders and delayed native string callbacks with their original filters',()=>{

@@ -1,3 +1,7 @@
+27 November 2026 · **Current candidate0.4.14:** [Phone review, evidence and acceptance](PHONE-REVIEW-0.4.14.md). PR26 is merged; uploaded0.4.13 stays available for debugging. Client map/import/sheet/deck changes and bounded capture/share work are ready for native testing. Hosted writing404, vision502 and old global ordering remain open. All existing backlog IDs below are preserved.
+
+---
+
 # Current candidate: 0.4.13
 
 [Experience handoff and preserved R40–R45 follow-up requirements](EXPERIENCE-0.4.13.md). User acceptance now covers draft dates, persistent Undo/Redo, abandoning an old Redo branch, deletion and photo labels. Photo-only explicit generation, adaptive shared sheets and composed thumbnails are implemented;307 client checks pass. Native Compile/phone/provider acceptance remain separate. Existing helper stays running. The private repository retains the canonical English update plan. All original48 IDs and R01–R39 remain below.

@@ -1,5 +1,5 @@
-import {api,community} from './community';
-import {businessOrigin} from './vision-network';
+import {api,community} from '../../services/community';
+import {businessOrigin} from '../../services/vision-network';
 import type {TripPlan,TripPoint} from './trip-plan';
 
 export type TripConditions={point:TripPoint|null;place:string;date:string;hour:number;hours:number;radius:number;species:string;speciesLabel:string};

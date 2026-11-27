@@ -1,5 +1,6 @@
+import {displayedDistance} from '../../services/map-ordering';
 import {acceptPickedMedia} from '../../services/media-import';
-import {savePublishedPhoto} from '../../services/media-save';
+import {savePublishedPhoto} from '../services/media-save';
 import {PostImage,postGallery,checkPostImages} from '../../services/post-media';
 import {cleanPhotoDetails,withPhotoDetails,withEmbeddedPhotoDetails,PhotoDetails} from '../../services/photo-details';
 import {navigate} from '../../services/navigation';
@@ -27,7 +28,7 @@ Page({
     this._galleryUploads=new Map();
     const screen=options.screen&&names[options.screen]?options.screen:'feed';
     this._submitKey=key();
-    const placePoint=readMapView();this.setData({screen,id:options.id||'',placePoint,placeSort:placePoint?'distance':'recent'});wx.setNavigationBarTitle({title:names[screen]});
+    const placePoint=readMapView();this.setData({screen,id:options.id||'',placePoint,placeSort:'recent'});wx.setNavigationBarTitle({title:names[screen]});
     if(screen==='publish'){
       const draft=options.id==='compose'?null:getDraft();
       this._media=draft?.storedMedia||'';this._path=draft?.path||'';
@@ -41,8 +42,8 @@ Page({
   copyCredit(event:Tap){void wx.setClipboardData({data:event.currentTarget.dataset.url});},
   onShareAppMessage(){
     const record=this.data.record;
-    if(this.data.screen==='record' && record?.sourceUrl && record.visibility==='public'){
-      return {title:`${record.speciesName} · ${record.source}`,path:'/field/hub/index?screen=record&id='+encodeURIComponent(record.id)};
+    if(this.data.screen==='record' && record?.id && record.visibility==='public'){
+      return {title:String(record.title||record.speciesName||'羽迹 · 鸟友讨论').slice(0,80),path:'/field/hub/index?screen=record&id='+encodeURIComponent(record.id)};
     }
     return {title:'羽迹 · 外部社区鸟讯',path:'/field/hub/index?screen=external'};
   },
@@ -60,7 +61,7 @@ Page({
     try{
       const result=screen==='external'?await api(routes.external,'GET',{limit:40,offset:this.data.externalPage*40}):await api(routes[screen]);if(generation!==this._generation)return;
       if(screen==='library')this.setData({featured:(result.featured||[]).map((bird:{id:string;photo:object|null})=>({...bird,image:bird.photo?picture(bird.id):''}))});
-      const items=(result.items||result.records||[]).map((row:any)=>({...row,placeName:chinesePlace(row.placeName)}));
+      const items=(result.items||result.records||[]).map((row:any)=>({...row,image:imageUrl(row.image),placeName:chinesePlace(row.placeName)}));
       this.setData({items,externalNext:result.hasMore??items.length===40,record:{...result,image:imageUrl(result.image)},photo:imageUrl(result.image)});
       if(screen==='record'){
         this._replyOffset=(result.replies||[]).length;
@@ -103,8 +104,8 @@ Page({
     const id=this.data.id,generation=this._generation,sort=this.data.placeSort,sequence=++this._placesSequence;this.setData({placeLoading:true,placesError:''});
     try{const point=this.data.placePoint,result=await api('/api/v1/species/'+id+'/places','GET',{limit:50,offset:append?this.data.places.length:0,sort,...(point?{latitude:point.latitude,longitude:point.longitude}:{})});
       if(generation!==this._generation||sequence!==this._placesSequence||this._closed)return;
-      const incoming=result.items.map((row:any)=>({...row,placeName:chinesePlace(row.placeName),distanceLabel:typeof row.km==='number'?'距地图中心约 '+row.km.toFixed(1)+' 公里':''}));
-      this.setData({places:append?Array.from(new Map(this.data.places.concat(incoming).map((row:any)=>[row.id,row])).values()):incoming,placeCount:result.placeCount,recordCount:result.recordCount,placeSort:result.sort||'recent'});
+      const incoming=result.items.map((row:any)=>{const km=typeof row.km==='number'&&Number.isFinite(row.km)?row.km:displayedDistance(point,row.displayLocation);return {...row,km,placeName:chinesePlace(row.placeName),distanceLabel:typeof km==='number'?'距地图中心约 '+km.toFixed(1)+' 公里':''};});
+      this.setData({places:(append?Array.from(new Map(this.data.places.concat(incoming).map((row:any)=>[row.id,row])).values()):incoming).sort((a:any,b:any)=>sort==='distance'?(a.km??Infinity)-(b.km??Infinity)||(b.latest||'').localeCompare(a.latest||''):(b.latest||'').localeCompare(a.latest||'')||(a.km??Infinity)-(b.km??Infinity)),placeCount:result.placeCount,recordCount:result.recordCount,placeSort:sort,placesError:result.sort!==sort?'服务尚未支持所选排序；当前已载入区域按你的选择整理。':''});
     }catch(error){if(generation===this._generation&&sequence===this._placesSequence)this.setData({placesError:message(error)});}
     finally{if(generation===this._generation&&sequence===this._placesSequence)this.setData({placeLoading:false});}
   },

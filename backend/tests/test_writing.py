@@ -163,6 +163,78 @@ def test_provider_host_is_constrained_and_secret_not_in_settings_repr():
     assert "not-visible-key" not in repr(BusinessSettings(qwen_api_key="not-visible-key"))
 
 
+def test_planning_only_config_shares_credentials_and_workspace_with_journal(monkeypatch):
+    monkeypatch.delenv("BIRD_BUSINESS_QWEN_API_KEY", raising=False)
+    monkeypatch.delenv("BIRD_BUSINESS_QWEN_BASE_URL", raising=False)
+    settings = BusinessSettings(trip_api_key="shared-test-only", trip_workspace="course-workspace")
+    assert settings.qwen_api_key.get_secret_value() == "shared-test-only"
+    assert (
+        settings.qwen_base_url == "https://course-workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+    )
+    reverse = BusinessSettings(qwen_api_key="writer-test-only")
+    assert reverse.trip_api_key == reverse.qwen_api_key
+    explicit = BusinessSettings(
+        trip_api_key="planning-test-only",
+        qwen_api_key="writing-test-only",
+        trip_workspace="course-workspace",
+        qwen_base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    )
+    assert explicit.qwen_api_key.get_secret_value() == "writing-test-only"
+    assert explicit.trip_api_key.get_secret_value() == "planning-test-only"
+    assert explicit.qwen_base_url == "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+
+def test_writing_capabilities_are_authenticated_and_do_not_expose_credentials(setup):
+    client, app, calls, _ = setup
+    reply = client.get("/api/v1/journal/capabilities")
+    assert reply.status_code == 200
+    assert reply.headers["cache-control"] == "no-store"
+    assert reply.json() == {
+        "version": 1,
+        "configured": True,
+        "textModel": "qwen-plus",
+        "imageModel": "qwen3-vl-plus",
+        "asrEnabled": False,
+        "sharedPlanningCredential": True,
+    }
+    assert "qwen-test-secret" not in reply.text
+    assert not calls
+    client.headers.pop("Authorization")
+    assert client.get("/api/v1/journal/capabilities").status_code == 401
+    client.headers["Authorization"] = "Bearer " + app.state.auth.issue("wx:test:writer")
+    app.state.settings.qwen_api_key = app.state.settings.qwen_api_key.__class__("")
+    assert client.get("/api/v1/journal/capabilities").json()["configured"] is False
+
+
+@pytest.mark.parametrize(
+    ("status", "code"),
+    [
+        (401, "PROVIDER_AUTH"),
+        (403, "PROVIDER_AUTH"),
+        (404, "MODEL_UNAVAILABLE"),
+        (400, "PROVIDER_INPUT"),
+        (429, "RATE_LIMITED"),
+        (500, "UPSTREAM_UNAVAILABLE"),
+    ],
+)
+def test_provider_failures_identify_the_stage_without_echoing_provider_secrets(monkeypatch, status, code):
+    from urllib.error import HTTPError
+
+    from bird_business import writing
+
+    class Transport:
+        def open(self, request, timeout):
+            raise HTTPError(request.full_url, status, "private provider details", {}, None)
+
+    monkeypatch.setattr(writing, "build_opener", lambda *_: Transport())
+    with pytest.raises(ServiceError) as error:
+        writing.generate(
+            BusinessSettings(qwen_api_key="test-only-secret"), writing.Brief.model_validate(brief()), []
+        )
+    assert error.value.code == code
+    assert "private provider details" not in str(error.value)
+
+
 @pytest.mark.parametrize("mode", ["valid", "invalid_json", "oversized", "truncated"])
 def test_provider_http_payload_output_bound_and_no_retry(monkeypatch, mode):
     import json
@@ -240,4 +312,105 @@ def test_workspace_writing_uses_text_or_vision_model_without_redirect_or_retry(m
         qwen_base_url="https://example-workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
     )
     assert writing.generate(settings, writing.Brief.model_validate(brief()), images) == expected
+    assert len(calls) == 1
+
+
+def test_photo_journal_returns_independent_overview_and_selected_photo_captions(setup):
+    client, app, _, _ = setup
+    pictures = [picture(), {**picture(), "id": "p-2", "label": "第二张"}]
+    captions = [{"id": "p-1", "text": "鸟停在枝头。"}, {"id": "p-2", "text": "鸟在地面活动。"}]
+    app.state.writing_upstream = lambda *_: {
+        "title": "这次的照片",
+        "body": "几张照片里的观察。",
+        "design": {"style": "minimal", "variant": 2},
+        "captions": captions,
+    }
+    reply = client.post("/api/v1/journal/suggestions", json=brief(purpose="照片手帐", images=pictures))
+    assert reply.status_code == 200
+    assert reply.json()["captions"] == captions
+    assert reply.json()["body"] == "几张照片里的观察。"
+    assert app.state.community.db.execute("SELECT count(*) FROM publications").fetchone()[0] == 0
+
+
+@pytest.mark.parametrize(
+    "captions",
+    [
+        [None],
+        [{"id": "other", "text": "不属于所选照片"}],
+        [{"id": "p-1", "text": "一"}, {"id": "p-1", "text": "二"}],
+        [{"id": "p-1", "text": " "}],
+        [{"id": "p-1", "text": "长" * 81}],
+        [{"id": "p-1", "text": "合法文字", "path": "private-path"}],
+    ],
+)
+def test_invalid_captions_are_rejected_without_returning_partial_suggestions(setup, captions):
+    client, app, _, _ = setup
+    app.state.writing_upstream = lambda *_: {
+        "title": "观察",
+        "body": "原始内容仍保留。",
+        "design": {"style": "nature", "variant": 1},
+        "captions": captions,
+    }
+    reply = client.post("/api/v1/journal/suggestions", json=brief(images=[picture()]))
+    assert reply.status_code == 502
+    assert reply.json()["error"]["code"] == "INVALID_OUTPUT"
+    assert "captions" not in reply.json()
+
+
+def test_older_writing_response_remains_compatible_without_empty_caption_field(setup):
+    client, _, _, _ = setup
+    reply = client.post("/api/v1/journal/suggestions", json=brief())
+    assert reply.status_code == 200
+    assert "captions" not in reply.json()
+
+
+def test_photo_journal_prompt_keeps_existing_text_and_picture_ids_with_plain_language_default(monkeypatch):
+    import json
+
+    from bird_business import writing
+
+    prompt = json.dumps(
+        {
+            "instructions": "根据照片整理成自然的观察手帐",
+            "existingText": {"title": "原来的标题", "body": "我还不能确定是什么鸟。"},
+        },
+        ensure_ascii=False,
+    )
+    requested = writing.Brief.model_validate(brief(prompt=prompt, purpose="照片手帐", images=[picture()]))
+    calls = []
+
+    class Transport:
+        def open(self, request, timeout):
+            payload = json.loads(request.data)
+            calls.append(payload)
+            system = payload["messages"][0]["content"]
+            assert "自然简短" in system and "除非用户明确要求" in system
+            assert "captions" in system
+            text = json.loads(payload["messages"][1]["content"][0]["text"])
+            assert text["prompt"] == prompt
+            assert text["selectedPictures"] == [{"id": "p-1", "label": "用户勾选的照片"}]
+            assert payload["model"] == "qwen3-vl-plus"
+            return BytesIO(
+                json.dumps(
+                    {
+                        "choices": [
+                            {
+                                "finish_reason": "stop",
+                                "message": {
+                                    "content": json.dumps(
+                                        {
+                                            "title": "观察",
+                                            "body": "我还不能确定是什么鸟。",
+                                            "design": {"style": "nature", "variant": 1},
+                                        }
+                                    )
+                                },
+                            }
+                        ]
+                    }
+                ).encode()
+            )
+
+    monkeypatch.setattr(writing, "build_opener", lambda *_: Transport())
+    writing.generate(BusinessSettings(qwen_api_key="offline-test"), requested, ["fixture-copy"])
     assert len(calls) == 1

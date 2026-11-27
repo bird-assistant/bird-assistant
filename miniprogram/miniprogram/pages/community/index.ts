@@ -1,3 +1,4 @@
+import {takePostDraft} from '../../services/draft-navigation';
 import {installAdaptiveSheets,fitAdaptiveSheets,stopAdaptiveSheets} from '../../services/adaptive-sheets';
 import {acceptPickedMedia} from '../../services/media-import';
 import {readLocalPhotoMetadata,LocalPhotoMetadata} from '../../services/photo-metadata';
@@ -38,7 +39,7 @@ Page({
   async pullRefresh(){if(this.data.refreshing)return;const token=++this._refreshSeq;this.setData({refreshing:true});try{await this.loadFeed(false,true);}finally{if(token===this._refreshSeq)this.setData({refreshing:false,pullReady:false,pullProgress:0});}},
   onHide(){this.cacheCurrentDraft();void this.persistPostDraft(true);this._refreshSeq++;this._visible=false;this._feedSeq++;this.setData({feedLoading:false,refreshing:false,pullReady:false,pullProgress:0,moreOpen:false});this.closeWriting();},onUnload(){stopAdaptiveSheets(this);this.cacheCurrentDraft();clearTimeout(this._draftTimer);void this.persistPostDraft(true);this._composeGeneration++;this._refreshSeq++;this._visible=false;this._feedSeq++;this.closeWriting();reactionSets.delete(this);},
   _writingBrief:null as ReturnType<typeof postWritingBrief>|null,
-  onShow(){this._visible=true;this.refreshDrafts();this.resizeFeed();selectTab(this,3);if(this.data.view==='feed')void this.loadFeed();},
+  onShow(){this._visible=true;const queuedDraft=takePostDraft();if(queuedDraft)this.loadDraft(queuedDraft);this.refreshDrafts();this.resizeFeed();selectTab(this,3);if(this.data.view==='feed')void this.loadFeed();},
   async onPullDownRefresh(){try{if(this.data.view==='feed')await this.loadFeed(false,true);}finally{wx.stopPullDownRefresh?.();}},
   onReachBottom(){if(this.data.view==='feed'&&this.data.more)void this.loadFeed(true);},
   async loadFeed(append=false,force=false){

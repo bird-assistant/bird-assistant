@@ -10,16 +10,12 @@ function page(){
   return instance;
 }
 
-test('only an explicit shutter during live identification analyzes the full camera photo',()=>{
+test('only an explicit shutter requests original quality and starts that photo persistence while remaining in the viewfinder',()=>{
   for(const live of [false,true]){
-    const p=page(),calls=[];
-    p.setData({cameraReady:true,paused:false,liveActive:live,demo:false});
-    p._camera={takePhoto:options=>{assert.equal(options.quality,'high');options.success({tempImagePath:'full.jpg'});}};
-    p.saveAlbum=()=>{};
-    p.review=()=>calls.push('review');
-    p.analyse=()=>calls.push(p.data.imagePath);
-    p.shutterPhoto();
-    assert.deepEqual(calls,live?['review','full.jpg']:['review']);
+    const p=page(),calls=[];p.setData({cameraReady:true,paused:false,liveActive:live,demo:false});
+    p._camera={takePhoto:options=>{assert.equal(options.quality,'original');assert.equal(options.captureMetadata,true);options.success({tempImagePath:'full.jpg'});}};
+    p.persistCapture=(asset,analyze)=>calls.push({path:asset.path,analyze});p.review=()=>assert.fail('capture must not force review');
+    p.shutterPhoto();assert.deepEqual(calls,[{path:'full.jpg',analyze:live}]);assert.equal(p.data.view,'live');
   }
 });
 

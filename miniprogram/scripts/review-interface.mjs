@@ -15,7 +15,7 @@ function defaults(path,component=false){let definition;global[component?'Compone
 global.wx={canIUse:()=>false};
 const camera=defaults('pages/identify/index'),feed=defaults('pages/community/index'),profile=defaults('pages/profile/index'),trip=defaults('field/trip/index'),journal=defaults('pages/journal/index');
 const initials=require(resolve(root,'.test-build/services/profile-initials.js'));
-const advice=require(resolve(root,'.test-build/services/trip-advice.js'));
+const advice=require(resolve(root,'.test-build/field/services/trip-advice.js'));
 const out=resolve(root,'docs/design/interface-0.4.6');mkdirSync(out,{recursive:true});
 const read=path=>readFileSync(resolve(root,'miniprogram',path),'utf8');
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

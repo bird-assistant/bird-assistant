@@ -1,52 +1,23 @@
-# Bird Assistant native WeChat client — 0.4.5
+# Bird Assistant native WeChat mini-program · 0.4.14 candidate
 
-Current 0.4.6: [Interaction fixes and acceptance](ACCEPTANCE-0.4.6.md). Client176 passes; native identification/publishing remain P0. Deploy the reviewed business-service changes before accepting new distance sorting/trip output.
+[Phone-review changes and acceptance](PHONE-REVIEW-0.4.14.md) · [Canonical English next steps](https://github.com/NoctisBaguette/bird-assistant-miniprogram/blob/main/docs/NEXT-STEPS.md) · [中文](../../README.md)
 
-25 November 2026 · **Current 0.4.5**: [Native interactions and photo journals](NATIVE-AND-QWEN-0.4.5.md). Fixes the close icon, opaque drawer base, toolbar seam and stable marker taps. Adds photo metadata flipping, Chinese place labels, post-only discussion interactions, visible import selections, name avatars, structured trip advice and a direct photo-to-journal action through the existing Qwen gateway. Client 162 passes; local backend 468 passes / 55 skips, 85.36%, with Ruff passing. Actual identification and forum writes/replies are P0 acceptance tasks. Audio transport, real visual Qwen, deployment and overall profile acceptance remain pending. Older checkpoints below are historical.
+Five native tabs: map, journal, recognition, discussion and profile. Based on the team's merged0.4.13 package. This candidate has not been uploaded or deployed; native Compile and phone acceptance remain required.
 
-25 November 2026 · **0.4.3 (historical)**: [map, forum and camera interaction](NATIVE-INTERACTION-0.4.3.md). Single records remain circles until close zoom; clusters update throughout gestures; loading does not block marker taps. A smaller floating drawer compacts during pan and follows the new region, with a lower fade and native attribution clearance. Adds a three-bird refresh indicator, styled forum tools and photo metadata card. Recognition restores translucent clue tabs, swipe expansion of the zoom ruler and a bounded3.5× shortcut while retaining real vision. Client140 tests pass. Backend/dependency versions are unchanged. Journal refinement, Qwen, live posting/reply checks and profile review are deferred; native/SDK acceptance remains pending. Older checkpoint sections below are historical.
+## Run
 
-2026-11-25 · Current0.4.2: [map memory, live search and forum threads](FORUM-AND-SEARCH-0.4.2.md). Client132passed; local backend469passed/51skipped,86.60%coverage. Deployment, live Qwen and native acceptance remain pending. Older records below are historical.
+Use Node.js22.18+ or24. In the outer project directory containing package.json, run `npm ci`, `npm run setup`, then `npm run verify`. Import that outer directory into WeChat DevTools; the inner `miniprogram/` is the packaging root. Setup preserves an existing AppID. A new clone starts with the tourist template until a maintainer sets the valid AppID/developer permissions. Compile and complete the phone-review acceptance batch before uploading.
 
-2026-11-24 · **0.4.1**: [map home and true photo deformation](MAP-AND-PHOTO-0.4.1.md). Synced with team d59be67; 114 client tests and 461 backend tests passed (51 skipped). Live Qwen, full Issue #23 cards and native-device acceptance remain pending. Older handoff sections below describe their historical checkpoints; this paragraph and the new release note define current status.
+Keep journals, edits, drafts and original media during upgrades. Local project config, dependencies, generated JS, test builds, gallery, environment files and keys are excluded from Git. The existing Windows writing-helper terminal needs no restart for this revision. Phones use hosted HTTPS.
 
-2026-11-24 · **0.4.0**: [手帐恢复、版式与Qwen业务接入](../JOURNAL-0.4.0.md) / [English](JOURNAL-0.4.0.md). 本轮保留c6571c2的视觉/地图/社区接入；完整Issue23观察卡、真实Qwen部署及媒体/真机验收仍待完成。
+## Current scope
 
-Current development version **0.3.0**: [journal layouts, preview performance and Qwen setup](JOURNAL-0.3.0.md) · [recognition delivery contract](../RECOGNITION-HANDOFF.md). Client/server adapters are implemented; real gateway/credentials and phone acceptance remain pending. The0.2.9 handoff below describes the imported baseline.
+The candidate adds a lightweight journal deck with composed-page PNG previews; original-photo import/capture and durable private review; map focus and stable sorting choices; measured sheets, trip disclosures and bookmark cards; share actions and guarded paper gestures; bounded writing/layout context and hosted readiness checks.
 
-[中文](../../README.md) · [Verification](../../TESTING.md) · [Integration status](../INTEGRATION-STATUS.md)
+Hosted journal routes still return404, vision readyz502 and audio404. Global map pagination needs the current business service. Native camera dimensions, gesture arbitration, heat/battery and actual phone smoothness are unverified. Waiting mode has adaptive sampling and bounded returned-frame recovery; full pre-capture recording, continuous audio and fusion are not complete.
 
-This is a runnable source checkpoint for team review and continued integration. The five tabs, native components, packaged assets, domain helpers, configuration template, locked dependencies and automated tests are included.
+Client verification:329 passed, zero failures/skips. Team-based backend:493 passed /51 skipped, coverage87.02%; provider calls mocked. Browser layout projections and the journal bridge-work proxy supplement checks, not native FPS/Compile evidence. The user's successful0.4.13 upload does not establish0.4.14 packaging.
 
-**Live recognition uploads/candidate UI, authentication, cloud synchronization, real map services and public community operations are not connected.** This handoff does not complete Issue #12 or merge map PR #17.
+Runtime is under `miniprogram/pages/`, `components/`, `services/` and the `field/` subpackage. Tests and review tools are under `tests/` and `scripts/`. Current evidence: `../PHONE-REVIEW-0.4.14.evidence.json`. `../SOURCE-CHECKPOINT.json` remains the historical0.2.9 export record, not this release's manifest.
 
-## Run after cloning
-
-Use Node 22.18+ or 24. This handoff was checked on Linux x86_64, Node 24.22.3 and npm 11.9.0.
-
-1. From the team repository, enter the client project: `cd miniprogram`.
-2. Install locked dependencies: `npm ci`.
-3. Generate local configuration: `npm run setup`. Existing settings are preserved; first setup uses a touristappid placeholder.
-4. Run `npm run verify`.
-5. Import **<team-repository>/miniprogram/** into WeChat DevTools. This directory contains package.json and the generated project.config.json. The inner miniprogram directory is the upload root, not the project import directory.
-6. Select the project's valid AppID supplied by its administrator and ensure you have developer membership. AppSecret belongs on a server and is not needed in client setup. Tourist/test environments do not establish phone or experience-build acceptance.
-
-Reference DevTools version: Stable 2.02.2608040; template base library: 3.17.1. Real camera, recording, Canvas, permissions and safe-area behavior still need device acceptance.
-
-Local project.config.json, project.private.config.json, node_modules, generated JavaScript, .test-build, environment files, gallery and keys are not committed. Setup script messages referring to the root mean this client project root, not the outer team-repository root.
-
-## Responsibilities and boundaries
-
-- Home: illustrative map interaction and example locations; no real map/POI/public-sighting provider.
-- Identify: native capture/import, per-material review drafts, capability-driven zoom and explicit private local saving. Analyze remains disconnected; the recognition module only prepares contracts and a cancellable coordinator.
-- Journal: editable document geometry, crop/rotation, undo/redo, local explicit saving and Canvas export. Session undo is not persistent history; unsaved work is not guaranteed across restart.
-- Community: labeled sample feed/interactions and an explicitly saved local post draft. Publishing/replying and writing/ASR services are disconnected.
-- Profile: local profile/avatar operations, history/favorites and example-excluding statistics. Choosing a WeChat avatar is not login.
-
-App shell/components and page controllers live under the inner miniprogram directory. Shared services hold storage/media, observation context, layout/map/zoom, journal/crop/Canvas, numeric and recognition-contract logic. The services folder is a practical grouping, not a claim of strict architecture-layer enforcement.
-
-See TESTING.md for the current 73 automated tests and native acceptance limits. Source files, tests, dependency locks and runtime version are preserved from checkpoint 031cf420cfb20b99b9e016d7b0d7b3958340a584; the handoff adds documentation, CI and local ignore rules. The private repository's history, personal development log and screenshots are excluded.
-
-## Integration and continuation
-
-Follow the team task-branch/PR workflow. Map PR #17 has a different app layout and package configuration; choose one app root and migrate the required map modules deliberately rather than stacking two app entries. Align gateway identity, original-media persistence, unknown/manual observations and public-map queries with the existing backend first. Private observation CRUD alone does not implement the map draft's public/nearby contract.
+Work through task branches and review PRs. Team/public handoffs use Chinese, with English working copies. Preserve all48 original backlog IDs and the R-series. Full-team writing deployment instructions: `backend/deploy/course/JOURNAL-WRITING.md`.

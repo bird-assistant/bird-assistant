@@ -1,4 +1,4 @@
-import {chinesePlace} from './place-names';
+import {chinesePlace} from '../../services/place-names';
 import type {TripBrief} from './trip-advice';
 
 export type TripPoint={latitude:number;longitude:number};

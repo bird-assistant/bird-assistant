@@ -8,7 +8,8 @@ export function journalDate(value?:string){
   return date.getFullYear()+'-'+pad(date.getMonth()+1)+'-'+pad(date.getDate());
 }
 export function journalDateTime(value?:string){const date=journalDate(value);if(date==='未记录')return date;const time=new Date(value!);return date+' '+String(time.getHours()).padStart(2,'0')+':'+String(time.getMinutes()).padStart(2,'0');}
-export function journalLibrary(documents:JournalDocument[],query:JournalLibraryQuery){
+type LibraryDocument=Pick<JournalDocument,'id'|'title'|'ratio'|'createdAt'|'updatedAt'>&{cover?:string;elements?:JournalDocument['elements']};
+export function journalLibrary(documents:LibraryDocument[],query:JournalLibraryQuery){
   const needle=query.text.trim().toLocaleLowerCase();
   return documents.filter(d=>{
     const date=journalDate(query.order==='created'?d.createdAt:d.updatedAt);
@@ -17,5 +18,5 @@ export function journalLibrary(documents:JournalDocument[],query:JournalLibraryQ
   }).sort((a,b)=>{
     const aa=query.order==='created'?a.createdAt:a.updatedAt,bb=query.order==='created'?b.createdAt:b.updatedAt;
     return (bb||'').localeCompare(aa||'')||a.id.localeCompare(b.id);
-  }).map(d=>({id:d.id,title:d.title,ratio:d.ratio,createdAt:d.createdAt,updatedAt:d.updatedAt,cover:d.elements.find(e=>e.type==='photo')?.src||'',createdLabel:journalDate(d.createdAt),updatedLabel:journalDateTime(d.updatedAt)}));
+  }).map(d=>({id:d.id,title:d.title,ratio:d.ratio,createdAt:d.createdAt,updatedAt:d.updatedAt,cover:d.cover??d.elements?.find(e=>e.type==='photo')?.src??'',createdLabel:journalDate(d.createdAt),updatedLabel:journalDateTime(d.updatedAt)}));
 }

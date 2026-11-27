@@ -1,3 +1,5 @@
+import {diagnosticText} from '../../services/diagnostics';
+import {queueObservationReview} from '../../services/draft-navigation';
 import {api,community,Draft,hub,sessionState,setDraft} from '../../services/community';
 import {LocalAudioPlayback} from '../../services/audio-playback';
 import { localRepository, Observation, isSampleObservation, observationStats } from '../../services/repository';
@@ -94,6 +96,8 @@ Page({
     setDraft({...draft,path:detail.imagePath});hub('publish');
   },
   localSpecies(){const species=this.data.detail?.communityDraft?.species;if(species)hub('species',species);},
+  copyDiagnostics(){try{wx.setClipboardData({data:diagnosticText()});}catch(error){this.setData({error:errorText(error)});}},
+  reviewLocal(){const id=this.data.detail?.id;if(id){queueObservationReview(id);wx.switchTab({url:'/pages/identify/index'});}},
   openRecord(e:WechatMiniprogram.TouchEvent){this._player?.stop();const detail=this.data.records.find(r=>r.id===e.currentTarget.dataset.id);if(detail){this.setData({detail,view:'detail',pageTitle:'观察详情'});void this.loadLocalStatus(detail);resetPageScroll(this);}},
   playAudio(){if(!this.data.detail)return;if(!this._player)this._player=new LocalAudioPlayback(()=>this.setData({error:'声音暂时无法回放，记录仍保留。'}));this._player.play(this.data.detail.imagePath);},
   favorite(){const r=this.data.detail;if(!r)return;const favorites=this.data.favorites.includes(r.id)?this.data.favorites.filter(id=>id!==r.id):[...this.data.favorites,r.id];try{wx.setStorageSync('bird-assistant.favorites.v1',favorites);this.setData({favorites,...observationStats(this.data.records,favorites)});wx.showToast({title:favorites.includes(r.id)?'已加入我的收藏':'已移除收藏',icon:'none'});}catch(error){this.setData({error:errorText(error)});}},

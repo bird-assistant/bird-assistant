@@ -84,13 +84,14 @@ test('native-cloned page fields initialize their own Maps/Sets onLoad and failur
   environment();const first=page();assert.equal(first.definition._failedPhotos,null);assert.equal(first.definition._failedCovers,null);open(first.p);const photo=first.p.data.doc.elements.find(e=>e.type==='photo');first.p.imageFailed(tap(photo.id));assert.equal(first.p._failedPhotos.get(photo.id),photo.src);const second=page();assert.equal(second.p._failedPhotos.size,0);const community=page('community');assert.equal(community.definition._failedThumbnails,null);assert.ok(community.p._failedThumbnails instanceof Set);
 });
 
-test('the journal deck projects only nearby composed pages and remembers failed thumbnail paths without changing saved media',()=>{
-  environment();const {p}=page();const documents=Array.from({length:12},(_,i)=>document('Journal '+i));p._documents=documents;p.filterLibrary();
-  assert.equal(Object.keys(p.data.deckPreviews).length,2);assert.ok(p.data.deckPreviews[p.data.libraryRows[0].id].elements.some(e=>e.type==='text'));
-  p.deckChange({detail:{current:5}});assert.equal(Object.keys(p.data.deckPreviews).length,3);
-  const id=p.data.libraryRows[5].id,photo=p.data.deckPreviews[id].elements.find(e=>e.type==='photo'),source=photo.src;
-  p.deckImageFailed({currentTarget:{dataset:{doc:id,id:photo.id}}});assert.equal(p.data.deckPreviews[id].elements.find(e=>e.id===photo.id).src,'');p.projectDeck();assert.equal(p.data.deckPreviews[id].elements.find(e=>e.id===photo.id).src,'');
-  assert.equal(documents.find(d=>d.id===id).elements.find(e=>e.id===photo.id).src,source);
+test('journal shelf swipes use metadata and cached bitmaps without restoring document/history',()=>{
+  const e=environment(),shelf=require('../.test-build/services/journal-shelf.js'),{p}=page();
+  const documents=Array.from({length:12},(_,i)=>document('Journal '+i));e.store.set(m.JOURNAL_KEY,documents);shelf.readJournalShelf();
+  const id=documents[5].id,row=shelf.readJournalShelf().find(row=>row.id===id);shelf.saveJournalThumbnail(id,row.revision,'/user/composed.png');
+  const reads=[];global.wx.getStorageSync=key=>{reads.push(key);return structuredClone(e.store.get(key)??'');};p.loadDrafts();
+  p.deckChange({detail:{current:5}});assert.equal(p.data.doc,null);assert.equal(p.data.deckThumbnails[id],'/user/composed.png');assert.ok(!reads.includes(m.JOURNAL_KEY));assert.equal(p._past.length,0);assert.equal(p._future.length,0);
+  p.thumbnailFailed(tap(id));assert.equal(p.data.deckThumbnails[id],'');assert.equal(p.data.previewErrors[id],true);
+  assert.equal(e.store.get(m.JOURNAL_KEY)[5].elements.find(e=>e.type==='photo').src,documents[5].elements.find(e=>e.type==='photo').src);
 });
 
 test('the direct editor AI records entry opens this journal history without generating or changing its content',()=>{

@@ -36,7 +36,7 @@ test('autosave persists media once, coalesces later edits and recovers the lates
   assert.equal(moves,1);assert.equal(p.data.renderElements.find(e=>e.type==='photo').src,'wxfile://durable/photo');assert.equal(storage.get(journal.JOURNAL_KEY).length,1);assert.equal(p.data.dirty,false);
   const saved=storage.get(journal.JOURNAL_KEY)[0];assert.equal(saved.elements.find(e=>e.type==='photo').src,'wxfile://durable/photo');assert.match(saved.elements.find(e=>e.id===writing.id).text,/during/);
   const second=journal.makeJournal(assets(),'Second');storage.set(journal.JOURNAL_KEY,[saved,second]);p.loadDrafts();p.openDraft(tap(second.id));
-  const fresh=page({},storage).p;fresh.onShow();assert.equal(fresh.data.doc.id,second.id);fresh.resume();assert.equal(fresh.data.view,'editor');p.onUnload();fresh.onUnload();
+  const fresh=page({},storage).p;fresh.onShow();assert.equal(fresh.data.doc,null);assert.equal(fresh.data.resumeRow.id,second.id);fresh.resume();assert.equal(fresh.data.doc.id,second.id);assert.equal(fresh.data.view,'editor');p.onUnload();fresh.onUnload();
 });
 test('an autosave storage failure keeps the previous copy and retries the already durable media',async t=>{
   const warnings=[];t.mock.method(console,'warn',(_message,error)=>warnings.push(error));

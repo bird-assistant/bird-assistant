@@ -28,6 +28,12 @@ for(const route of [...app.pages,...subpages,'custom-tab-bar/index','components/
   for(const [,asset] of markup.matchAll(/src="(\/assets\/[^"{}]+)"/g))assert(existsSync(resolve(root,'miniprogram','.'+asset)),'Missing image: '+asset);
   const stack=[];
   for(const [tag,closing,name] of markup.matchAll(/<(\/?)([\w-]+)\b(?:[^>"']|"[^"]*"|'[^']*')*>/g)){
+    if(!closing){
+      const names=new Set(),tail=tag.slice(name.length+1).replace(/\/?\s*>$/,'');
+      for(const [,attribute] of tail.matchAll(/([\w:-]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'))?/g)){
+        assert(!names.has(attribute),'Duplicate WXML attribute '+attribute+' in '+route);names.add(attribute);
+      }
+    }
     if(tag.endsWith('/>'))continue;
     if(closing)assert(stack.pop()===name,'Unbalanced WXML tags in '+route);else stack.push(name);
   }

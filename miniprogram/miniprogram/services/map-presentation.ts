@@ -19,3 +19,9 @@ export function clusterMarker(group:{latitude:number;longitude:number;count:numb
     ...(cluster?{anchor:{x:.5,y:.5}}:{}),
     callout:{content:group.count+' 条',display:'BYCLICK' as const,padding:6,borderRadius:10,color:'#285b49',bgColor:'#fffef9'}};
 }
+
+/** Short result drawers use only the space their rows need. */
+export function recordPane(maximum:number,header:number,count:number,more:boolean,loading=false){
+  const body=Math.min(Math.max(0,maximum-header),Math.max(64,count*74+(more?64:48)+(loading?30:0)));
+  return {sheetHeight:header+body,listHeight:body};
+}

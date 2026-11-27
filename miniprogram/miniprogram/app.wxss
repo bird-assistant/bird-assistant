@@ -53,4 +53,8 @@ button{display:flex;align-items:center;justify-content:center}
 .ai-sheet.sheet-frame{height:82vh;padding:0}
 
 /* Short sheets hug content; the measured native scroller handles long content. */
-.sheet-frame{height:auto!important}.sheet-frame .sheet-scroll{flex:0 0 auto;min-height:40px}.sheet-measure{display:block;width:100%;box-sizing:border-box}
+.sheet-frame{height:auto!important;max-height:calc(100vh - 56px)!important;padding:0!important}.sheet-frame .sheet-scroll{flex:0 0 auto;min-height:40px;max-height:none}.sheet-measure{display:block;width:100%;box-sizing:border-box}
+
+.inline-symbol{width:16px!important;height:16px!important;min-width:16px!important;max-width:16px!important;flex:none!important;margin-right:6px}.icon-next{width:7px;height:7px;border-top:1.6px solid currentColor;border-right:1.6px solid currentColor;transform:rotate(45deg);flex:none;margin-left:8px;font-size:0}
+
+.check-symbol{width:15px!important;height:15px!important;min-width:15px;max-width:15px;flex:none;vertical-align:middle}.check-square,.tick{display:inline-flex;align-items:center;justify-content:center}.chosen .tick .check-symbol,.evidence-check.check-symbol,.evidence-check .check-symbol{filter:brightness(0) invert(1)}.writing-photo-label .check-symbol{margin-right:4px}

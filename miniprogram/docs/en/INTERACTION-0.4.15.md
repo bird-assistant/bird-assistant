@@ -2,6 +2,14 @@
 
 28 November 2026, Beijing time. Candidate source built directly on team main `a6a3f88f028836278dfa91620e5f080b0cfff426`. PR27/0.4.14 is merged. This revision retains the team's bird-selector changes, identification polls/voting/adoption, original-photo review gateway, domestic Dongniao fallback, frame recovery and tab motion. Backend and all other root entries are unchanged.
 
+## 0.4.15 compilation correction (R64)
+
+The earlier bulk press-feedback edit treated the `>` in a quoted `>=` expression as the end of a tag. It inserted attributes inside the identify zoom-in button's disabled binding. This introduced the reported DevTools compile failure. The earlier360 tests and browser projections missed it and did not establish that the project compiled.
+
+The complete `zoom >= (demo ? 5 : maxZoom)` binding is restored, with press-feedback attributes outside it. A strict validator now consumes all WXML attributes/bindings, including before browser projection. `npm run verify` also requires the bundled WeChat WCC/WCSC from pinned `miniprogram-compiler@0.2.3`: all20 WXML and22 WXSS files compile. The reported broken fixture fails both the validator and WCC; a missing style import fails WCSC. The corrected build passes368 tests. Run `npm ci` for the added development dependency. Runtime version remains0.4.15.
+
+The bundled binaries are WCC v0.5vv_20200413_syb_scopedata and WCSC v0.4me_20190328_db. This is an offline template compilation gate; full current DevTools project Compile and phone acceptance remain required. The previous green CI and layout projections are not native acceptance evidence.
+
 ## What changed
 
 - **Map controls:** the locate icon is replaced by one centered spinner during location. The redundant floating circular refresh is removed; viewport loading and explicit error retry remain.
@@ -16,7 +24,7 @@
 
 ## Evidence and boundaries
 
-`npm run verify`: **360 passed, 0 failed, 0 skipped**, including the team's 340-test baseline and 20 new regression cases. Structure, assets, handlers, WXML balance, TypeScript and runtime syntax checks pass. Latest team-main client, backend and real CPU dependency CI checks are green; this patch does not change backend code.
+`npm run verify`: **368 passed, 0 failed, 0 skipped**, including the team's 340-test baseline and 28 new regression cases. Strict WXML attributes/expressions, actual WCC/WCSC compilation, structure, assets, handlers, TypeScript and runtime syntax checks pass. Latest team-main client, backend and real CPU dependency CI checks are green; this patch does not change backend code.
 
 Source layout projections cover **66 state/viewport cases**, including 320×568, 412×931 and 768×1024. Steady-state horizontal overflow and off-screen sheet bounds: zero. These are browser projections, not WeChat emulation. Native Compile, long-press/scroll arbitration, frame rate, camera quality, native permissions, WeChat sharing and actual two-phone acceptance still require DevTools/phones.
 
@@ -38,7 +46,7 @@ node scripts/check-live-services.mjs
 
 ## Live services: recovered health versus outstanding deployment
 
-Read-only GETs at **00:21:22 Beijing, 28 November** returned:
+Read-only GETs at **00:45:03 Beijing, 28 November** returned:
 
 | Service | Evidence | Remaining acceptance |
 | --- | --- | --- |
@@ -51,7 +59,9 @@ Read-only GETs at **00:21:22 Beijing, 28 November** returned:
 
 Source already mounts the writing router and includes `/api/v1/journal/*` in the course proxy. The live 404 narrows the problem to the active deployment/routing path; it does not identify which process/proxy is stale. Follow the existing full-source `backend/deploy/course/JOURNAL-WRITING.md` with the maintainer's server access. Require unauthenticated suggestions405/capabilities401, then normal user-session capabilities200/configured=true, before one explicit user-chosen writing request. No production deployment, login, model call, upload or publication was performed here.
 
-The Windows localhost writing helper remains for DevTools only. Keep its existing terminal, `.venv`, `image/` and local key. Restarting that helper cannot enable phone writing. The unresolved native authentication/network and rejected-null errors remain R34; retain the first complete stack and matching request/status rather than hiding them.
+The Windows localhost writing helper remains for DevTools only. Keep its existing terminal, `.venv`, `image/` and local key. The Aliyun compatible-mode URL is the model provider; the phone calls the team HTTPS business service first. A working local helper does not deploy that business service. Restarting that helper cannot enable phone writing. The unresolved native authentication/network and rejected-null errors remain R34; retain the first complete stack and matching request/status rather than hiding them.
+
+Admin access is separate from SSH. Repository history places the admin credential helper in the original24 November backend commit; it is unchanged by this client revision. The helper preserves an existing password unless explicitly invoked with `--rotate`, or the password file is absent. This does not establish what happened on the active server. Investigate the actual failed login and server logs without resetting credentials or pasting them into Git/chat.
 
 ## Native acceptance before another experience upload
 
@@ -65,4 +75,4 @@ The Windows localhost writing helper remains for DevTools only. Keep its existin
 
 ## Continued development
 
-R57–R63 extend the preserved 48 original IDs and R01–R56. Full waiting-mode pre-capture/audio/vision fusion, real device resource measurements, whole-app whitespace/accessibility, bundled-media optimization, deeper AI plan/evaluation, cross-device journal sync and unimplemented cloud functions remain tracked. Existing REST-backed cloud/social capabilities are reused; this revision does not introduce an unconfigured second cloud platform. No team PR was merged and no experience build was uploaded by the assistant.
+R57–R64 extend the preserved 48 original IDs and R01–R56. Full waiting-mode pre-capture/audio/vision fusion, real device resource measurements, whole-app whitespace/accessibility, bundled-media optimization, deeper AI plan/evaluation, cross-device journal sync and unimplemented cloud functions remain tracked. Existing REST-backed cloud/social capabilities are reused; this revision does not introduce an unconfigured second cloud platform. No team PR was merged and no experience build was uploaded by the assistant.

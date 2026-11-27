@@ -4,11 +4,11 @@
   "scope": "miniprogram/ only; backend and other root entries preserved",
   "client": {
     "command": "npm run verify",
-    "passed": 360,
+    "passed": 368,
     "failed": 0,
     "skipped": 0,
     "baselinePassed": 340,
-    "newRegressionCases": 20
+    "newRegressionCases": 28
   },
   "nativeCompile": "NOT RUN",
   "experienceUpload": "NOT RUN",
@@ -23,7 +23,8 @@
     ],
     "horizontalOverflow": 0,
     "offscreenSheetBounds": 0,
-    "nativeEmulation": false
+    "nativeEmulation": false,
+    "limits": "Previous browser projections missed the compile regression; projection now runs strict WXML validation first. These results are layout evidence only."
   },
   "deckProxy": {
     "scenario": "Warm shelf; 18 six-photo journals with eight extra text boxes and bounded edit history; open home then 100 deck changes",
@@ -57,7 +58,7 @@
     "limits": "Node storage/bridge proxy; excludes first migration, thumbnail creation, native decoding and animation FPS."
   },
   "publicReadOnlyProbe": {
-    "checked": "2026-11-27T16:21:22.800Z",
+    "checked": "2026-11-27T16:45:03.864Z",
     "origin": "https://api.auroraliu.cn:8080",
     "readOnly": true,
     "vision": {
@@ -128,5 +129,26 @@
     "R34 native auth/network and null-promise root cause",
     "Audio readyz404",
     "Full pre-capture/audio-vision fusion, native resource measurement, media bundle and broader adaptation"
-  ]
+  ],
+  "offlineTemplateCompiler": {
+    "package": "miniprogram-compiler@0.2.3",
+    "wccVersion": "v0.5vv_20200413_syb_scopedata",
+    "wcscVersion": "v0.4me_20190328_db",
+    "wxml": 20,
+    "wxss": 22,
+    "conclusion": "PASS",
+    "mandatoryIn": "npm run verify",
+    "fullCurrentDevToolsCompile": false
+  },
+  "compileRegression": {
+    "id": "R64",
+    "reported": "Previous0.4.15 candidate failed DevTools at pages/identify/index.wxml:15",
+    "cause": "Bulk hover insertion split a quoted >= expression and placed attributes inside disabled",
+    "previousGreenTests": 360,
+    "previousChecksMissedDefect": true,
+    "repair": "Restore complete zoom-limit expression and separate feedback attributes",
+    "redProof": "Both strict validator and bundled WeChat WCC reject the reported malformed fixture",
+    "styleFailureProof": "Bundled WeChat WCSC rejects missing style imports",
+    "correctedFullDevToolsCompile": "NOT RUN"
+  }
 }

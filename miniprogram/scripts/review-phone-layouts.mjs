@@ -4,6 +4,7 @@ import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
+import {assertWxmlSyntax} from './wxml-syntax.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..'),require=createRequire(import.meta.url);
 const model=require(resolve(root,'.test-build/services/map-presentation.js'));
 const guide=require(resolve(root,'.test-build/services/field-guide.js'));
@@ -33,7 +34,7 @@ function parse(source){
     const node={tag,attrs,children:[]};stack.at(-1).children.push(node);if(!token.endsWith('/>'))stack.push(node);
   }return root;
 }
-const ast=new Map();function template(path){if(!ast.has(path))ast.set(path,parse(read(path+'.wxml')));return ast.get(path);}
+const ast=new Map();function template(path){if(!ast.has(path)){const source=read(path+'.wxml');assertWxmlSyntax(source,path+'.wxml');ast.set(path,parse(source));}return ast.get(path);}
 function children(nodes,data,context){let html='',taken=false;
   for(const node of nodes){if(typeof node==='string'){html+=escape(val(node,data));continue;}
     const a=node.attrs;

@@ -1,6 +1,8 @@
 # Current candidate — 0.4.15 interaction and profile revision
 
-28 November 2026, Beijing time. [Changes, evidence and native acceptance](INTERACTION-0.4.15.md). Built on team main a6a3f88 after merged PR27, preserving the teammate's polls, bird selector, photo gateway, Dongniao fallback, frame recovery and tab motion. Client360/360 passes. Native Compile/two-phone acceptance remains required; this candidate has not been uploaded by the assistant.
+R64: repaired the identify zoom binding that broke Compile; mandatory strict WXML validation and bundled WeChat WCC/WCSC now compile20 WXML/22 WXSS. The earlier360-test green result missed this defect. Run npm ci before verify; still complete full DevTools Compile.
+
+28 November 2026, Beijing time. [Changes, evidence and native acceptance](INTERACTION-0.4.15.md). Built on team main a6a3f88 after merged PR27, preserving the teammate's polls, bird selector, photo gateway, Dongniao fallback, frame recovery and tab motion. Client368/368 passes. Native Compile/two-phone acceptance remains required; this candidate has not been uploaded by the assistant.
 
 The same-card one-second hold, damped share/delete drag, three-card deck, custom sharing sheet, centered locate spinner, visible plus icons, measured discovery, grouped My entries, real saved locations, protected preview-cache cleanup and safer social drafts are implemented. Latest public health: vision200 ready and current place sorting; hosted writing404/404 and audio404 remain. Settings can check hosted writing without sending photos or calling a model. R34 native auth/null errors remain open.
 
@@ -13,6 +15,7 @@ The same-card one-second hold, damped share/delete drag, three-card deck, custom
 | R61 / A02 | Grouped My entries, real local saved places and narrowly owned rebuildable preview cleanup. Device persistence/rebuild acceptance pending; no inferred check-ins or cloud sync. |
 | R62 / F01 | Existing social APIs/polls retained; clearer inbox/groups and late-send protection. Real two-account friend/group/poll acceptance pending. |
 | R63 / Q03/X03 | Preserve latest team integrations; hosted readiness check and motion feedback. Vision health/order recovered; phone writing deployment, R34 logs and wider adaptation remain open. |
+| R64 / X01 | Identify zoom binding compile regression repaired; strict complete WXML parsing and actual WCC/WCSC gates now run in verify. Full DevTools acceptance pending. |
 
 All original48 IDs and R01–R56 below are preserved as history. Canonical Windows instructions and next actions stay in the [private English next steps](https://github.com/NoctisBaguette/bird-assistant-miniprogram/blob/main/docs/NEXT-STEPS.md). Keep the existing writing-helper terminal and AppID; do not clear local data. Current native acceptance is in the revision notes above.
 

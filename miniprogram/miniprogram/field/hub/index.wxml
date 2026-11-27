@@ -49,7 +49,7 @@
       <view class="reply-compose-heading"><text>{{replyTarget ? '回复 '+replyTarget.name : '写下你的回复'}}</text><button wx:if="{{replyTarget}}" class="reply-link" bindtap="cancelReply">取消</button></view>
       <textarea class="reply-input" maxlength="2000" value="{{body}}" data-field="body" bindinput="field" focus="{{replyFocused}}" bindblur="blurReply" placeholder="分享观察、辨识依据，或继续这段讨论…"/>
       <view class="reply-extra"><button class="reply-link" bindtap="toggleReplySpecies">{{selectedSpecies || (record.poll && !record.poll.result ? '选择要投票的鸟种' : '附加鸟种建议（选填）')}}</button><text class="reply-counter">{{body.length}} / 2000</text></view>
-      <view wx:if="{{replySuggestOpen}}" class="reply-species-search"><species-search placeholder="输入鸟名并选择鸟种" bindselect="chooseReplySpecies"/></view>
+      <view wx:if="{{replySuggestOpen}}" class="reply-species-search"><species-search placeholder="输入鸟名并选择鸟种" show-guide="{{true}}" bindselect="chooseReplySpecies"/></view>
       <button wx:if="{{selectedSpecies}}" class="reply-link" bindtap="clearReplySpecies">移除鸟种建议</button>
       <button class="send-reply" disabled="{{busy || (!body && !(record.poll && !record.poll.result && replySpecies))}}" loading="{{busy}}" data-op="reply" bindtap="action">{{record.poll && !record.poll.result && replySpecies ? (body ? '投票并回复' : '提交鉴定票') : '发送回复'}}</button>
       <text class="reply-policy">文字回复审核通过后公开。</text>

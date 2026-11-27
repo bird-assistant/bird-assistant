@@ -188,3 +188,34 @@ test('a search near the bottom opens above its field and ignores a measurement a
   instance.resizeResults();callback({top:100,bottom:146});assert.equal(instance.data.above,false);assert.equal(instance.data.listHeight,240);
   instance.resizeResults();definition.lifetimes.detached.call(instance);const before=structuredClone(instance.data);callback({top:490,bottom:536});assert.deepEqual(instance.data,before);
 });
+
+test('discussion species guide returns to the same results and draft before the user selects a bird',async t=>{
+  const post=page('field/hub',{screen:'record',id:'post-1',replySuggestOpen:true,body:'翅膀有白斑'});
+  let definition;
+  global.Component=value=>{definition=value;};
+  const entry=require.resolve('../.test-build/components/species-search/index.js');
+  delete require.cache[entry];require(entry);
+  const bird={id:'avibase-owl',name:'短耳鸮',scientific:'Asio flammeus'};
+  t.mock.method(service,'api',async()=>({items:[bird]}));
+  const picker={
+    data:{...structuredClone(definition.data),showGuide:true,selectedIds:[]},...definition.methods,
+    setData(values){Object.assign(this.data,values);},
+    triggerEvent(name,detail){assert.equal(name,'select');post.chooseReplySpecies({detail});}
+  };
+  definition.lifetimes.attached.call(picker);
+  t.after(()=>definition.lifetimes.detached.call(picker));
+  picker.input({detail:{value:'短耳'}});picker.search();await settle();
+  const event=tap('',bird.id),original=structuredClone(picker.data),visits=[];
+  global.wx.navigateTo=options=>visits.push(options);
+  picker.openGuide(event);picker.openGuide(event);
+  assert.deepEqual(visits.map(visit=>visit.url),['/field/hub/index?screen=species&id=avibase-owl']);
+  definition.pageLifetimes.hide.call(picker);post.onHide();definition.pageLifetimes.show.call(picker);
+  assert.deepEqual(picker.data,original);
+  assert.equal(post.data.replySuggestOpen,true);assert.equal(post.data.replySpecies,'');
+  assert.equal(post.data.body,'翅膀有白斑');
+  global.wx.showToast=()=>{};
+  picker.openGuide(event);visits[1].fail();picker.openGuide(event);
+  assert.equal(visits.length,3);visits[2].fail();
+  picker.select(event);
+  assert.equal(post.data.replySpecies,bird.id);assert.equal(post.data.replySuggestOpen,false);
+});

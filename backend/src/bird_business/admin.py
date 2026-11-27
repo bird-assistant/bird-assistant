@@ -132,6 +132,7 @@ def publication_row(row):
         "date": display.get("date"),
         "point": display.get("displayLocation"),
         "photo": bool(display.get("media")),
+        "photoCount": len(display.get("gallery", [])) or int(bool(display.get("media"))),
     }
 
 
@@ -197,7 +198,7 @@ def queue(
 
 
 @router.get("/photos/{record}", dependencies=[Depends(authenticated)])
-def photo(record: str, database: DB):
+def photo(record: str, database: DB, index: int = 0):
     with database.transaction() as db:
         one(
             db,
@@ -205,7 +206,7 @@ def photo(record: str, database: DB):
             "(SELECT 1 FROM reports WHERE target=publications.id))",
             record,
         )
-        response = moderation_photo(db, record)
+        response = moderation_photo(db, record, index)
         response.headers.update(HEADERS)
         return response
 

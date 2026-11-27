@@ -77,16 +77,27 @@ async function decide(item,status,label,kind) {
   finally { state.saving = false; }
 }
 
+function appendPhotos(container, item) {
+  for (let index = 0; index < item.photoCount; index++) {
+    const link = element('a', '', 'photo');
+    link.href = '/admin/photos/' + encodeURIComponent(item.id) + '?index=' + index;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    const image = document.createElement('img');
+    image.src = link.href;
+    image.loading = 'lazy';
+    image.alt = `查看第 ${index + 1} 张图片，共 ${item.photoCount} 张`;
+    link.append(image);
+    container.append(link);
+  }
+}
+
 function observationCard(item) {
   const node=element('article');
   const channel=item.channels.find(entry=>entry.status==='pending' && entry.photo);
   const layout=element('div','','observation-layout');
   if(channel){
-    const image=document.createElement('img');
-    const link=element('a','','photo');
-    link.href='/admin/photos/'+encodeURIComponent(channel.id);
-    link.target='_blank';link.rel='noopener noreferrer';
-    image.src=link.href;image.loading='lazy';image.alt='放大观察照片';link.append(image);layout.append(link);
+    appendPhotos(layout, channel);
   }
   const channels=element('div');
   for(const entry of item.channels){
@@ -115,18 +126,7 @@ function card(item,tab) {
   if (item.body) node.append(element("p",item.body));
   if (item.date) node.append(element("p","观察日期　"+item.date,"meta"));
   if (item.point) node.append(element("p",`公开区域中心　${item.point.latitude}，${item.point.longitude}`,"meta"));
-  if (item.photo) {
-    const link = element("a", "", "photo");
-    link.href = "/admin/photos/" + encodeURIComponent(item.id);
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    const image = document.createElement("img");
-    image.src = link.href;
-    image.loading = "lazy";
-    image.alt = "查看提交的观察照片";
-    link.append(image);
-    node.append(link);
-  }
+  if (item.photo) appendPhotos(node, item);
   for (const reason of item.reasons || []) node.append(element("p","举报理由　" + reason));
   node.append(element("div",item.id,"record-id"));
   if (tab !== "history") {

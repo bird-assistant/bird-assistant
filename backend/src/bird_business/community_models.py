@@ -50,12 +50,24 @@ class Sighting(Input):
     note: str = Field("", max_length=2000)
 
 
+MAX_POST_IMAGES = 9
+MAX_POST_JOURNALS = 3
+
+
+class GalleryImage(Input):
+    media: Key
+    kind: Literal["photo", "journal"] = "photo"
+    label: Label = "照片"
+    manual_camera: Camera = Field(default_factory=Camera)
+
+
 class Preview(Input):
     identification_help: bool = False
     species: Key | None = None
     external: Key | None = None
     sighting: Key | None = None
     media: Key | None = None
+    gallery: list[GalleryImage] = Field(default_factory=list, max_length=MAX_POST_IMAGES)
     title: Label = ""
     body: str = Field("", max_length=2000)
     anonymous: bool = True
@@ -66,6 +78,13 @@ class Preview(Input):
 
     @model_validator(mode="after")
     def validate_content(self):
+        if self.gallery:
+            if not self.share_photo or self.sighting or self.channels != {"post"}:
+                raise ValueError("gallery requires a discussion post with shared photos")
+            if self.media and self.media != self.gallery[0].media:
+                raise ValueError("cover must be the first gallery image")
+            if sum(image.kind == "journal" for image in self.gallery) > MAX_POST_JOURNALS:
+                raise ValueError("too many journal images")
         if self.species and (self.sighting or self.external or self.channels != {"post"}):
             raise ValueError("topic species applies only to standalone discussion posts")
         if not self.sighting and not self.body:

@@ -31,6 +31,64 @@ MAP = "/api/v1/map/observations"
 OBS = "/api/v2/observations"
 
 
+def test_gallery_validates_ownership_and_serves_every_approved_image_in_order(field):
+    client, (author, reader, _), staff, _store = field
+    assert client.get(ROOT + "/capabilities").json() == {"postGallery": 1, "maxImages": 9, "maxJournals": 3}
+
+    def upload(color, who):
+        data = BytesIO()
+        Image.new("RGB", (40, 30), color).save(data, "PNG")
+        response = client.post(ROOT + "/media", headers=who, files={"file": ("bird.png", data.getvalue())})
+        assert response.status_code == 201
+        return response.json()["id"]
+
+    first, second, foreign = upload("red", author), upload("green", author), upload("blue", reader)
+    images = [
+        {"media": first},
+        {"media": second, "kind": "journal", "label": "手帐", "manual_camera": {"iso": "100"}},
+    ]
+    payload = {
+        "channels": ["post"],
+        "body": "请帮忙鉴定",
+        "share_photo": True,
+        "identification_help": True,
+        "media": first,
+        "gallery": images,
+    }
+
+    def preview(**changes):
+        return client.post(ROOT + "/previews", headers=author, json={**payload, **changes})
+
+    assert preview(gallery=[*images, {"media": foreign}]).status_code == 404
+    assert preview(gallery=images * 5).status_code == 422
+    assert preview(media=second, gallery=[images[1]] * 4).status_code == 422
+    assert preview(media=second).status_code == preview(share_photo=False).status_code == 422
+    hidden = preview().json()["display"]["post"]["gallery"]
+    assert all(item["camera"] == item["manualCamera"] == {} and "media" not in item for item in hidden)
+    prepared = preview(share_camera=True).json()
+    assert prepared["display"]["post"]["identificationHelp"]
+    record = client.post(ROOT + "/publications", headers=author, json={"preview": prepared["id"]}).json()[
+        "items"
+    ][0]["id"]
+    path = ROOT + "/publications/" + record
+    assert client.get(path + "/photos/1").status_code == 404
+    review = ROOT + "/moderation/" + record + "/photo"
+    assert not client.get(review, params={"index": 1}, headers=reader).is_success
+    expected = [client.get(review, headers=staff, params={"index": index}).content for index in (0, 1)]
+    assert expected[0] != expected[1]
+    assert client.post(ROOT + "/moderation/" + record, headers=staff, json={"status": "approved"}).is_success
+    detail = client.get(path).json()
+    assert detail["gallery"] == client.get(ROOT + "/posts").json()["items"][0]["gallery"]
+    assert [item["kind"] for item in detail["gallery"]] == ["photo", "journal"]
+    assert detail["gallery"][1]["manualCamera"] == {"iso": "100"}
+    assert all("media" not in item for item in detail["gallery"])
+    assert [client.get(item["image"]).content for item in detail["gallery"]] == expected
+    assert client.get(detail["image"]).content == expected[0]
+    assert client.get(path + "/photos/-1").status_code == client.get(path + "/photos/2").status_code == 404
+    assert client.delete(path, headers=author).is_success
+    assert all(client.get(item["image"]).status_code == 404 for item in detail["gallery"])
+
+
 def test_unknown_bird_poll_votes_replies_result_and_author_feedback(field):
     client, (author, reader, other), staff, _store = field
     first, second = [row["id"] for row in client.get("/api/v1/species", params={"limit": 2}).json()["items"]]

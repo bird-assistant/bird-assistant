@@ -13,6 +13,8 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from bird_business.bird_polls import poll_summary, resolve_poll, vote
 from bird_business.community_geo import display_point
 from bird_business.community_models import (
+    MAX_POST_IMAGES,
+    MAX_POST_JOURNALS,
     Adopt,
     BirdChoice,
     Decision,
@@ -366,6 +368,15 @@ def private_photo(record: str, database: DB, owner: Member):
         return Response(row[0], media_type="image/jpeg", headers={"Cache-Control": "private, no-store"})
 
 
+@router.get(ROOT + "/capabilities")
+def publication_capabilities():
+    return {"postGallery": 1, "maxImages": MAX_POST_IMAGES, "maxJournals": MAX_POST_JOURNALS}
+
+
+def gallery_metadata(image):
+    return {key: value for key, value in image.items() if key != "media"}
+
+
 @router.post(ROOT + "/previews")
 def preview(body: Preview, database: DB, owner: Member):
     with database.transaction() as db:
@@ -397,13 +408,27 @@ def preview(body: Preview, database: DB, owner: Member):
                 "MAP_LOCATION_RESTRICTED", "map requires location and a non-sensitive confirmed species", 422
             )
         media = (body.media or sighting.get("media")) if body.share_photo else None
-        if media:
-            one(db, "SELECT id FROM photos WHERE owner=? AND id=?", owner, media)
         camera = sighting.get("camera", {})
-        if media and not body.sighting:
-            camera = json.loads(
-                one(db, "SELECT camera FROM photos WHERE owner=? AND id=?", owner, media)["camera"]
+        gallery = []
+        for image in body.gallery:
+            photo = one(db, "SELECT camera FROM photos WHERE owner=? AND id=?", owner, image.media)
+            gallery.append(
+                {
+                    "media": image.media,
+                    "kind": image.kind,
+                    "label": image.label,
+                    "camera": json.loads(photo["camera"]) if body.share_camera else {},
+                    "manualCamera": image.manual_camera.model_dump(exclude_defaults=True)
+                    if body.share_camera
+                    else {},
+                }
             )
+        if gallery:
+            media, camera = gallery[0]["media"], gallery[0]["camera"]
+        elif media:
+            stored = one(db, "SELECT camera FROM photos WHERE owner=? AND id=?", owner, media)
+            if not body.sighting:
+                camera = json.loads(stored["camera"])
         value = {
             "speciesId": species.get("id", ""),
             "sourceRecord": citation,
@@ -429,12 +454,16 @@ def preview(body: Preview, database: DB, owner: Member):
         }
         if body.identification_help:
             displays["post"]["identificationHelp"] = True
+        if gallery:
+            displays["post"]["gallery"] = gallery
         preview_id = uid("preview")
         limited(db, "previews", "owner", owner, 100)
         db.execute(
             "INSERT INTO previews VALUES(?,?,?,?,?,?)",
             (preview_id, owner, body.sighting, encode(displays), encode(sorted(body.channels)), now()),
         )
+        if gallery:
+            displays["post"]["gallery"] = [gallery_metadata(image) for image in gallery]
         return {
             "id": preview_id,
             "display": {key: {**val, "media": bool(val["media"])} for key, val in displays.items()},
@@ -482,6 +511,11 @@ def publish(body: Submit, database: DB, owner: Member):
 def public(row: sqlite3.Row) -> dict:
     info = json.loads(row["display"])
     media = info.pop("media", None)
+    if info.get("gallery"):
+        info["gallery"] = [
+            {**gallery_metadata(image), "image": f"{ROOT}/publications/{row['id']}/photos/{index}"}
+            for index, image in enumerate(info["gallery"])
+        ]
     return {
         **info,
         "id": row["id"],
@@ -498,6 +532,21 @@ def visible(db, record):
     return one(db, "SELECT * FROM publications WHERE id=? AND status='approved'", record)
 
 
+def stored_publication_photo(db, row, display, index):
+    gallery = display.get("gallery") or [{"media": display.get("media")}]
+    if not 0 <= index < len(gallery):
+        raise missing()
+    jpeg = one(db, "SELECT jpeg FROM photos WHERE id=? AND owner=?", gallery[index]["media"], row["owner"])[0]
+    return Response(jpeg, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+
+
+@router.get(ROOT + "/publications/{record}/photos/{index}")
+def gallery_photo(record: str, index: int, database: DB):
+    with database.transaction() as db:
+        row = visible(db, record)
+        return stored_publication_photo(db, row, json.loads(row["display"]), index)
+
+
 @router.get(ROOT + "/publications/{record}/photo")
 def photo(record: str, database: DB):
     with database.transaction() as db:
@@ -505,10 +554,7 @@ def photo(record: str, database: DB):
         display = json.loads(row["display"])
         external_photo = display.get("sourcePhoto") if row["owner"] == "gbif" else None
         if not external_photo:
-            contents = one(
-                db, "SELECT jpeg FROM photos WHERE id=? AND owner=?", display.get("media"), row["owner"]
-            )["jpeg"]
-            return Response(contents, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+            return stored_publication_photo(db, row, display, 0)
     try:
         return Response(
             observation_thumbnail(external_photo["download"]),
@@ -1077,19 +1123,14 @@ def queue(database: DB, staff: Annotated[str, Depends(reviewer)]):
 
 
 @router.get(ROOT + "/moderation/{record}/photo")
-def review_photo(record: str, database: DB, staff: Annotated[str, Depends(reviewer)]):
+def review_photo(record: str, database: DB, staff: Annotated[str, Depends(reviewer)], index: int = 0):
     with database.transaction() as db:
-        return moderation_photo(db, record)
+        return moderation_photo(db, record, index)
 
 
-def moderation_photo(db, record):
+def moderation_photo(db, record, index=0):
     row = one(db, "SELECT owner,display FROM publications WHERE id=?", record)
-    media = json.loads(row["display"]).get("media")
-    return Response(
-        one(db, "SELECT jpeg FROM photos WHERE owner=? AND id=?", row["owner"], media)[0],
-        media_type="image/jpeg",
-        headers={"Cache-Control": "no-store"},
-    )
+    return stored_publication_photo(db, row, json.loads(row["display"]), index)
 
 
 @router.post(ROOT + "/moderation/{record}")

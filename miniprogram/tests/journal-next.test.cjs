@@ -1,5 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
+const {registerPage}=require('./helpers/page-lifecycle.cjs');
 const journal=require('../.test-build/services/journal-model.js');
 const ai=require('../.test-build/services/journal-ai.js');
 const provider=require('../.test-build/services/recognition-provider.js');
@@ -7,12 +8,40 @@ const fixture=require('./fixtures/recognition.json');
 const assets=n=>Array.from({length:n},(_,i)=>({id:'p'+i,src:'/assets/samples/field-'+i+'.png',selected:true,label:'观察 '+i,notes:'',sample:true}));
 const tap=id=>({currentTarget:{dataset:{id}}});
 function page(extra={}){
-  let definition;global.wx={canIUse:()=>false,getWindowInfo:()=>({windowWidth:390,windowHeight:844,screenHeight:844,statusBarHeight:24,safeArea:{bottom:810}}),getMenuButtonBoundingClientRect:()=>({top:30,bottom:62,left:290}),getStorageSync:()=>'',nextTick:f=>f(),pageScrollTo:()=>{},...extra};
+  let definition;const storage=new Map();global.wx={canIUse:()=>false,getWindowInfo:()=>({windowWidth:390,windowHeight:844,screenHeight:844,statusBarHeight:24,safeArea:{bottom:810}}),getMenuButtonBoundingClientRect:()=>({top:30,bottom:62,left:290}),getStorageSync:k=>structuredClone(storage.get(k)||''),setStorageSync:(k,v)=>storage.set(k,structuredClone(v)),nextTick:f=>f(),pageScrollTo:()=>{},...extra};
   global.Page=d=>definition=d;const path=require.resolve('../.test-build/pages/journal/index.js');delete require.cache[path];require(path);
   const patches=[],p={data:structuredClone(definition.data),getTabBar:()=>({setData:()=>{}}),setData(v){patches.push(structuredClone(v));for(const [k,value]of Object.entries(v)){const indexed=/^renderElements\[(\d+)\]$/.exec(k);if(indexed)this.data.renderElements[Number(indexed[1])]=value;else this.data[k]=value;}}};
   for(const [k,v]of Object.entries(definition))if(k!=='data')p[k]=typeof v==='function'?v.bind(p):structuredClone(v);
-  p.onLoad();return {p,patches};
+  registerPage(p);p.onLoad();return {p,patches};
 }
+test('photo-to-journal sends selected copies, previews a bounded suggestion, then applies one undoable edit',async t=>{
+  let sent;ai.installJournalAiTransport({generate:input=>{sent=input;return {result:Promise.resolve({version:1,requestId:input.requestId,title:'枝头的一刻',body:'鸟停在枝头，羽色映着周围的绿。',design:{style:'minimal',variant:2}}),cancel(){}};}});
+  t.after(()=>ai.installJournalAiTransport(null));
+  const {p}=page();p._catalog=assets(2).map(a=>({...a,src:'wxfile://'+a.id+'.jpg',sample:false,persisted:true}));
+  await p.generateFromPhotos();assert.equal(sent.purpose,'照片手帐');assert.equal(sent.images.length,2);assert.equal(sent.maxChars,60);
+  assert.ok(p.data.aiSuggestion);assert.notEqual(p.data.doc.title,'枝头的一刻');
+  const before=structuredClone(p.data.doc);p.applyAi({currentTarget:{dataset:{design:'yes'}}});
+  assert.equal(p.data.doc.title,'枝头的一刻');assert.equal(p.data.doc.style,'minimal');assert.deepEqual(p.data.doc.elements.filter(e=>e.type==='photo').map(e=>e.src),before.elements.filter(e=>e.type==='photo').map(e=>e.src));
+  p.undo();assert.deepEqual(p.data.doc,before);p.onUnload();
+});
+test('closing, hiding, reopening or changing a journal brief during photo persistence prevents a late upload',async t=>{
+  let requests=0;ai.installJournalAiTransport({generate:input=>{requests++;return {result:Promise.resolve({version:1,requestId:input.requestId,title:'Too late',body:'Too late',design:{style:'nature',variant:1}}),cancel(){}};}});
+  t.after(()=>ai.installJournalAiTransport(null));
+  for(const action of ['close','hide','reopen','document','prompt','photo','choice']){
+    const {p}=page();p.openDocument(journal.makeJournal([{...assets(1)[0],sample:false,src:'wxfile://original.jpg',persisted:false}],'Keep'),false);
+    let finish;const saving=new Promise(resolve=>finish=resolve);p.persistDraft=()=>saving;
+    p.openAi();p.prompt({detail:{value:'A short caption'}});const running=p.prepareAi();
+    if(action==='close')p.closeAi();
+    if(action==='hide')p.onHide();
+    if(action==='reopen'){p.closeAi();p.openAi();}
+    if(action==='document')p.openDocument(journal.makeJournal(assets(1),'Other'),false);
+    if(action==='prompt')p.prompt({detail:{value:'Changed requirement'}});
+    if(action==='photo')p.aiPhoto(tap(p.data.aiPhotos[0].id));
+    if(action==='choice')p.aiChoice({currentTarget:{dataset:{key:'purpose'}},detail:{value:1}});
+    finish(true);await running;assert.equal(requests,0,action);assert.equal(p.data.aiSuggestion,null,action);
+    p.persistDraft=async()=>true;p.onUnload();
+  }
+});
 test('single and paired photo layouts are distinct for all three ratios, preserve sources/crops and clear the title',()=>{
   const overlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
   for(const n of [1,2])for(const ratio of ['3:4','1:1','4:3'])for(const style of ['nature','magazine','minimal']){

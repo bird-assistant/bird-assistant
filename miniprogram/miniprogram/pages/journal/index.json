@@ -1,1 +1,6 @@
-{ "navigationBarTitleText": "手帐", "usingComponents": {} }
+{
+  "navigationBarTitleText": "手帐",
+  "usingComponents": {
+    "app-header": "/components/app-header/index"
+  }
+}

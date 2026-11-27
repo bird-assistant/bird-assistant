@@ -5,8 +5,9 @@ test('a trip retry reuses its request id, a followup uses its parent, and new co
   let config;
   global.Page=value=>{config=value;};
   const requests=[];
-  global.wx={getStorageSync(){return '';},login:options=>options.success({code:'test'}),request(options){
+  global.wx={getStorageSync(){return '';},setStorageSync(){},login:options=>options.success({code:'test'}),request(options){
     if(options.url.endsWith('/auth/wechat'))return options.success({statusCode:200,data:{access_token:'test',expires_in:3600}});
+    if(options.url.endsWith('/community/me'))return options.success({statusCode:200,data:{id:'owner'}});
     requests.push(structuredClone(options.data));
     if(requests.length===1)return options.fail({errMsg:'timeout'});
     options.success({statusCode:200,data:{turn:'turn'+requests.length,answer:'回答',stops:[],parks:[],

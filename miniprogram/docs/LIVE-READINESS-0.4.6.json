@@ -1,0 +1,44 @@
+{
+  "checked": "2026-11-25T04:31:38.904Z",
+  "origin": "https://api.auroraliu.cn:8080",
+  "readOnly": true,
+  "vision": {
+    "status": 200,
+    "ready": true,
+    "models": [
+      {
+        "name": "yolo-bird-detector",
+        "backend": "ultralytics-yolo",
+        "device": "cuda:0",
+        "ready": true
+      },
+      {
+        "name": "bioclip-2-zero-shot",
+        "backend": "open-clip",
+        "device": "cuda:0",
+        "ready": true
+      },
+      {
+        "name": "inference-runtime",
+        "backend": "session-manager",
+        "device": "cuda:0",
+        "ready": true
+      }
+    ]
+  },
+  "privateMapProtection": {
+    "status": 401,
+    "passed": true
+  },
+  "placesOrdering": {
+    "status": 200,
+    "current": false,
+    "action": "Deploy the reviewed business-service changes before testing distance ordering and new trip advice."
+  },
+  "acceptance": {
+    "realIdentification": "NOT TESTED",
+    "wechatLogin": "NOT TESTED",
+    "qwen": "NOT CALLED",
+    "publications": "NOT CREATED"
+  }
+}

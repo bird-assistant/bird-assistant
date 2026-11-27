@@ -16,3 +16,19 @@
 /project.config.json.tmp
 
 /gallery/
+
+# Regenerable layout projections; reviewed board and bounds are versioned.
+/docs/design/interface-0.4.2/
+/docs/design/interface-0.4.2-review/
+
+/docs/design/interface-0.4.3/
+/docs/design/interface-0.4.3-review/
+
+/docs/design/interface-0.4.4/
+/docs/design/interface-0.4.4-review/
+
+/docs/design/interface-0.4.5/
+/docs/design/interface-0.4.5-review/
+
+/docs/design/interface-0.4.6/
+/docs/design/interface-0.4.6-review/

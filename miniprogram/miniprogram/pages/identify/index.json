@@ -1,1 +1,7 @@
-{ "navigationBarTitleText": "识别与记录", "usingComponents": {"bird-crop":"/components/bird-crop/index"} }
+{
+  "navigationBarTitleText": "识别与记录",
+  "usingComponents": {
+    "bird-crop": "/components/bird-crop/index",
+    "app-header": "/components/app-header/index"
+  }
+}

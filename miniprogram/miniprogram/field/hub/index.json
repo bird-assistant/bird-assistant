@@ -1,1 +1,11 @@
-{"navigationStyle":"default","navigationBarTitleText":"羽迹社区","enablePullDownRefresh":true,"usingComponents":{"guide-card":"../guide-card/index"}}
+{
+  "navigationStyle": "default",
+  "navigationBarTitleText": "羽迹社区",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "guide-card": "../guide-card/index",
+    "species-search": "/components/species-search/index",
+    "photo-editor": "/components/photo-editor/index",
+    "photo-card": "/components/photo-card/index"
+  }
+}

@@ -7,10 +7,14 @@ from bird_vision.app import create_app
 
 
 def test_wechat_tickets_scope_ownership_and_expiry(test_settings, jpeg_bytes, monkeypatch):
-    settings = test_settings.model_copy(update={
-        "allow_anonymous": False, "api_keys": "private-key",
-        "wechat_app_id": "test-id", "wechat_app_secret": "test-secret",
-    })
+    settings = test_settings.model_copy(
+        update={
+            "allow_anonymous": False,
+            "api_keys": "private-key",
+            "wechat_app_id": "test-id",
+            "wechat_app_secret": "test-secret",
+        }
+    )
     with TestClient(create_app(settings)) as client:
         monkeypatch.setattr(mobile_auth, "urlopen", lambda *args, **kwargs: BytesIO(b'{"openid":"alice"}'))
         response = client.post("/api/v1/vision/auth/wechat", json={"code": "a-code"})
@@ -27,7 +31,9 @@ def test_wechat_tickets_scope_ownership_and_expiry(test_settings, jpeg_bytes, mo
         with client.websocket_connect(session["websocket_path"], headers=alice) as ws:
             assert ws.receive_json()["type"] == "vision.session.started"
         photo = client.post(
-            "/api/v1/vision/analyses", headers=alice, files={"image": ("a.jpg", jpeg_bytes, "image/jpeg")},
+            "/api/v1/vision/analyses",
+            headers=alice,
+            files={"image": ("a.jpg", jpeg_bytes, "image/jpeg")},
             data={"observation_mode": "historical", "captured_at": "1970-01-01T00:00:00Z"},
         )
         assert photo.status_code == 200
@@ -48,8 +54,14 @@ def test_course_business_login_works_on_separate_gpu(business_settings, test_set
     from bird_business.app import create_app as create_business
 
     common = {"allow_anonymous": False, "mobile_signing_key": "ba" * 32}
-    server = business_settings.model_copy(update={**common, "api_keys": "business-only",
-                                                  "wechat_app_id": "test-id", "wechat_app_secret": "test"})
+    server = business_settings.model_copy(
+        update={
+            **common,
+            "api_keys": "business-only",
+            "wechat_app_id": "test-id",
+            "wechat_app_secret": "test",
+        }
+    )
     gpu = test_settings.model_copy(update={**common, "api_keys": "gpu-only"})
     monkeypatch.setattr(mobile_auth, "urlopen", lambda *args, **kwargs: BytesIO(b'{"openid":"alice"}'))
     with TestClient(create_business(server)) as business, TestClient(create_app(gpu)) as worker:

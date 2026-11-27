@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from threading import RLock
 
+from bird_business.community_geo import distance_km
 from bird_common.errors import ServiceError
 
 SCHEMA = """
@@ -37,8 +38,11 @@ CREATE TABLE IF NOT EXISTS publications(id TEXT PRIMARY KEY, owner TEXT NOT NULL
 CREATE INDEX IF NOT EXISTS map_view ON publications(channel,status,lat,lon);
 CREATE INDEX IF NOT EXISTS species_posts ON publications(species,status,channel,created);
 CREATE TABLE IF NOT EXISTS replies(id TEXT PRIMARY KEY, post TEXT NOT NULL, owner TEXT NOT NULL, body TEXT,
- species TEXT, status TEXT NOT NULL, created TEXT NOT NULL, ref TEXT NOT NULL, UNIQUE(owner,ref));
+ species TEXT, status TEXT NOT NULL, created TEXT NOT NULL, ref TEXT NOT NULL, parent TEXT,
+ UNIQUE(owner,ref));
 CREATE TABLE IF NOT EXISTS reactions(owner TEXT,post TEXT,kind TEXT, PRIMARY KEY(owner,post,kind));
+CREATE INDEX IF NOT EXISTS reactions_post_kind ON reactions(post,kind);
+CREATE INDEX IF NOT EXISTS replies_post_status ON replies(post,status,created);
 CREATE TABLE IF NOT EXISTS messages(id TEXT PRIMARY KEY,sender TEXT,recipient TEXT,body TEXT,created TEXT,
  ref TEXT NOT NULL, UNIQUE(sender,ref));
 CREATE INDEX IF NOT EXISTS message_recipient ON messages(recipient,created);
@@ -128,9 +132,14 @@ class CommunityStore:
         self.lock = RLock()
         self.db = sqlite3.connect(str(database), timeout=10, check_same_thread=False)
         self.db.row_factory = sqlite3.Row
+        self.db.create_function("distance_km", 4, distance_km, deterministic=True)
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.executescript(SCHEMA)
         with self.transaction() as db:
+            # Additive migration: old replies and their moderation state stay intact.
+            if "parent" not in {row["name"] for row in db.execute("PRAGMA table_info(replies)")}:
+                db.execute("ALTER TABLE replies ADD COLUMN parent TEXT")
+            db.execute("CREATE INDEX IF NOT EXISTS replies_parent ON replies(post,parent,created)")
             if not db.execute("SELECT 1 FROM taxa LIMIT 1").fetchone():
                 with catalog.open(encoding="utf-8-sig", newline="") as source:
                     db.executemany(

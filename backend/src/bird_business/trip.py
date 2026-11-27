@@ -1,7 +1,6 @@
 import json
 from datetime import UTC, date, datetime, timedelta
 from hashlib import sha256
-from math import asin, cos, radians, sin, sqrt
 from threading import BoundedSemaphore
 from time import monotonic
 from typing import Annotated, Literal
@@ -11,6 +10,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from bird_business.community import DB, Member, limited, taxon
+from bird_business.community_geo import distance_km as distance
 from bird_business.community_store import now
 from bird_business.trip_advice import BEIJING
 from bird_business.trip_evidence import TripEvidence
@@ -35,14 +35,6 @@ class Trip(BaseModel):
     question: Question
     requestId: str = Field(pattern=r"^[a-zA-Z0-9_-]{8,80}$")
     parentTurn: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
-
-
-def distance(lat, lon, other_lat, other_lon):
-    arc = (
-        sin(radians(other_lat - lat) / 2) ** 2
-        + cos(radians(lat)) * cos(radians(other_lat)) * sin(radians(other_lon - lon) / 2) ** 2
-    )
-    return 12742 * asin(sqrt(min(1, arc)))
 
 
 def nearby(db, point, radius, species, today, month):
@@ -95,7 +87,7 @@ def nearby(db, point, radius, species, today, month):
     for site in sites.values():
         site["richness"] = len(site["birds"])
         site["birds"] = sorted(
-            site["birds"].values(), key=lambda bird: (bird["count"], bird["latest"]), reverse=True
+            site["birds"].values(), key=lambda bird: (bird["latest"], bird["count"]), reverse=True
         )[:4]
     return list(sites.values())
 
@@ -172,15 +164,32 @@ def collect(database, body, history, current, start):
     with database.transaction() as db:
         focus = requested_taxon(db, body, history)
         sites = nearby(db, point, body.radius, focus.get("id", ""), current.date(), body.date.strftime("%m"))
-    closest = sorted(sites, key=lambda site: site["km"])[:4]
+    closest = sorted(sites, key=lambda site: (site["km"], -date.fromisoformat(site["latest"]).toordinal()))[
+        :4
+    ]
     recent = sorted(sites, key=lambda site: site["latest"], reverse=True)[:2]
     richest = sorted(sites, key=lambda site: (site["richness"], site["seasonal"]), reverse=True)[:2]
     selection = []
     for site in [*closest, *recent, *richest]:
         if site not in selection:
             selection.append(site)
-    parks = [] if focus.get("sensitive") else local_parks(point, body.radius)[:4]
+    parks = [] if focus.get("sensitive") else local_parks(point, body.radius)
+    parks.sort(
+        key=lambda park: (
+            not (park["name"] in body.question or park["name"].removeprefix("北京") in body.question),
+            park["km"],
+        )
+    )
+    parks = parks[:4]
     evidence = TripEvidence(database, point, start, body.hours, selection, parks)
+    for name in dict.fromkeys(
+        [
+            focus.get("name") or focus.get("english") or "",
+            *(bird["name"] for site in selection[:2] for bird in site["birds"][:1]),
+        ]
+    ):
+        if name:
+            evidence.call("get_species_guide", json.dumps({"name": name}))
     context = {
         "question": body.question,
         "focus": focus.get("name") or focus.get("english") or "",

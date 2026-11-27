@@ -1,1 +1,9 @@
-{"navigationStyle":"default","navigationBarTitleText":"鸟种对比","usingComponents":{"guide-card":"../guide-card/index","bird-crop":"/components/bird-crop/index"}}
+{
+  "navigationStyle": "default",
+  "navigationBarTitleText": "鸟种对比",
+  "usingComponents": {
+    "guide-card": "../guide-card/index",
+    "bird-crop": "/components/bird-crop/index",
+    "species-search": "/components/species-search/index"
+  }
+}

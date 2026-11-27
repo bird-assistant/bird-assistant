@@ -37,6 +37,14 @@ class BusinessSettings(BaseSettings):
     wechat_app_id: str = ""
     wechat_app_secret: str = ""
     mobile_signing_key: str = Field(default="", pattern=r"^(?:|[a-f0-9]{64})$")
+    qwen_api_key: SecretStr = SecretStr("")
+    qwen_base_url: str = Field(
+        default="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        pattern=r"^https://(?:dashscope\.aliyuncs\.com|[a-zA-Z0-9-]+\.cn-beijing\.maas\.aliyuncs\.com)/compatible-mode/v1$",
+    )
+    qwen_model: str = Field(default="qwen3-vl-plus", pattern=r"^[a-zA-Z0-9_.-]{1,80}$")
+    qwen_text_model: str = Field(default="qwen-plus", pattern=r"^[a-zA-Z0-9_.-]{1,80}$")
+    qwen_daily_requests: int = Field(default=20, ge=1, le=100)
     allow_anonymous: bool = True
     cors_origins: str = ""
 

@@ -1,3 +1,5 @@
+import {navigate} from './navigation';
+import {PhotoDetails} from './photo-details';
 import {businessOrigin,connectBusiness,forgetConnection,sendImage,VisionConnection} from './vision-network';
 
 export const community='/api/v1/community';
@@ -5,13 +7,13 @@ export type Method='GET'|'POST'|'PUT'|'DELETE';
 export interface Point {latitude:number;longitude:number;system:'GCJ-02'|'WGS84'}
 export interface Draft {reference:string;path:string;storedMedia?:string;species:string|null;speciesName:string;analysis:string|null;target:number|null;
   date:string;time:string;note:string;place:string;point:Point|null;device:string;}
-type Compose={title:string;body:string;photo:string;sourceId?:string};
+type Compose={title:string;body:string;photo:string;sourceId?:string;speciesId?:string;speciesName?:string;speciesSupported?:boolean;manualCamera?:PhotoDetails};
 let compose:Compose|null=null;
 export function setCompose(value:Compose){compose=value;}
 export function takeCompose(){const result=compose;compose=null;return result;}
-type MapFocus={latitude:number;longitude:number;species:string;speciesLabel:string;scope:number};
+type MapFocus={latitude:number;longitude:number;species:string;speciesLabel:string;scope:number;scale:number;focusLabel:string};
 let focus:MapFocus|null=null;
-export function openMap(point:{latitude:number;longitude:number},species='',speciesLabel='所有鸟种',scope=0){focus={latitude:point.latitude,longitude:point.longitude,species,speciesLabel,scope};wx.switchTab({url:'/pages/home/index'});}
+export function openMap(point:{latitude:number;longitude:number},species='',speciesLabel='所有鸟种',scope=0,options={scale:11,precisionLabel:'公开区域，非精确拍摄点'}){focus={latitude:point.latitude,longitude:point.longitude,species,speciesLabel,scope,scale:options.scale,focusLabel:options.precisionLabel};wx.switchTab({url:'/pages/home/index',fail:()=>{focus=null;wx.showToast?.({title:'地图未能打开，请重试',icon:'none'});}});}
 export function takeMapFocus(){const result=focus;focus=null;return result;}
 let draft:Draft|null=null;
 export function setDraft(value:Draft){draft=value;}
@@ -20,11 +22,14 @@ export function key(){return Date.now().toString(36)+'-'+Math.random().toString(
 const socialScreens = ['account','friends','member','inbox','chat','groups','group','blocked'];
 export function hub(screen:string,id=''){
   const page=socialScreens.includes(screen)?'social':'hub';
-  wx.navigateTo({url:'/field/'+page+'/index?screen='+encodeURIComponent(screen)+'&id='+encodeURIComponent(id)});
+  navigate({url:'/field/'+page+'/index?screen='+encodeURIComponent(screen)+'&id='+encodeURIComponent(id)});
 }
 const sessionKey='bird-assistant.community.session.v1';
+let revision=0;
+export function sessionRevision(){return revision;}
 export function sessionState(){return wx.getStorageSync?.(sessionKey) || '';}
 export function setSession(active:boolean){
+  revision++;
   wx.setStorageSync(sessionKey,active?'active':'out');
   if(!active){forgetConnection();compose=null;draft=null;focus=null;}
 }

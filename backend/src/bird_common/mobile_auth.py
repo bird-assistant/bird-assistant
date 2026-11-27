@@ -57,8 +57,10 @@ class MobileAuth(ApiKeyAuth):
             match = TOKEN.fullmatch(provided)
             if match and int(match[2]) > time.time():
                 payload = provided.rsplit(".", 1)[0].encode()
-                if any(hmac.compare_digest(hmac.digest(key, payload, "sha256").hex(), match[3])
-                       for key in self.keys):
+                if any(
+                    hmac.compare_digest(hmac.digest(key, payload, "sha256").hex(), match[3])
+                    for key in self.keys
+                ):
                     return Principal(f"mobile:{match[1]}")
             raise ServiceError("AUTH_INVALID", "invalid mobile session", 401)
         return super()._verify(provided)
@@ -78,8 +80,14 @@ def login(body: Login, request: Request, response: Response) -> dict:
     settings = request.app.state.settings
     if not settings.wechat_app_id or not settings.wechat_app_secret or settings.allow_anonymous:
         raise ServiceError("LOGIN_UNAVAILABLE", "WeChat login is not configured", 503)
-    params = urlencode(dict(appid=settings.wechat_app_id, secret=settings.wechat_app_secret,
-                            js_code=body.code, grant_type="authorization_code"))
+    params = urlencode(
+        dict(
+            appid=settings.wechat_app_id,
+            secret=settings.wechat_app_secret,
+            js_code=body.code,
+            grant_type="authorization_code",
+        )
+    )
     try:
         with urlopen("https://api.weixin.qq.com/sns/jscode2session?" + params, timeout=5) as upstream:
             result = json.loads(upstream.read(8192))

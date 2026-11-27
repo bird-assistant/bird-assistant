@@ -40,9 +40,7 @@ class OccurrenceSite:
         longitude_delta = math.radians(longitude - self.longitude)
         haversine = (
             math.sin(latitude_delta / 2.0) ** 2
-            + math.cos(first_latitude)
-            * math.cos(second_latitude)
-            * math.sin(longitude_delta / 2.0) ** 2
+            + math.cos(first_latitude) * math.cos(second_latitude) * math.sin(longitude_delta / 2.0) ** 2
         )
         return earth_radius_km * 2.0 * math.asin(min(1.0, math.sqrt(haversine)))
 
@@ -60,8 +58,7 @@ class OccurrenceSite:
             selected_months = range(1, 13)
         else:
             selected_months = (
-                ((month - 1 + delta) % 12) + 1
-                for delta in range(-window_months, window_months + 1)
+                ((month - 1 + delta) % 12) + 1 for delta in range(-window_months, window_months + 1)
             )
         for selected_month in selected_months:
             for scientific_name, count in self.monthly_counts.get(selected_month, {}).items():
@@ -242,15 +239,12 @@ class OccurrenceCacheStore:
                 """
             )
             connection.execute(
-                "CREATE INDEX IF NOT EXISTS occurrence_cache_expiry "
-                "ON occurrence_cache(expires_at)"
+                "CREATE INDEX IF NOT EXISTS occurrence_cache_expiry ON occurrence_cache(expires_at)"
             )
             connection.execute(f"PRAGMA user_version={self.SCHEMA_VERSION}")
             check = connection.execute("PRAGMA quick_check").fetchone()
             if not check or check[0] != "ok":
-                raise _CorruptOccurrenceCache(
-                    f"occurrence cache integrity check failed: {check}"
-                )
+                raise _CorruptOccurrenceCache(f"occurrence cache integrity check failed: {check}")
             connection.commit()
         except Exception:
             connection.close()
@@ -271,9 +265,7 @@ class OccurrenceCacheStore:
         found, payload, _ = self.get_entry(cache_key, ttl_seconds=ttl_seconds)
         return found, payload
 
-    def get_entry(
-        self, cache_key: str, *, ttl_seconds: int
-    ) -> tuple[bool, dict[str, int] | None, float]:
+    def get_entry(self, cache_key: str, *, ttl_seconds: int) -> tuple[bool, dict[str, int] | None, float]:
         now = time.time()
         with self._lock:
             connection = self._require_connection()
@@ -287,9 +279,7 @@ class OccurrenceCacheStore:
             payload_json, created_at, expires_at = row
             if now >= min(float(expires_at), float(created_at) + ttl_seconds):
                 try:
-                    connection.execute(
-                        "DELETE FROM occurrence_cache WHERE cache_key = ?", (cache_key,)
-                    )
+                    connection.execute("DELETE FROM occurrence_cache WHERE cache_key = ?", (cache_key,))
                     connection.commit()
                 except sqlite3.Error as exc:
                     connection.rollback()
@@ -312,9 +302,7 @@ class OccurrenceCacheStore:
                     raise ValueError("invalid occurrence cache payload")
             except (TypeError, ValueError, json.JSONDecodeError):
                 try:
-                    connection.execute(
-                        "DELETE FROM occurrence_cache WHERE cache_key = ?", (cache_key,)
-                    )
+                    connection.execute("DELETE FROM occurrence_cache WHERE cache_key = ?", (cache_key,))
                     connection.commit()
                 except sqlite3.Error as exc:
                     connection.rollback()
@@ -359,9 +347,7 @@ class OccurrenceCacheStore:
                     (cache_key, payload_json, now, now + ttl_seconds, now),
                 )
                 connection.execute("DELETE FROM occurrence_cache WHERE expires_at <= ?", (now,))
-                count = int(
-                    connection.execute("SELECT COUNT(*) FROM occurrence_cache").fetchone()[0]
-                )
+                count = int(connection.execute("SELECT COUNT(*) FROM occurrence_cache").fetchone()[0])
                 excess = max(0, count - self.max_entries)
                 if excess:
                     connection.execute(
@@ -439,9 +425,7 @@ class OccurrenceCacheStore:
                     """,
                     rows,
                 )
-                count = int(
-                    connection.execute("SELECT COUNT(*) FROM occurrence_cache").fetchone()[0]
-                )
+                count = int(connection.execute("SELECT COUNT(*) FROM occurrence_cache").fetchone()[0])
                 excess = max(0, count - self.max_entries)
                 if excess:
                     connection.execute(
@@ -525,8 +509,7 @@ class DynamicOccurrenceResolver:
                 parts = name.split()
                 names_by_genus.setdefault(parts[0].casefold(), []).append(name)
             self._allowed_names_by_genus = {
-                genus: tuple(sorted(names, key=len, reverse=True))
-                for genus, names in names_by_genus.items()
+                genus: tuple(sorted(names, key=len, reverse=True)) for genus, names in names_by_genus.items()
             }
         self._allowed_names_sha256 = (
             hashlib.sha256("\n".join(sorted(self.allowed_names)).encode()).hexdigest()
@@ -538,9 +521,7 @@ class DynamicOccurrenceResolver:
             if cache_path is not None
             else None
         )
-        self._cache: dict[
-            str, tuple[float, OccurrenceSelection | OccurrenceLookupError | None]
-        ] = {}
+        self._cache: dict[str, tuple[float, OccurrenceSelection | OccurrenceLookupError | None]] = {}
         self._pending: dict[str, Future[OccurrenceSelection | None]] = {}
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="gbif-occurrence")
         self._closed = Event()
@@ -664,9 +645,7 @@ class DynamicOccurrenceResolver:
         self._store_cache(cache_key, selection)
         return selection
 
-    def _cache_key(
-        self, latitude: float, longitude: float, query_months: tuple[int | None, ...]
-    ) -> str:
+    def _cache_key(self, latitude: float, longitude: float, query_months: tuple[int | None, ...]) -> str:
         payload = json.dumps(
             {
                 "version": 6,
@@ -821,9 +800,7 @@ class DynamicOccurrenceResolver:
             longitude,
             self._query_months(observed_at.month, window_months),
         )
-        found, _, _ = self._cache_store.get_entry(
-            cache_key, ttl_seconds=self.cache_ttl_seconds
-        )
+        found, _, _ = self._cache_store.get_entry(cache_key, ttl_seconds=self.cache_ttl_seconds)
         return found
 
     def _query_months(self, month: int, window_months: int | None) -> tuple[int | None, ...]:
@@ -863,9 +840,7 @@ class DynamicOccurrenceResolver:
             counts = facets[0].get("counts")
             if not isinstance(counts, list) or any(not isinstance(item, dict) for item in counts):
                 raise ValueError("GBIF species facet counts are invalid")
-            page_signature = tuple(
-                (str(item.get("name", "")), str(item.get("count", ""))) for item in counts
-            )
+            page_signature = tuple((str(item.get("name", "")), str(item.get("count", ""))) for item in counts)
             if page_signature in seen_pages:
                 raise ValueError("GBIF species facet pagination returned a repeated page")
             seen_pages.add(page_signature)
@@ -983,10 +958,9 @@ def _circle_wkts(latitude: float, longitude: float, radius_km: float, points: in
     for index in range(points):
         # GBIF requires counter-clockwise exterior rings.
         bearing = -2.0 * math.pi * index / points
-        sine_latitude = (
-            math.sin(latitude_radians) * math.cos(angular_distance)
-            + math.cos(latitude_radians) * math.sin(angular_distance) * math.cos(bearing)
-        )
+        sine_latitude = math.sin(latitude_radians) * math.cos(angular_distance) + math.cos(
+            latitude_radians
+        ) * math.sin(angular_distance) * math.cos(bearing)
         target_latitude = math.asin(max(-1.0, min(1.0, sine_latitude)))
         target_longitude = longitude_radians + math.atan2(
             math.sin(bearing) * math.sin(angular_distance) * math.cos(latitude_radians),

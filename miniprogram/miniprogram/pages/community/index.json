@@ -1,1 +1,9 @@
-{ "navigationBarTitleText": "讨论", "usingComponents": {} }
+{
+  "navigationBarTitleText": "讨论",
+  "usingComponents": {
+    "app-header": "/components/app-header/index",
+    "photo-editor": "/components/photo-editor/index"
+  },
+  "enablePullDownRefresh": false,
+  "disableScroll": true
+}

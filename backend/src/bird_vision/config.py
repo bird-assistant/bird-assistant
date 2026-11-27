@@ -59,9 +59,7 @@ class Settings(BaseSettings):
     species_live_occurrence_facet_limit: int = Field(default=300, ge=2, le=1000)
     species_live_occurrence_cache_path: Path = Path("runtime/gbif-occurrence-cache.sqlite3")
     species_live_occurrence_cache_max_entries: int = Field(default=2048, ge=16, le=100_000)
-    species_live_occurrence_cache_ttl_seconds: int = Field(
-        default=2_592_000, ge=60, le=31_536_000
-    )
+    species_live_occurrence_cache_ttl_seconds: int = Field(default=2_592_000, ge=60, le=31_536_000)
     species_live_occurrence_timeout_seconds: float = Field(default=8.0, gt=1.0, le=30.0)
     species_temporal_window_months: int = Field(default=1, ge=0, le=3)
     species_min_local_candidates: int = Field(default=2, ge=2, le=10_000)
@@ -135,17 +133,12 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_security(self) -> Settings:
-        if (
-            self.detection_high_resolution_enabled
-            and (
-                self.model_image_size % 32 != 0
-                or self.detection_high_resolution_image_size % 32 != 0
-                or self.detection_high_resolution_image_size <= self.model_image_size
-            )
+        if self.detection_high_resolution_enabled and (
+            self.model_image_size % 32 != 0
+            or self.detection_high_resolution_image_size % 32 != 0
+            or self.detection_high_resolution_image_size <= self.model_image_size
         ):
-            raise ValueError(
-                "high-resolution detector sizes must be stride-32 aligned and high size larger"
-            )
+            raise ValueError("high-resolution detector sizes must be stride-32 aligned and high size larger")
         if self.environment == "production" and self.allow_anonymous:
             raise ValueError("production must set BIRD_VISION_ALLOW_ANONYMOUS=false")
         if self.environment == "production" and not self.api_key_set:

@@ -53,6 +53,24 @@ def final(**changes):
     return {"content": json.dumps({**plan, **changes}), "usage": {"total_tokens": 42}}
 
 
+def test_structured_brief_is_validated_and_keeps_evidence_cards(advisor, monkeypatch):
+    client, (owner, _), body = advisor
+    brief = {
+        "headline": "先从附近公园开始，沿步道慢慢观察。",
+        "reasons": ["适合作为初次踏查地点"],
+        "watchFor": [],
+        "preparation": ["带上望远镜"],
+        "uncertainty": ["暂无对应时段的天气预报"],
+    }
+    monkeypatch.setattr(trip_harness, "cloud_chat", lambda *_: final(brief=brief))
+    result = client.post(ROUTE, headers=owner, json=body)
+    assert result.is_success and result.json()["brief"] == brief
+    assert result.json()["parks"] and result.json()["sources"]
+    monkeypatch.setattr(trip_harness, "cloud_chat", lambda *_: final(brief={**brief, "headline": "长" * 91}))
+    failure = client.post(ROUTE, headers=owner, json={**body, "requestId": "invalid-brief"})
+    assert failure.status_code == 502 and failure.json()["error"]["code"] == "TRIP_OUTPUT"
+
+
 def test_chat_tools_followup_idempotency_and_owner(advisor, monkeypatch):
     client, (owner, other), body = advisor
     requests = []
@@ -121,7 +139,8 @@ def test_prose_then_valid_park_with_separate_evidence(advisor, monkeypatch):
     response = client.post(ROUTE, headers=owner, json={**body, "question": "我想看红嘴蓝鹊，应该去哪里"})
     assert response.is_success and len(requests) == 3
     plan = response.json()
-    assert [source["id"] for source in plan["sources"]] == ["F0", "W0", "P1"]
+    assert [source["id"] for source in plan["sources"][:3]] == ["F0", "W0", "P1"]
+    assert plan["sources"][3]["url"].startswith("https://yllhj.beijing.gov.cn/")
     assert plan["parks"] and plan["stages"][0]["time"] == "09:00"
 
 
@@ -219,3 +238,77 @@ def test_provider_errors_are_sanitized(status, code, monkeypatch):
     with pytest.raises(ServiceError) as error:
         trip_harness.cloud_chat(BusinessSettings(trip_api_key="test-only"), {"messages": []}, 3)
     assert error.value.code == code and "secret-provider" not in str(error.value)
+
+
+def test_place_advice_uses_named_map_references_and_never_turns_grid_records_into_park_sightings(advisor):
+    from bird_business.trip_evidence import TripEvidence
+    from bird_business.trip_harness import Answer
+    from bird_business.trip_parks import park_points
+
+    client, _, body = advisor
+    summer = next(park for park in park_points() if "颐和园" in park["name"])
+    site = {
+        "name": "北京",
+        "point": {"latitude": 40.0, "longitude": 116.3},
+        "km": 1.2,
+        "latest": "2026-11-01",
+        "count": 3,
+        "richness": 1,
+        "seasonal": 2,
+        "birds": [],
+    }
+    evidence = TripEvidence(
+        client.app.state.community, body, datetime.now(BEIJING), 2, [site], [{**summer, "km": 2.1}]
+    )
+    evidence.forecast = lambda _: {}
+    initial = evidence.initial()
+    assert initial["F0"]["parks"][0]["context"]["landscape"]
+    assert initial["F0"]["parks"][0]["nearbyAreas"] == ["A1"]
+    answer = Answer(
+        answer="先到P1，再留意A1区域的历史资料。",
+        destinations=["P1"],
+        sources=["P1", "A1"],
+        stages=[{"offsetMinutes": 20, "action": "从P1公共岸线安静观察。"}],
+        visits=[
+            {
+                "destination": "P1",
+                "why": "有公开的水域与林地资料",
+                "habitats": ["若水面未结冰，可从公共步道扫描水面。"],
+                "watchFor": [],
+                "timing": "结合当日天气调整停留时间。",
+                "uncertainty": "邻近网格的记录并不证明鸟在园内。",
+            }
+        ],
+    )
+    evidence.validate(answer)
+    result = evidence.render(answer)
+    assert "P1" not in result["answer"] and "A1" not in result["answer"]
+    assert "颐和园" in result["answer"] and "40.0°" in result["answer"]
+    assert result["visits"][0]["name"] == summer["name"]
+    assert result["referenceMap"][0]["kind"] == "park"
+    assert "非精确" in result["referenceMap"][1]["precisionLabel"]
+    assert "P1" not in result["stages"][0]["action"]
+    invalid = answer.model_copy(update={"answer": "建议去A99区域"})
+    with pytest.raises(ValueError, match="unknown location"):
+        evidence.validate(invalid)
+    invalid = answer.model_copy(
+        update={"visits": [answer.visits[0].model_copy(update={"destination": "A1"})]}
+    )
+    with pytest.raises(ValueError, match="unlinked"):
+        evidence.validate(invalid)
+
+
+def test_structured_place_advice_rejects_unknown_and_duplicate_destinations(advisor, monkeypatch):
+    client, (owner, _), body = advisor
+    visit = {
+        "destination": "P1",
+        "why": "附近可踏查地点",
+        "habitats": ["可在允许通行的步道观察；实际生境待现场确认。"],
+        "watchFor": [],
+        "timing": "天气未知，出发前再查。",
+        "uncertainty": "无该园直接鸟讯。",
+    }
+    for index, visits in enumerate([[{**visit, "destination": "P99"}], [visit, visit]]):
+        monkeypatch.setattr(trip_harness, "cloud_chat", lambda *_, visits=visits: final(visits=visits))
+        result = client.post(ROUTE, headers=owner, json={**body, "requestId": f"bad-visits-{index}"})
+        assert result.status_code == 502 and result.json()["error"]["code"] == "TRIP_OUTPUT"

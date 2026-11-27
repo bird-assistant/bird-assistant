@@ -1,0 +1,544 @@
+[
+  {
+    "kind": "camera",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 540.11,
+        "width": 296.0,
+        "height": 189.89
+      }
+    ]
+  },
+  {
+    "kind": "cameraZoom",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 346.25,
+        "width": 296.0,
+        "height": 383.75
+      }
+    ]
+  },
+  {
+    "kind": "cameraClues",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 398.05,
+        "width": 296.0,
+        "height": 331.95
+      }
+    ]
+  },
+  {
+    "kind": "map",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "mapMoving",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "search",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "searchSingle",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "menu",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "forum-menu",
+        "x": 0,
+        "y": 420.7,
+        "width": 284.0,
+        "height": 391.3
+      }
+    ]
+  },
+  {
+    "kind": "photo",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-card",
+        "x": 16.0,
+        "y": 349.72,
+        "width": 260.0,
+        "height": 259.89
+      },
+      {
+        "class": "photo-stage ",
+        "x": 30.0,
+        "y": 361.72,
+        "width": 260.0,
+        "height": 240.0
+      }
+    ]
+  },
+  {
+    "kind": "photoBack",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-card",
+        "x": 16.0,
+        "y": 349.72,
+        "width": 260.0,
+        "height": 259.89
+      },
+      {
+        "class": "photo-stage photo-flipped",
+        "x": 30.0,
+        "y": 361.72,
+        "width": 260.0,
+        "height": 240.0
+      }
+    ]
+  },
+  {
+    "kind": "feed",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "refresh",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "compose",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "import",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "profile",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "trip",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "card advice-overview",
+        "x": 11.95,
+        "y": 508.37,
+        "width": 270.21,
+        "height": 99.21
+      }
+    ]
+  },
+  {
+    "kind": "tripHistory",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "journal",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "camera",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 540.11,
+        "width": 366.0,
+        "height": 189.89
+      }
+    ]
+  },
+  {
+    "kind": "cameraZoom",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 346.25,
+        "width": 366.0,
+        "height": 383.75
+      }
+    ]
+  },
+  {
+    "kind": "cameraClues",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 398.05,
+        "width": 366.0,
+        "height": 331.95
+      }
+    ]
+  },
+  {
+    "kind": "map",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "mapMoving",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "search",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "searchSingle",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "menu",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "forum-menu",
+        "x": 0,
+        "y": 420.7,
+        "width": 354.0,
+        "height": 391.3
+      }
+    ]
+  },
+  {
+    "kind": "photo",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-card",
+        "x": 16.0,
+        "y": 313.16,
+        "width": 260.0,
+        "height": 259.89
+      },
+      {
+        "class": "photo-stage ",
+        "x": 65.0,
+        "y": 325.16,
+        "width": 260.0,
+        "height": 240.0
+      }
+    ]
+  },
+  {
+    "kind": "photoBack",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-card",
+        "x": 16.0,
+        "y": 313.16,
+        "width": 260.0,
+        "height": 259.89
+      },
+      {
+        "class": "photo-stage photo-flipped",
+        "x": 65.0,
+        "y": 325.16,
+        "width": 260.0,
+        "height": 240.0
+      }
+    ]
+  },
+  {
+    "kind": "feed",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "refresh",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "compose",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "import",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "import-modes",
+        "x": 19.0,
+        "y": 804.77,
+        "width": 352.0,
+        "height": 18.0
+      }
+    ]
+  },
+  {
+    "kind": "profile",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "trip",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "card advice-overview",
+        "x": 14.56,
+        "y": 584.5,
+        "width": 329.76,
+        "height": 120.92
+      }
+    ]
+  },
+  {
+    "kind": "tripHistory",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "journal",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "camera",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 540.11,
+        "width": 626.0,
+        "height": 189.89
+      }
+    ]
+  },
+  {
+    "kind": "cameraZoom",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 346.25,
+        "width": 626.0,
+        "height": 383.75
+      }
+    ]
+  },
+  {
+    "kind": "cameraClues",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "live-bottom",
+        "x": 0,
+        "y": 398.05,
+        "width": 626.0,
+        "height": 331.95
+      }
+    ]
+  },
+  {
+    "kind": "map",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "mapMoving",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "search",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "searchSingle",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "menu",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "forum-menu",
+        "x": 0,
+        "y": 420.7,
+        "width": 584.0,
+        "height": 391.3
+      }
+    ]
+  },
+  {
+    "kind": "photo",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-card",
+        "x": 90.0,
+        "y": 280.77,
+        "width": 260.0,
+        "height": 259.89
+      },
+      {
+        "class": "photo-stage ",
+        "x": 254.0,
+        "y": 292.77,
+        "width": 260.0,
+        "height": 240.0
+      }
+    ]
+  },
+  {
+    "kind": "photoBack",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "photo-card",
+        "x": 90.0,
+        "y": 280.77,
+        "width": 260.0,
+        "height": 259.89
+      },
+      {
+        "class": "photo-stage photo-flipped",
+        "x": 254.0,
+        "y": 292.77,
+        "width": 260.0,
+        "height": 240.0
+      }
+    ]
+  },
+  {
+    "kind": "feed",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "refresh",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "compose",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "import",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "import-modes",
+        "x": 93.0,
+        "y": 804.77,
+        "width": 582.0,
+        "height": 18.0
+      }
+    ]
+  },
+  {
+    "kind": "profile",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "trip",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "tripHistory",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "journal",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  }
+]

@@ -1,0 +1,332 @@
+[
+  {
+    "kind": "feed",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "post-card",
+        "x": 16.0,
+        "y": 216.0,
+        "width": 258.0,
+        "height": 257.47
+      },
+      {
+        "class": "post-card",
+        "x": 16.0,
+        "y": 515.47,
+        "width": 258.0,
+        "height": 201.47
+      },
+      {
+        "class": "post-card",
+        "x": 16.0,
+        "y": 758.94,
+        "width": 258.0,
+        "height": 175.72
+      }
+    ]
+  },
+  {
+    "kind": "thread",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "thread-children",
+        "x": 16.0,
+        "y": 638.91,
+        "width": 252.0,
+        "height": 277.5
+      },
+      {
+        "class": "reply-composer",
+        "x": 16.0,
+        "y": 943.41,
+        "width": 258.0,
+        "height": 268.09
+      }
+    ]
+  },
+  {
+    "kind": "compare",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "column",
+        "x": 16.0,
+        "y": 241.93,
+        "width": 130.0,
+        "height": 890.0
+      },
+      {
+        "class": "column",
+        "x": 184.0,
+        "y": 241.93,
+        "width": 130.0,
+        "height": 890.0
+      }
+    ]
+  },
+  {
+    "kind": "search",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "search-panel ",
+        "x": 16.0,
+        "y": 200.41,
+        "width": 286.0,
+        "height": 260.0
+      },
+      {
+        "class": "column",
+        "x": 16.0,
+        "y": 241.93,
+        "width": 130.0,
+        "height": 890.0
+      },
+      {
+        "class": "column",
+        "x": 184.0,
+        "y": 241.93,
+        "width": 130.0,
+        "height": 890.0
+      }
+    ]
+  },
+  {
+    "kind": "places",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "map",
+    "width": 320,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "feed",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "post-card",
+        "x": 16.0,
+        "y": 216.0,
+        "width": 328.0,
+        "height": 231.72
+      },
+      {
+        "class": "post-card",
+        "x": 16.0,
+        "y": 489.72,
+        "width": 328.0,
+        "height": 175.72
+      },
+      {
+        "class": "post-card",
+        "x": 16.0,
+        "y": 707.44,
+        "width": 328.0,
+        "height": 149.97
+      }
+    ]
+  },
+  {
+    "kind": "thread",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "thread-children",
+        "x": 16.0,
+        "y": 575.15,
+        "width": 322.0,
+        "height": 249.65
+      },
+      {
+        "class": "reply-composer",
+        "x": 16.0,
+        "y": 851.8,
+        "width": 328.0,
+        "height": 247.31
+      }
+    ]
+  },
+  {
+    "kind": "compare",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "column",
+        "x": 16.0,
+        "y": 241.93,
+        "width": 147.0,
+        "height": 890.0
+      },
+      {
+        "class": "column",
+        "x": 201.0,
+        "y": 241.93,
+        "width": 147.0,
+        "height": 890.0
+      }
+    ]
+  },
+  {
+    "kind": "search",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "search-panel ",
+        "x": 16.0,
+        "y": 200.41,
+        "width": 356.0,
+        "height": 260.0
+      },
+      {
+        "class": "column",
+        "x": 16.0,
+        "y": 241.93,
+        "width": 147.0,
+        "height": 890.0
+      },
+      {
+        "class": "column",
+        "x": 201.0,
+        "y": 241.93,
+        "width": 147.0,
+        "height": 890.0
+      }
+    ]
+  },
+  {
+    "kind": "places",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "map",
+    "width": 390,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "feed",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "post-card",
+        "x": 40.0,
+        "y": 216.0,
+        "width": 658.0,
+        "height": 177.96
+      },
+      {
+        "class": "post-card",
+        "x": 40.0,
+        "y": 435.96,
+        "width": 658.0,
+        "height": 149.97
+      },
+      {
+        "class": "post-card",
+        "x": 40.0,
+        "y": 627.93,
+        "width": 658.0,
+        "height": 149.97
+      }
+    ]
+  },
+  {
+    "kind": "thread",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "thread-children",
+        "x": 90.0,
+        "y": 512.52,
+        "width": 552.0,
+        "height": 221.8
+      },
+      {
+        "class": "reply-composer",
+        "x": 90.0,
+        "y": 761.32,
+        "width": 558.0,
+        "height": 247.31
+      }
+    ]
+  },
+  {
+    "kind": "compare",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "column",
+        "x": 16.0,
+        "y": 241.93,
+        "width": 336.0,
+        "height": 890.0
+      },
+      {
+        "class": "column",
+        "x": 390.0,
+        "y": 241.93,
+        "width": 336.0,
+        "height": 890.0
+      }
+    ]
+  },
+  {
+    "kind": "search",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": [
+      {
+        "class": "search-panel ",
+        "x": 16.0,
+        "y": 200.41,
+        "width": 734.0,
+        "height": 260.0
+      },
+      {
+        "class": "column",
+        "x": 16.0,
+        "y": 241.93,
+        "width": 336.0,
+        "height": 890.0
+      },
+      {
+        "class": "column",
+        "x": 390.0,
+        "y": 241.93,
+        "width": 336.0,
+        "height": 890.0
+      }
+    ]
+  },
+  {
+    "kind": "places",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  },
+  {
+    "kind": "map",
+    "width": 768,
+    "renderer": "WeasyPrint source projection",
+    "panels": []
+  }
+]

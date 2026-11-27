@@ -17,6 +17,8 @@ from bird_business.metrics import BusinessMetrics
 from bird_business.social import router as social_router
 from bird_business.social_groups import router as groups_router
 from bird_business.trip import router as trip_router
+from bird_business.writing import install as install_writing
+from bird_business.writing import router as writing_router
 from bird_common.app_factory import build_service_app
 from bird_common.mobile_auth import MobileAuth
 from bird_common.mobile_auth import router as mobile_router
@@ -33,6 +35,7 @@ def create_app(settings: BusinessSettings | None = None, *, store: ObservationSt
         observations = store or ObservationStore(resolved)
         metrics.stored.set(observations.count())
         app.state.settings = resolved
+        install_writing(app)
         app.state.admin_sessions = AdminSessions(resolved.admin_password_sha256)
         app.state.store = observations
         app.state.metrics = metrics
@@ -45,6 +48,7 @@ def create_app(settings: BusinessSettings | None = None, *, store: ObservationSt
                 "/api/v1/map",
                 "/api/v1/species",
                 "/api/v2/observations",
+                "/api/v1/journal",
             ),
         )
         LOGGER.info("business service ready", extra={"detail": f"database={observations.path}"})
@@ -73,6 +77,7 @@ def create_app(settings: BusinessSettings | None = None, *, store: ObservationSt
     service.include_router(trip_router)
     service.include_router(social_router)
     service.include_router(groups_router)
+    service.include_router(writing_router)
     return service
 
 

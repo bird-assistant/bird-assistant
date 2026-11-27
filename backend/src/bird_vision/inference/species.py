@@ -206,9 +206,7 @@ class DisabledSpeciesProvider(CatalogBackedProvider):
         region_code: str | None = None,
         context: ObservationContext | None = None,
     ) -> list[SpeciesPrediction]:
-        resolved_region = (
-            context.region_code if context is not None and context.region_code else region_code
-        )
+        resolved_region = context.region_code if context is not None and context.region_code else region_code
         return [
             SpeciesPrediction(
                 candidates=tuple(),
@@ -253,9 +251,7 @@ class MockSpeciesProvider(CatalogBackedProvider):
         region_code: str | None = None,
         context: ObservationContext | None = None,
     ) -> list[SpeciesPrediction]:
-        resolved_region = (
-            context.region_code if context is not None and context.region_code else region_code
-        )
+        resolved_region = context.region_code if context is not None and context.region_code else region_code
         candidate = SpeciesCandidate(
             species_id="mock_bird",
             scientific_name="Avis exemplum",
@@ -329,8 +325,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
             if not self._active_taxa:
                 raise ValueError("species catalog contains no enabled species")
             self._active_taxon_indices = {
-                taxon.scientific_name.casefold(): index
-                for index, taxon in enumerate(self._active_taxa)
+                taxon.scientific_name.casefold(): index for index, taxon in enumerate(self._active_taxa)
             }
             self._load_occurrence_index()
             if self.settings.species_live_occurrence_enabled:
@@ -655,17 +650,13 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
         region_code: str | None,
         context: ObservationContext | None,
     ) -> CandidateSelection:
-        resolved_region = (
-            context.region_code if context is not None and context.region_code else region_code
-        )
+        resolved_region = context.region_code if context is not None and context.region_code else region_code
         resolved_region = resolved_region.upper() if resolved_region else None
         fallback_reason: str | None = None
         selection = None
         if context is not None and context.latitude is not None and context.longitude is not None:
             temporal_window = (
-                None
-                if context.time_precision == "unknown"
-                else self.settings.species_temporal_window_months
+                None if context.time_precision == "unknown" else self.settings.species_temporal_window_months
             )
             matched: list[int] = []
             if self._occurrence_index is None:
@@ -702,9 +693,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                             location_distance_km=round(selection.distance_km, 3),
                             observation_month=selection.observation_month,
                             temporal_window_months=temporal_window,
-                            occurrence_dataset_version=str(
-                                self._occurrence_index.dataset.get("version")
-                            ),
+                            occurrence_dataset_version=str(self._occurrence_index.dataset.get("version")),
                             coordinates_used=True,
                         )
                     fallback_reason = "insufficient_local_candidates"
@@ -760,9 +749,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                     context.observed_at.month if context.time_precision != "unknown" else None
                 ),
                 temporal_window_months=temporal_window,
-                occurrence_dataset_version=(
-                    selection.dataset_version if selection is not None else None
-                ),
+                occurrence_dataset_version=(selection.dataset_version if selection is not None else None),
                 coordinates_used=False,
                 fallback_reason=fallback_reason or "no_local_occurrence_match",
             )
@@ -814,9 +801,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
         results: list[SpeciesPrediction] = []
         batch_size = self.settings.species_batch_size
         selection = self._candidate_selection(region_code, context)
-        selection_tensor = self._torch.tensor(
-            selection.indices, dtype=self._torch.long, device=self.device
-        )
+        selection_tensor = self._torch.tensor(selection.indices, dtype=self._torch.long, device=self.device)
         catalog_version = self.catalog_info().get("version")
         with self._torch.inference_mode(), self._autocast_context():
             for start in range(0, len(images), batch_size):
@@ -831,11 +816,8 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                     final_selection = selection
                     ranking_scores = selected_similarities[row_number]
                     local_ranking = self._ranking(ranking_scores, top_k)
-                    if (
-                        selection.scope == "local_seasonal"
-                        and not self._prefer_local_ranking(
-                            local_top_similarity=local_ranking[1]
-                        )
+                    if selection.scope == "local_seasonal" and not self._prefer_local_ranking(
+                        local_top_similarity=local_ranking[1]
                     ):
                         final_selection = replace(
                             selection,
@@ -846,9 +828,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                         )
                         ranking_scores = global_similarities[row_number]
                     relative_scores = (100.0 * ranking_scores.float()).softmax(dim=-1)
-                    index_row, top_similarity, margin, accepted, reason = self._ranking(
-                        ranking_scores, top_k
-                    )
+                    index_row, top_similarity, margin, accepted, reason = self._ranking(ranking_scores, top_k)
                     output_k = min(top_k, len(index_row))
                     output_local_indices = index_row[:output_k]
                     candidates = tuple(
@@ -884,9 +864,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                     )
         return results
 
-    def _ranking(
-        self, ranking_scores: Any, top_k: int
-    ) -> tuple[list[int], float, float | None, bool, str]:
+    def _ranking(self, ranking_scores: Any, top_k: int) -> tuple[list[int], float, float | None, bool, str]:
         output_k = min(top_k, ranking_scores.shape[-1])
         decision_k = min(max(output_k, 2), ranking_scores.shape[-1])
         _, indices = ranking_scores.topk(decision_k, dim=-1)
@@ -952,8 +930,7 @@ class BioClipSpeciesProvider(CatalogBackedProvider):
                 "min_similarity": self.settings.species_min_similarity,
                 "min_margin": self.settings.species_min_margin,
                 "candidate_policy": (
-                    "prefer visually supported local occurrence candidates; "
-                    "otherwise use full model ranking"
+                    "prefer visually supported local occurrence candidates; otherwise use full model ranking"
                 ),
                 "temporal_window_months": self.settings.species_temporal_window_months,
                 "min_local_candidates": self.settings.species_min_local_candidates,

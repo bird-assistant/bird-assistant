@@ -1,8 +1,11 @@
 import json
+import re
 from datetime import timedelta
 
 from bird_business.field_guide import field_marks, guide
+from bird_business.place_names import chinese_place
 from bird_business.trip_advice import weather_at
+from bird_business.trip_parks import PARK_CONTEXT
 
 
 class TripEvidence:
@@ -16,6 +19,35 @@ class TripEvidence:
         self.sources = {"F0": "公开地图鸟讯检索（过去一年）", "W0": "出发区域天气 · MET Norway"}
         self.sources.update({key: site["name"] + "一带的公开鸟讯" for key, site in self.sites.items()})
         self.sources.update({key: park["name"] + " · Wikidata 公共地点" for key, park in self.parks.items()})
+        for key, site in self.sites.items():
+            site["name"] = chinese_place(site["name"])
+            point = site["point"]
+            site["id"] = key
+            # Province labels alone do not identify separate public grid cells.
+            site["displayName"] = (
+                f"{site['name']}附近公开区域（{point['latitude']:.1f}°，{point['longitude']:.1f}°）"
+            )
+            self.sources[key] = site["displayName"] + " · 历史鸟讯"
+        self.source_urls = {}
+        for key, park in self.parks.items():
+            park["id"] = key
+            context = PARK_CONTEXT.get(park["source"])
+            park["context"] = {**context, "sources": []} if context else None
+            if context:
+                for source in context["sources"]:
+                    ref = next(
+                        (ref for ref, url in self.source_urls.items() if url == source["url"]),
+                        "C" + str(len(self.source_urls) + 1),
+                    )
+                    self.sources[ref] = source["label"] + " · " + source["date"]
+                    self.source_urls[ref] = source["url"]
+                    park["context"]["sources"].append({**source, "id": ref})
+            park["nearbyAreas"] = [
+                area
+                for area, site in self.sites.items()
+                if round(park["point"]["latitude"], 1) == round(site["point"]["latitude"], 1)
+                and round(park["point"]["longitude"], 1) == round(site["point"]["longitude"], 1)
+            ]
         self.weather = {}
         self.guides = {}
 
@@ -36,6 +68,7 @@ class TripEvidence:
                     {
                         "id": key,
                         "name": site["name"],
+                        "displayName": site["displayName"],
                         "km": site["km"],
                         "latest": site["latest"],
                         "records": site["count"],
@@ -45,10 +78,18 @@ class TripEvidence:
                     for key, site in self.sites.items()
                 ],
                 "parks": [
-                    {"id": key, "name": park["name"], "km": park["km"]} for key, park in self.parks.items()
+                    {
+                        "id": key,
+                        "name": park["name"],
+                        "km": park["km"],
+                        "nearbyAreas": park["nearbyAreas"],
+                        "context": park["context"],
+                    }
+                    for key, park in self.parks.items()
                 ],
             },
             "W0": self.forecast("origin"),
+            "guides": list(self.guides.values()),
         }
 
     def tools(self):
@@ -150,16 +191,89 @@ class TripEvidence:
             raise ValueError("unknown reference")
         if len(answer.destinations) != len(set(answer.destinations)):
             raise ValueError("duplicate destination")
+        visit_ids = [visit.destination for visit in answer.visits]
+        if not set(visit_ids) <= set(answer.destinations) or len(visit_ids) != len(set(visit_ids)):
+            raise ValueError("unlinked visit")
+        text = answer.model_dump_json()
+        if any(
+            ref not in destinations
+            for ref in re.findall(r"(?<![A-Za-z0-9_])[AP]\d{1,3}(?![A-Za-z0-9_])", text)
+        ):
+            raise ValueError("unknown location in prose")
         offsets = [stage.offsetMinutes for stage in answer.stages]
         if sorted(set(offsets)) != offsets or any(offset > self.hours * 60 for offset in offsets):
             raise ValueError("invalid itinerary")
 
     def render(self, answer):
+        places = {**self.sites, **self.parks}
+
+        def named(value):
+            return re.sub(
+                r"(?<![A-Za-z0-9_])[AP]\d{1,3}(?![A-Za-z0-9_])",
+                lambda match: places[match[0]].get("displayName", places[match[0]]["name"]),
+                value,
+            )
+
+        brief = answer.brief.model_dump() if answer.brief else None
+        if brief:
+            brief = {
+                key: named(value) if isinstance(value, str) else [named(line) for line in value]
+                for key, value in brief.items()
+            }
+        references = list(
+            dict.fromkeys(
+                [
+                    *answer.destinations,
+                    *(key for key in answer.sources if key in places),
+                    *re.findall(r"(?<![A-Za-z0-9_])[AP]\d{1,3}(?![A-Za-z0-9_])", answer.model_dump_json()),
+                ]
+            )
+        )
+        source_ids = list(dict.fromkeys([*answer.sources, *answer.destinations]))
+        for key in answer.destinations:
+            context = self.parks.get(key, {}).get("context")
+            for source in context["sources"] if context else []:
+                if source["id"] not in source_ids:
+                    source_ids.append(source["id"])
+        visits = []
+        for visit in answer.visits:
+            place = places[visit.destination]
+            visits.append(
+                {
+                    "destination": visit.destination,
+                    "name": place.get("displayName", place["name"]),
+                    "why": named(visit.why),
+                    "habitats": [named(line) for line in visit.habitats],
+                    "watchFor": [named(line) for line in visit.watchFor],
+                    "timing": named(visit.timing),
+                    "uncertainty": named(visit.uncertainty),
+                }
+            )
         return {
-            "answer": answer.answer,
+            "schemaVersion": 4,
+            "answer": named(answer.answer),
+            "brief": brief,
+            "referenceMap": [
+                {
+                    "id": key,
+                    "name": places[key].get("displayName", places[key]["name"]),
+                    "kind": "area" if key in self.sites else "park",
+                    "point": places[key]["point"],
+                    "km": places[key]["km"],
+                    "precisionLabel": "约十公里公开区域 · 非精确拍摄点"
+                    if key in self.sites
+                    else "公园参考点 · 非鸟类拍摄点或入口",
+                }
+                for key in references
+            ],
+            "visits": visits,
             "sources": [
-                {"id": key, "label": self.sources[key]}
-                for key in dict.fromkeys([*answer.sources, *answer.destinations])
+                {
+                    "id": key,
+                    "label": self.sources[key],
+                    **({"url": self.source_urls[key]} if key in self.source_urls else {}),
+                }
+                for key in source_ids
             ],
             "stops": [self.sites[key] for key in answer.destinations if key in self.sites],
             "parks": [self.parks[key] for key in answer.destinations if key in self.parks],
@@ -172,7 +286,7 @@ class TripEvidence:
             "stages": [
                 {
                     "time": (self.start + timedelta(minutes=stage.offsetMinutes)).strftime("%H:%M"),
-                    "action": stage.action,
+                    "action": named(stage.action),
                 }
                 for stage in answer.stages
             ],

@@ -42,8 +42,7 @@ def parse_args() -> argparse.Namespace:
         "--occurrence-file",
         type=Path,
         help=(
-            "local GBIF SQL TSV/ZIP download; when omitted, query the Search API "
-            "for each grid cell and month"
+            "local GBIF SQL TSV/ZIP download; when omitted, query the Search API for each grid cell and month"
         ),
     )
     parser.add_argument("--source-doi", help="GBIF SQL download DOI or download key")
@@ -142,9 +141,10 @@ def _occurrence_reader(stream: io.TextIOBase) -> Iterator[dict[str, str]]:
     missing = [label for label, names in required.items() if _column_name(columns, *names) is None]
     if missing:
         raise ValueError(f"occurrence file is missing required columns: {', '.join(missing)}")
-    if _column_name(columns, "scientificName", "scientific_name") is None and _column_name(
-        columns, "acceptedScientificName", "accepted_scientific_name"
-    ) is None:
+    if (
+        _column_name(columns, "scientificName", "scientific_name") is None
+        and _column_name(columns, "acceptedScientificName", "accepted_scientific_name") is None
+    ):
         raise ValueError("occurrence file must contain scientificName or acceptedScientificName")
     yield from reader
 
@@ -162,9 +162,10 @@ def occurrence_rows(path: Path) -> Iterator[dict[str, str]]:
             ]
             if len(members) != 1:
                 raise ValueError("occurrence ZIP must contain exactly one TSV or TXT member")
-            with archive.open(members[0]) as binary_stream, io.TextIOWrapper(
-                binary_stream, encoding="utf-8-sig", newline=""
-            ) as text_stream:
+            with (
+                archive.open(members[0]) as binary_stream,
+                io.TextIOWrapper(binary_stream, encoding="utf-8-sig", newline="") as text_stream,
+            ):
                 yield from _occurrence_reader(text_stream)
         return
     with resolved.open("r", encoding="utf-8-sig", newline="") as stream:
@@ -185,12 +186,8 @@ def _grid_cell_index(
         return None
     if not args.min_longitude <= longitude <= args.max_longitude:
         return None
-    latitude_index = min(
-        int((latitude - args.min_latitude) / args.cell_size_degrees), latitude_count - 1
-    )
-    longitude_index = min(
-        int((longitude - args.min_longitude) / args.cell_size_degrees), longitude_count - 1
-    )
+    latitude_index = min(int((latitude - args.min_latitude) / args.cell_size_degrees), latitude_count - 1)
+    longitude_index = min(int((longitude - args.min_longitude) / args.cell_size_degrees), longitude_count - 1)
     return latitude_index, longitude_index
 
 
@@ -202,9 +199,7 @@ def aggregate_occurrence_file(
 ) -> tuple[list[dict[str, Any]], dict[int, tuple[str, ...]]]:
     latitude_count = math.ceil((args.max_latitude - args.min_latitude) / args.cell_size_degrees)
     longitude_count = math.ceil((args.max_longitude - args.min_longitude) / args.cell_size_degrees)
-    monthly_keys: dict[tuple[int, int], dict[int, dict[int, int]]] = defaultdict(
-        lambda: defaultdict(dict)
-    )
+    monthly_keys: dict[tuple[int, int], dict[int, dict[int, int]]] = defaultdict(lambda: defaultdict(dict))
     source_record_counts: dict[tuple[int, int], dict[int, int]] = defaultdict(lambda: defaultdict(int))
     local_names: dict[int, list[str]] = defaultdict(list)
     rows = occurrence_rows(path)
@@ -323,9 +318,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         source_url = "https://api.gbif.org/v1/occurrence/search"
         source_metadata: dict[str, Any] = {}
     else:
-        built_cells, local_names = aggregate_occurrence_file(
-            args.occurrence_file, args, country_code, cells
-        )
+        built_cells, local_names = aggregate_occurrence_file(args.occurrence_file, args, country_code, cells)
         source = "GBIF SQL occurrence download"
         source_url = "https://techdocs.gbif.org/en/data-use/api-sql-downloads"
         source_metadata = {

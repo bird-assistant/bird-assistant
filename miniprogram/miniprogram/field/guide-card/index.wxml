@@ -1,10 +1,8 @@
-<view class="guide"><block wx:if="{{bird}}">
-  <view class="name">{{bird.name || bird.english}}</view><view class="latin">{{bird.scientific}}</view>
-  <image wx:if="{{src}}" class="reference" src="{{src}}" mode="aspectFit" bindtap="showPhoto" />
-  <view wx:if="{{photo}}" class="credit" data-url="{{photo.sourceUrl}}" bindtap="copySource">{{photo.credit}} · {{photo.license}} · iNaturalist ↗</view>
-  <button wx:else size="mini" loading="{{busy}}" bindtap="findPhoto">查找参考照片</button>
-  <view wx:if="{{bird.guide.mark}}" class="mark" data-url="{{bird.guide.markUrl}}" bindtap="copySource">{{bird.guide.mark}} · RSPB ↗</view>
-  <view wx:for="{{bird.guide.fields}}" wx:key="key" class="trait"><text>{{item.label}}</text><text>{{item.value}}</text></view>
-  <view wx:if="{{bird.guide.fields.length}}" class="credit" data-url="{{bird.guide.sourceUrl}}" bindtap="copySource">物种平均值{{bird.guide.inferred ? '，含推定性状' : ''}} · {{bird.guide.source}} ↗</view>
-  <view wx:else class="credit">此鸟种的形态和生态资料待补充。</view>
-</block><view wx:if="{{notice}}" class="credit">{{notice}}</view><button wx:if="{{notice && !bird}}" size="mini" bindtap="loadBird">重新加载</button></view>
+<view class="guide {{compact ? 'guide-compact' : ''}}"><view wx:if="{{loading}}" class="guide-status">正在加载鸟种资料…</view><block wx:if="{{bird}}">
+<view wx:if="{{!hideHeading}}" class="guide-heading"><text class="guide-name">{{bird.name || bird.english}}</text><text class="guide-latin" aria-label="{{bird.scientific}}">{{bird.scientific}}</text></view>
+<view class="reference-box {{compact ? 'reference-compact' : ''}}" style="height:{{compact ? 164 : src && !photoFailed ? photoHeight : 120}}px"><image wx:if="{{src && !photoFailed}}" class="reference" src="{{src}}" mode="aspectFit" style="width:{{photoWidth}}px;height:{{photoHeight}}px" bindload="loaded" binderror="failed" bindtap="showPhoto"/><view wx:if="{{src && !photoFailed && !photoLoaded}}" class="photo-loading">正在加载照片…</view><view wx:if="{{!src || photoFailed}}" class="reference-fallback"><text>{{photoFailed ? '照片暂时无法加载' : '暂无参考照片'}}</text><button wx:if="{{photoFailed}}" class="photo-retry" bindtap="retryPhoto">重试</button><button wx:else class="photo-retry" loading="{{busy}}" bindtap="findPhoto">查找参考照片</button></view></view>
+<view class="photo-credit"><block wx:if="{{photo}}"><text class="credit-author" data-url="{{photo.sourceUrl}}" bindtap="copySource">{{photo.credit}}</text><text class="credit-link" data-url="{{photo.sourceUrl}}" bindtap="copySource">{{photo.license}} · 来源 ↗</text></block><text wx:else class="credit-link">{{notice || '可继续比较现有资料'}}</text></view>
+<view wx:if="{{bird.guide.mark && !compact}}" class="guide-mark" data-url="{{bird.guide.markUrl}}" bindtap="copySource">{{bird.guide.mark}} · RSPB ↗</view>
+<view wx:for="{{traits}}" wx:key="key" class="trait"><text class="trait-label">{{item.label}}</text><text class="trait-value">{{item.value}}</text></view>
+<view wx:if="{{bird.guide.fields.length}}" class="trait-credit" data-url="{{bird.guide.sourceUrl}}" bindtap="copySource">物种平均值{{bird.guide.inferred ? '，含推定性状' : ''}} · {{bird.guide.source}} ↗</view><view wx:else class="trait-credit">形态与生态资料待补充。</view>
+</block><view wx:if="{{notice && !bird}}" class="guide-status">{{notice}}<button class="photo-retry" bindtap="loadBird">重新加载</button></view></view>

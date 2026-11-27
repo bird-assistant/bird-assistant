@@ -89,7 +89,7 @@ jobs:
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"
       YOLO_AUTOINSTALL: "false"
-      YOLO_CONFIG_DIR: ${{ runner.temp }}
+      YOLO_CONFIG_DIR: /tmp
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
     steps:
@@ -131,8 +131,14 @@ jobs:
           second = tracker.update(
               (RawDetection(Box(12, 10, 52, 50), 0.2),), now + timedelta(milliseconds=100)
           )[0]
-          assert second is first and second.hits == 2 and second.detection_score == 0.2
-          assert not tracker.update((), now + timedelta(milliseconds=200))
+          assert second is first and second.hits == 2
+          assert second.detection_score == 0.2, second.detection_score
+          missed = tracker.update((), now + timedelta(milliseconds=200))
+          assert len(missed) == 1 and missed[0] is first
+          assert first.missed_frames == 1 and first.predicted_box is not None
+          assert first.hits == 2 and first.last_seen_at == now + timedelta(milliseconds=100)
+          assert len(tracker.update((), now + timedelta(milliseconds=300))) == 1
+          assert not tracker.update((), now + timedelta(milliseconds=400))
           tracker.clear()
           print(f"CPU compatibility passed: torch={torch.__version__}, torchvision={torchvision.__version__}")
           PY

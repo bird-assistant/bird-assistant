@@ -1,0 +1,1 @@
+:host{display:block;flex:none}.profile-avatar{border-radius:50%;overflow:hidden;flex:none;background:#e2ead7}.avatar-initials{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(140deg,#dce7ce,#f4f0dd);color:#285b49;font-weight:600;letter-spacing:1px}.avatar-image{display:block;width:100%;height:100%}

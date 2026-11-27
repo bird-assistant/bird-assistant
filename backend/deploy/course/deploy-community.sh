@@ -34,7 +34,7 @@ rollback() {
 trap rollback ERR
 ln -sfnT "$release" "$root/community-current"
 python3 "$release/deploy/course/admin-credentials.py"
-printf '[Service]\nEnvironment=PYTHONPATH=%s/src\nEnvironmentFile=/etc/bird-assistant/admin.env\nEnvironmentFile=-/etc/bird-assistant/trip.env\n' "$release" > "$drop"
+printf '[Service]\nEnvironment=PYTHONPATH=%s/src\nEnvironmentFile=/etc/bird-assistant/admin.env\nEnvironmentFile=-/etc/bird-assistant/trip.env\nEnvironmentFile=-/etc/bird-assistant/writing.env\n' "$release" > "$drop"
 install -m 644 "$release/deploy/course/campus-8080.caddy" "$site"
 caddy validate --config /etc/caddy/Caddyfile >/dev/null
 systemctl daemon-reload

@@ -73,12 +73,15 @@ def test_occurrence_index_uses_nearest_site_and_wraps_month_window(tmp_path: Pat
         "Hierococcyx hyperythrus": 1,
         "Avis summer": 3,
     }
-    assert index.select(
-        latitude=40.0,
-        longitude=117.23,
-        observed_at=datetime.fromisoformat("2026-05-28T19:00:00+08:00"),
-        window_months=1,
-    ) is None
+    assert (
+        index.select(
+            latitude=40.0,
+            longitude=117.23,
+            observed_at=datetime.fromisoformat("2026-05-28T19:00:00+08:00"),
+            window_months=1,
+        )
+        is None
+    )
 
 
 def test_occurrence_index_supports_grid_cell_bounds(tmp_path: Path) -> None:
@@ -271,9 +274,7 @@ def test_dynamic_occurrence_resolver_uses_any_coordinate_and_caches(monkeypatch)
         return {"facets": [{"counts": [{"name": "Avis synonym (Test, 2026)", "count": 4}]}]}
 
     monkeypatch.setattr("bird_vision.occurrence._request_json", request)
-    resolver = DynamicOccurrenceResolver(
-        radius_km=50, cache_ttl_seconds=3600, allowed_names={"Avis synonym"}
-    )
+    resolver = DynamicOccurrenceResolver(radius_km=50, cache_ttl_seconds=3600, allowed_names={"Avis synonym"})
     observed_at = datetime.fromisoformat("2026-05-28T19:00:00+08:00")
 
     first = resolver.select(
@@ -299,16 +300,10 @@ def test_dynamic_occurrence_resolver_uses_any_coordinate_and_caches(monkeypatch)
 
 def test_dynamic_occurrence_maps_gbif_scientific_name_to_catalog_name(monkeypatch) -> None:
     def request(url, *, timeout, stop_event=None):
-        return {
-            "facets": [
-                {"counts": [{"name": "Terpsiphone incei (Gould, 1852)", "count": 6}]}
-            ]
-        }
+        return {"facets": [{"counts": [{"name": "Terpsiphone incei (Gould, 1852)", "count": 6}]}]}
 
     monkeypatch.setattr("bird_vision.occurrence._request_json", request)
-    resolver = DynamicOccurrenceResolver(
-        allowed_names={"Terpsiphone incei", "Terpsiphone paradisi"}
-    )
+    resolver = DynamicOccurrenceResolver(allowed_names={"Terpsiphone incei", "Terpsiphone paradisi"})
     selection = resolver.select(
         latitude=31.8206,
         longitude=117.2272,
@@ -320,9 +315,7 @@ def test_dynamic_occurrence_maps_gbif_scientific_name_to_catalog_name(monkeypatc
 
 
 def test_dynamic_occurrence_does_not_guess_cross_genus_taxonomy_mapping() -> None:
-    resolver = DynamicOccurrenceResolver(
-        allowed_names={"Schoeniclus spodocephalus", "Emberiza citrinella"}
-    )
+    resolver = DynamicOccurrenceResolver(allowed_names={"Schoeniclus spodocephalus", "Emberiza citrinella"})
     try:
         assert resolver._catalog_name("Emberiza spodocephala Pallas, 1776") is None
         assert resolver._catalog_name("Emberiza unknown Pallas, 1776") is None
@@ -420,10 +413,13 @@ def test_live_query_splits_date_line_and_closes_polar_caps(latitude, longitude) 
         coordinates = [tuple(map(float, point.split())) for point in ring.split(",")]
         assert coordinates[0] == coordinates[-1]
         assert all(-180 <= lon <= 180 and -90 <= lat <= 90 for lon, lat in coordinates)
-        assert sum(
-            first[0] * second[1] - second[0] * first[1]
-            for first, second in zip(coordinates[:-1], coordinates[1:], strict=True)
-        ) > 0
+        assert (
+            sum(
+                first[0] * second[1] - second[0] * first[1]
+                for first, second in zip(coordinates[:-1], coordinates[1:], strict=True)
+            )
+            > 0
+        )
         if abs(latitude) > 89:
             assert all(abs(lat) > 88 for _, lat in coordinates)
             assert any(abs(lat) == 90 for _, lat in coordinates)
@@ -453,11 +449,7 @@ def test_live_resolver_resolves_species_from_every_facet_page(monkeypatch) -> No
             names = ["Avis alpha", "Avis beta", "Avis gamma", "Avis delta", "Avis epsilon"][
                 offset : offset + 2
             ]
-            return {
-                "facets": [
-                    {"counts": [{"name": f"{name} (Test, 2026)", "count": 5} for name in names]}
-                ]
-            }
+            return {"facets": [{"counts": [{"name": f"{name} (Test, 2026)", "count": 5} for name in names]}]}
 
     monkeypatch.setattr("bird_vision.occurrence._request_json", request)
     names = {"Avis alpha", "Avis beta", "Avis gamma", "Avis delta", "Avis epsilon"}
@@ -487,12 +479,15 @@ def test_live_resolver_caches_empty_results_and_handles_month_windows(
     monkeypatch.setattr("bird_vision.occurrence._request_json", request)
     resolver = DynamicOccurrenceResolver()
     for _ in range(2):
-        assert resolver.select(
-            latitude=0.0,
-            longitude=0.0,
-            observed_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
-            window_months=window_months,
-        ) is None
+        assert (
+            resolver.select(
+                latitude=0.0,
+                longitude=0.0,
+                observed_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
+                window_months=window_months,
+            )
+            is None
+        )
     assert months == expected_months
 
 
@@ -549,12 +544,15 @@ def test_live_resolver_rejects_invalid_coordinates_without_network(monkeypatch, 
         pytest.fail("invalid coordinates must not issue a GBIF request")
 
     monkeypatch.setattr("bird_vision.occurrence._request_json", request)
-    assert DynamicOccurrenceResolver().select(
-        latitude=latitude,
-        longitude=longitude,
-        observed_at=datetime.fromisoformat("2026-05-28T19:00:00+08:00"),
-        window_months=0,
-    ) is None
+    assert (
+        DynamicOccurrenceResolver().select(
+            latitude=latitude,
+            longitude=longitude,
+            observed_at=datetime.fromisoformat("2026-05-28T19:00:00+08:00"),
+            window_months=0,
+        )
+        is None
+    )
 
 
 @pytest.mark.parametrize("outcome", ["no_candidates", "lookup_failed", "lookup_pending"])
@@ -947,9 +945,7 @@ def test_persistent_cache_lock_is_not_treated_as_corruption_and_transaction_reco
     store.close()
 
 
-def test_successful_lookup_survives_persistent_cache_write_failure(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_successful_lookup_survives_persistent_cache_write_failure(tmp_path: Path, monkeypatch) -> None:
     cache_path = tmp_path / "occurrence.sqlite3"
 
     def request(url, *, timeout, stop_event=None):
@@ -1023,9 +1019,7 @@ def test_persistent_hits_keep_memory_cache_bounded(tmp_path: Path) -> None:
         resolver.close()
 
 
-def test_persistent_cache_merge_removes_expired_rows_before_eviction(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_persistent_cache_merge_removes_expired_rows_before_eviction(tmp_path: Path, monkeypatch) -> None:
     clock = [1_000.0]
     monkeypatch.setattr("bird_vision.occurrence.time.time", lambda: clock[0])
     target_path = tmp_path / "target.sqlite3"

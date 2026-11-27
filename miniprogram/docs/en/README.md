@@ -1,4 +1,16 @@
-# Bird Assistant native WeChat client — 0.2.9
+# Bird Assistant native WeChat client — 0.4.5
+
+Current 0.4.6: [Interaction fixes and acceptance](ACCEPTANCE-0.4.6.md). Client176 passes; native identification/publishing remain P0. Deploy the reviewed business-service changes before accepting new distance sorting/trip output.
+
+25 November 2026 · **Current 0.4.5**: [Native interactions and photo journals](NATIVE-AND-QWEN-0.4.5.md). Fixes the close icon, opaque drawer base, toolbar seam and stable marker taps. Adds photo metadata flipping, Chinese place labels, post-only discussion interactions, visible import selections, name avatars, structured trip advice and a direct photo-to-journal action through the existing Qwen gateway. Client 162 passes; local backend 468 passes / 55 skips, 85.36%, with Ruff passing. Actual identification and forum writes/replies are P0 acceptance tasks. Audio transport, real visual Qwen, deployment and overall profile acceptance remain pending. Older checkpoints below are historical.
+
+25 November 2026 · **0.4.3 (historical)**: [map, forum and camera interaction](NATIVE-INTERACTION-0.4.3.md). Single records remain circles until close zoom; clusters update throughout gestures; loading does not block marker taps. A smaller floating drawer compacts during pan and follows the new region, with a lower fade and native attribution clearance. Adds a three-bird refresh indicator, styled forum tools and photo metadata card. Recognition restores translucent clue tabs, swipe expansion of the zoom ruler and a bounded3.5× shortcut while retaining real vision. Client140 tests pass. Backend/dependency versions are unchanged. Journal refinement, Qwen, live posting/reply checks and profile review are deferred; native/SDK acceptance remains pending. Older checkpoint sections below are historical.
+
+2026-11-25 · Current0.4.2: [map memory, live search and forum threads](FORUM-AND-SEARCH-0.4.2.md). Client132passed; local backend469passed/51skipped,86.60%coverage. Deployment, live Qwen and native acceptance remain pending. Older records below are historical.
+
+2026-11-24 · **0.4.1**: [map home and true photo deformation](MAP-AND-PHOTO-0.4.1.md). Synced with team d59be67; 114 client tests and 461 backend tests passed (51 skipped). Live Qwen, full Issue #23 cards and native-device acceptance remain pending. Older handoff sections below describe their historical checkpoints; this paragraph and the new release note define current status.
+
+2026-11-24 · **0.4.0**: [手帐恢复、版式与Qwen业务接入](../JOURNAL-0.4.0.md) / [English](JOURNAL-0.4.0.md). 本轮保留c6571c2的视觉/地图/社区接入；完整Issue23观察卡、真实Qwen部署及媒体/真机验收仍待完成。
 
 Current development version **0.3.0**: [journal layouts, preview performance and Qwen setup](JOURNAL-0.3.0.md) · [recognition delivery contract](../RECOGNITION-HANDOFF.md). Client/server adapters are implemented; real gateway/credentials and phone acceptance remain pending. The0.2.9 handoff below describes the imported baseline.
 

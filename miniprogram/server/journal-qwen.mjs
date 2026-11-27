@@ -1,3 +1,4 @@
+// Historical 0.3.0 provider prototype; active team hosting uses backend/src/bird_business/writing.py.
 /** Mount behind the team's authenticated gateway. No unauthenticated HTTP listener is exported. */
 export class JournalGatewayError extends Error {
   constructor(code,message){super(message);this.code=code;}

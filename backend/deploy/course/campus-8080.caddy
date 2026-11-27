@@ -19,7 +19,7 @@ api.auroraliu.cn:8080, api.auroraliu.cn {
 	handle @moderation {
 		respond 404
 	}
-	@business path /api/v1/vision/auth/wechat /api/v1/observations /api/v1/observations/* /api/v1/community/* /api/v1/species /api/v1/species/* /api/v1/map/* /api/v2/observations /api/v2/observations/*
+	@business path /api/v1/journal/* /api/v1/vision/auth/wechat /api/v1/observations /api/v1/observations/* /api/v1/community/* /api/v1/species /api/v1/species/* /api/v1/map/* /api/v2/observations /api/v2/observations/*
 	handle @business {
 		reverse_proxy 127.0.0.1:8200
 	}

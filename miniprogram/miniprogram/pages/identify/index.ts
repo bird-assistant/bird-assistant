@@ -3,32 +3,35 @@ import { localRepository } from '../../services/repository';
 import { selectTab } from '../../services/tabs';
 import { layout } from '../../services/layout';
 import { resetPageScroll } from '../../services/navigation';
-import { cameraZoom, cameraZoomMax, zoomFromDrag, zoomShortcuts, zoomTicks, DEMO_MAX_ZOOM } from '../../services/camera-zoom';
+import { cameraZoom, cameraZoomMax, cameraZoomProfile, zoomFromDrag, zoomShortcuts, zoomTicks, DEMO_MAX_ZOOM } from '../../services/camera-zoom';
 import { ContextInput, beijingDate, observationContext } from '../../services/observation-context';
 
 import { RecognitionResult, RecognitionError, startRecognition } from '../../services/recognition';
+import {recognitionAvailable,recognizeWithProvider} from '../../services/recognition-provider';
 import { connectVision, photoBytes, photoTransport } from '../../services/vision-network';
 import { LiveVision, LiveFrame, LiveTrack, frozenResult, overlay } from '../../services/vision-live';
 import { readPhotoMetadata, historicalFields } from '../../services/photo-context';
 import {compareBirds} from '../../services/field-guide';
 import { Draft, hub, setDraft } from '../../services/community';
 
-interface Evidence extends ContextInput {id:string;path:string;kind:'photo'|'video'|'audio';source:'album'|'camera';sample:boolean;persisted:boolean;album:string;birdName:string;notes:string;latitude?:string;longitude?:string;analysis?:RecognitionResult;confirmed?:{rank:number;species:string|null;name:string;analysis:string|null};}
+interface Evidence extends ContextInput {selected:boolean;name:string;sizeLabel:string;status:string;id:string;path:string;kind:'photo'|'video'|'audio';source:'album'|'camera';sample:boolean;persisted:boolean;album:string;birdName:string;notes:string;latitude?:string;longitude?:string;analysis?:RecognitionResult;confirmed?:{rank:number;species:string|null;name:string;analysis:string|null};}
 
 Page({
-  data: {zoomOpen:false,savedDraft:null as Draft|null,latitude:'',longitude:'',liveActive:false,liveText:'实时识别未开启',liveTracks:[] as LiveTrack[],analysis:null as RecognitionResult|null,analyzing:false,isSample:false,contextOpen:false,observedDate:'',observedTime:'',placeName:'',today:beijingDate(),zoomText:'1.0',zoomEnabled:false,zoomWidth:320,zoomTicks:zoomTicks(1,1,320),zoomShortcuts:zoomShortcuts(1),zoomRange:'相机准备中',imagePath:'',source:'album' as 'album'|'camera',birdName:'',notes:'',error:'',busy:false,picking:false,persisted:false,view:'live',height:600,mode:'quick',help:false,paused:false,demo:false,cameraReady:false,cameraError:'',zoom:1,maxZoom:1,focus:'visual',expanded:false,audio:true,recording:false,recordSeconds:0,assets:[] as Evidence[],importKind:'gallery',currentId:'',mediaKind:'photo' as 'photo'|'video'|'audio',albumStatus:'',audioRecording:false },
+  data: {batching:false,batchProgress:'',currentName:'',clueHeight:46,importMode:'media',clueCollapsed:true,cameraShort:false,zoomProfile:'default',zoomOpen:false,savedDraft:null as Draft|null,latitude:'',longitude:'',liveActive:false,liveText:'实时识别未开启',liveTracks:[] as LiveTrack[],analysis:null as RecognitionResult|null,analyzing:false,isSample:false,contextOpen:false,observedDate:'',observedTime:'',placeName:'',today:beijingDate(),zoomText:'1.0',zoomEnabled:false,zoomWidth:320,zoomTicks:zoomTicks(1,1,320),zoomShortcuts:zoomShortcuts(1),zoomRange:'相机准备中',imagePath:'',source:'album' as 'album'|'camera',birdName:'',notes:'',error:'',busy:false,picking:false,persisted:false,view:'live',height:600,mode:'quick',help:false,paused:false,demo:false,cameraReady:false,cameraError:'',zoom:1,maxZoom:1,focus:'visual',expanded:false,audio:true,recording:false,recordSeconds:0,assets:[] as Evidence[],importKind:'gallery',currentId:'',mediaKind:'photo' as 'photo'|'video'|'audio',albumStatus:'',audioRecording:false },
   _zoomSession:0,
   _live:null as LiveVision|null,
   _liveGeneration:0,
   _frame:null as LiveFrame|null,
   _staleTimer:0 as ReturnType<typeof setTimeout>,
   _viewport:null as {width:number;height:number}|null,
+  _batchGeneration:0,
   _analysisGeneration:0,
   _photoJob:null as ReturnType<typeof startRecognition>|null,
   _zoomPending:null as number|null,
   _zoomInFlight:false,
   _zoomConfirmed:1,
-  _zoomDrag:null as {x:number;zoom:number}|null,
+  _zoomDrag:null as {x:number;y:number;zoom:number;axis:''|'horizontal'|'vertical'}|null,
+  _zoomSuppressTap:false,
   _pickToken: 0,
   _camera:null as WechatMiniprogram.CameraContext|null,
   _holdTimer:0 as ReturnType<typeof setTimeout>,
@@ -36,10 +39,10 @@ Page({
   _suppressTap:false,
   _holding:false,
   _recorder:null as WechatMiniprogram.RecorderManager|null,
-  onLoad(){const box=layout();this.setData({height:box.height,zoomWidth:Math.max(180,box.width-24)});this._camera=wx.createCameraContext();this.updateZoomView(1);},
-  onResize(){this.clearTracks();if(this.data.liveActive)wx.createSelectorQuery().in(this).select('.viewfinder').boundingClientRect(result=>{if(result&& !Array.isArray(result))this._viewport=result;}).exec();const box=layout();this.setData({height:box.height,zoomWidth:Math.max(180,box.width-24)});this.updateZoomView(this.data.zoom);},
+  onLoad(){const box=layout();let zoomProfile='default';try{zoomProfile=cameraZoomProfile(wx.getDeviceInfo?.());}catch{/* Some simulator versions do not expose device info. */}this.setData({height:box.height,cameraShort:box.height<520,zoomProfile,zoomWidth:Math.max(180,box.width-24)});this._camera=wx.createCameraContext();this.updateZoomView(1);},
+  onResize(){this.clearTracks();if(this.data.liveActive)wx.createSelectorQuery().in(this).select('.viewfinder').boundingClientRect(result=>{if(result&& !Array.isArray(result))this._viewport=result;}).exec();const box=layout();this.setData({height:box.height,cameraShort:box.height<520,zoomWidth:Math.max(180,box.width-24)});this.updateZoomView(this.data.zoom);},
   onShow() { this.setData({today:beijingDate()});selectTab(this, 2);if(this.data.view==='live'){this.setData({paused:false});this.updateZoomView(this.data.zoom);} },
-  onHide(){this.stopVision();this.cancelAnalysis();this.resetZoomRequests();this.setData({cameraReady:false});this._holding=false;clearTimeout(this._holdTimer);if(this.data.recording)this.stopVideo();if(this.data.audioRecording)this._recorder?.stop();this.setData({paused:true});this.updateZoomView(this.data.zoom);},
+  onHide(){this._clueStart=null;this.stopVision();this.cancelAnalysis();this.resetZoomRequests();this.setData({cameraReady:false});this._holding=false;clearTimeout(this._holdTimer);if(this.data.recording)this.stopVideo();if(this.data.audioRecording)this._recorder?.stop();this.setData({paused:true});this.updateZoomView(this.data.zoom);},
   onUnload() { this.stopVision();this.cancelAnalysis();this.resetZoomRequests();this._pickToken++;this._holding=false;clearTimeout(this._holdTimer);clearInterval(this._recordTimer); },
   choose(event: WechatMiniprogram.TouchEvent) {
     if (this.data.busy || this.data.picking) return;
@@ -87,7 +90,7 @@ Page({
       if(this.data.currentId===draft.id)this.setData({ imagePath, persisted: true });
       if(selected){selected.path=imagePath;selected.persisted=true;this.setData({assets:this.data.assets});}
       const savedDraft=share?{...share,path:imagePath}:null;
-      localRepository().save({communityDraft:savedDraft||undefined,imagePath,source:draft.source,birdName:draft.birdName,notes:draft.notes,mediaKind:draft.mediaKind,sample:!!selected?.sample,analysis:selected?.analysis,observedDate:draft.observedDate,observedTime:draft.observedTime,placeName:draft.placeName});
+      localRepository().save({communityDraft:savedDraft||undefined,imagePath,source:draft.source,birdName:draft.birdName,notes:draft.notes,mediaKind:draft.mediaKind,mediaName:selected?.name,sample:!!selected?.sample,analysis:selected?.analysis,observedDate:draft.observedDate,observedTime:draft.observedTime,placeName:draft.placeName});
       this._pickToken++;
       this.setData({savedDraft,busy:false,assets:this.data.assets.filter(a=>a.id!==draft.id),...(this.data.currentId===draft.id?{imagePath:'',birdName:'',notes:'',observedDate:'',observedTime:'',placeName:'',contextOpen:false,persisted:false,currentId:'',albumStatus:''}:{}),view:'review'});
       wx.showToast({ title: '已保存在本机', icon: 'success' });
@@ -101,7 +104,7 @@ Page({
     const limit=this.zoomLimit(),value=cameraZoom(raw,limit),available=this.data.demo||(this.data.cameraReady&&typeof this._camera?.setZoom==='function');
     const enabled=available&&!this.data.paused&&limit>1;
     const range=this.data.demo?'示例变焦 1.0–5.0×':this.data.cameraError?'相机不可用':this.data.paused?'取景已暂停':!this.data.cameraReady?'相机准备中':!available?'当前环境不提供变焦':limit<=1?'当前相机仅支持 1.0×':'当前相机 1.0–'+limit.toFixed(1)+'×';
-    this.setData({zoom:value,zoomText:value.toFixed(1),zoomEnabled:enabled,zoomRange:range,zoomTicks:zoomTicks(value,limit,this.data.zoomWidth),zoomShortcuts:zoomShortcuts(limit)});
+    this.setData({zoom:value,zoomText:value.toFixed(1),zoomEnabled:enabled,zoomRange:range,zoomTicks:zoomTicks(value,limit,this.data.zoomWidth),zoomShortcuts:zoomShortcuts(limit,this.data.zoomProfile)});
   },
   pause(){this.stopVision();if(this.data.recording)this.stopVideo();this.resetZoomRequests();this.setData({paused:!this.data.paused,cameraReady:false});this.updateZoomView(this.data.zoom);},
   demo(){if(this.data.busy||this.data.recording)return;this.stopVision();this.resetZoomRequests();this._zoomConfirmed=1;this.setData({demo:!this.data.demo,cameraError:'',paused:false,cameraReady:false,maxZoom:1});this.updateZoomView(1);},
@@ -113,8 +116,15 @@ Page({
   cameraStopped(){this.stopVision();this.resetZoomRequests();this.setData({cameraReady:false,paused:true});this.updateZoomView(this.data.zoom);},
   zoom(e:WechatMiniprogram.TouchEvent){this.setZoom(Number(e.currentTarget.dataset.zoom));},
   zoomNudge(e:WechatMiniprogram.TouchEvent){this.setZoom(this.data.zoom+Number(e.currentTarget.dataset.delta));},
-  zoomStart(e:WechatMiniprogram.TouchEvent){const touch=e.touches[0];if(this.data.zoomEnabled&&touch)this._zoomDrag={x:touch.clientX,zoom:this.data.zoom};},
-  zoomMove(e:WechatMiniprogram.TouchEvent){const drag=this._zoomDrag,touch=e.touches[0];if(drag&&touch)this.setZoom(zoomFromDrag(drag.zoom,touch.clientX-drag.x,this.zoomLimit()));},
+  zoomStart(e:WechatMiniprogram.TouchEvent){const touch=e.touches[0];this._zoomSuppressTap=false;if(touch)this._zoomDrag={x:touch.clientX,y:touch.clientY||0,zoom:this.data.zoom,axis:''};},
+  zoomMove(e:WechatMiniprogram.TouchEvent){
+    const drag=this._zoomDrag,touch=e.touches[0];if(!drag||!touch)return;
+    const dx=touch.clientX-drag.x,dy=(touch.clientY||0)-drag.y;
+    if(!drag.axis&&Math.max(Math.abs(dx),Math.abs(dy))>10)drag.axis=Math.abs(dy)>Math.abs(dx)*1.2?'vertical':'horizontal';
+    if(drag.axis==='vertical'){
+      if(Math.abs(dy)>28){this.setData({zoomOpen:dy<0});this._zoomSuppressTap=true;}
+    }else if(drag.axis==='horizontal'){this._zoomSuppressTap=true;this.setZoom(zoomFromDrag(drag.zoom,dx,this.zoomLimit()));}
+  },
   zoomEnd(){this._zoomDrag=null;},
   setZoom(raw:number){
     if(!Number.isFinite(raw)||!this.data.zoomEnabled)return;
@@ -134,17 +144,50 @@ Page({
       if(this._zoomPending!==null)this.flushZoom();else{this.updateZoomView(this._zoomConfirmed);this.setData({error:'变焦未完成，已恢复上次成功的倍率。可重试或使用系统相机拍摄后导入。'});}
     }});
   },
-  focus(e:WechatMiniprogram.TouchEvent){this.setData({focus:String(e.currentTarget.dataset.id)});},expand(){this.setData({expanded:!this.data.expanded});},toggleAudio(){this.setData({audio:!this.data.audio});},
+  _clueStart:null as {x:number;y:number}|null,_clueSwiped:false,
+  toggleClues(){if(this._clueSwiped){this._clueSwiped=false;return;}this.setData({clueCollapsed:!this.data.clueCollapsed},()=>this.measureClues());},
+  clueStart(event:WechatMiniprogram.TouchEvent){const touch=event.touches[0];this._clueSwiped=false;this._clueStart=touch?{x:touch.clientX,y:touch.clientY}:null;},
+  clueMove(event:WechatMiniprogram.TouchEvent){const touch=event.touches[0],start=this._clueStart;if(!touch||!start)return;const dy=touch.clientY-start.y;if(Math.abs(dy)>24&&Math.abs(dy)>Math.abs(touch.clientX-start.x)){this._clueSwiped=true;this.setData({clueCollapsed:dy>0});}},
+  clueEnd(){this._clueStart=null;},
+  focus(e:WechatMiniprogram.TouchEvent){this.setData({focus:String(e.currentTarget.dataset.id)},()=>this.measureClues());},expand(){this.setData({expanded:!this.data.expanded},()=>this.measureClues());},toggleAudio(){this.setData({audio:!this.data.audio});},
   import(){this.stopVision();this.cancelAnalysis();this.resetZoomRequests();this.setData({view:'import',paused:true,cameraReady:false,error:''});this.updateZoomView(this.data.zoom);resetPageScroll(this);},importKind(e:WechatMiniprogram.TouchEvent){this.setData({importKind:String(e.currentTarget.dataset.id)});},
-  chooseFiles(){if(this.data.picking||this.data.busy)return;this.setData({picking:true,error:''});if(this.data.importKind==='audio'){wx.chooseMessageFile({count:6,type:'file',extension:['mp3','wav','m4a','aac','mp4','ogg'],success:r=>{for(const f of r.tempFiles)this.addEvidence(f.path,'audio','album');this.setData({picking:false});},fail:e=>{this.setData({picking:false});if(!/cancel/i.test(e.errMsg))this.setData({error:'音频文件选择未完成，已有素材保留。'});}});return;}
-    wx.chooseMedia({count:6,mediaType:['image','video'],sizeType:['original'],sourceType:['album'],success:r=>{for(const f of r.tempFiles)this.addEvidence(f.tempFilePath,f.fileType==='video'?'video':'photo','album');this.setData({picking:false});},fail:e=>{this.setData({picking:false});if(!/cancel/i.test(e.errMsg))this.setData({error:'素材选择未完成，可使用下方单张照片入口重试。'});}});
+  chooseFiles(){if(this.data.picking||this.data.busy||this.data.batching)return;const token=++this._pickToken;this.setData({picking:true,error:''});if(this.data.importKind==='audio'){wx.chooseMessageFile({count:6,type:'file',extension:['mp3','wav','m4a','aac','mp4','ogg'],success:r=>{if(token!==this._pickToken)return;for(const f of r.tempFiles)this.addEvidence(f.path,'audio','album',false,{name:f.name,size:f.size});this.setData({picking:false});},fail:e=>{if(token!==this._pickToken)return;this.setData({picking:false});if(!/cancel/i.test(e.errMsg))this.setData({error:'音频文件选择未完成，已有素材保留。'});}});return;}
+    wx.chooseMedia({count:6,mediaType:['image','video'],sizeType:['original'],sourceType:['album'],success:r=>{if(token!==this._pickToken)return;for(const f of r.tempFiles)this.addEvidence(f.tempFilePath,f.fileType==='video'?'video':'photo','album',false,{size:f.size,duration:f.duration});this.setData({picking:false});},fail:e=>{if(token!==this._pickToken)return;this.setData({picking:false});if(!/cancel/i.test(e.errMsg))this.setData({error:'素材选择未完成，可使用下方单张照片入口重试。'});}});
   },
-  addEvidence(path:string,kind:Evidence['kind'],source:Evidence['source'],sample=false){this.cancelAnalysis();this.retainReviewDraft();const a:Evidence={id:'e-'+Date.now()+'-'+Math.random().toString(36).slice(2,5),path,kind,source,sample,persisted:sample,album:source==='camera'?'尚未保存到相册':'保留设备原件',birdName:'',notes:'',observedDate:'',observedTime:'',placeName:''};this.setData({savedDraft:null,latitude:'',longitude:'',analysis:null,isSample:sample,assets:[...this.data.assets,a],currentId:a.id,imagePath:path,mediaKind:kind,source,persisted:sample,albumStatus:a.album,birdName:'',notes:'',observedDate:'',observedTime:'',placeName:'',contextOpen:false,error:''});return a;},
+  addEvidence(path:string,kind:Evidence['kind'],source:Evidence['source'],sample=false,info:{name?:string;size?:number;duration?:number}={}){this.cancelAnalysis();this.retainReviewDraft();const name=(info.name||((kind==='audio'?path.split('/').pop():'')||(kind==='photo'?'照片':'视频')+' '+(this.data.assets.length+1))).replace(/[\x00-\x1f]/g,'').slice(0,160);const a:Evidence={selected:!sample&&kind!=='video',name,sizeLabel:(info.size?info.size>=1048576?(info.size/1048576).toFixed(1)+' MB':Math.ceil(info.size/1024)+' KB':'')+(info.duration?' · '+Math.round(info.duration)+' 秒':''),status:sample?'示例 · 不参与识别':kind==='video'?'视频 · 私人保留':'未识别',id:'e-'+Date.now()+'-'+Math.random().toString(36).slice(2,5),path,kind,source,sample,persisted:sample,album:source==='camera'?'尚未保存到相册':'保留设备原件',birdName:'',notes:'',observedDate:'',observedTime:'',placeName:''};this.setData({savedDraft:null,currentName:name,latitude:'',longitude:'',analysis:null,isSample:sample,assets:[...this.data.assets,a],currentId:a.id,imagePath:path,mediaKind:kind,source,persisted:sample,albumStatus:a.album,birdName:'',notes:'',observedDate:'',observedTime:'',placeName:'',contextOpen:false,error:''});return a;},
+  importMode(e:WechatMiniprogram.TouchEvent){if(this.data.batching||this.data.analyzing)return;const mode=String(e.currentTarget.dataset.id);if(['media','audio','both'].includes(mode))this.setData({importMode:mode,error:''});},
+  toggleImportEvidence(e:WechatMiniprogram.TouchEvent){
+    if(this.data.batching)return;const a=this.data.assets.find(item=>item.id===e.currentTarget.dataset.id);
+    if(!a)return;if(a.sample||a.kind==='video'){this.setData({error:a.sample?'示例仅供体验，请导入真实素材。':'视频可先保留；当前识别支持照片，声音接口待接入。'});return;}
+    a.selected=!a.selected;this.setData({assets:this.data.assets,error:''});
+  },
+  previewEvidence(e:WechatMiniprogram.TouchEvent){if(this.data.batching)return;this.selectEvidence(e);this.review();},
+  async sendImported(){
+    if(this.data.analyzing||this.data.batching||this.data.busy||this.data.picking)return;
+    const mode=this.data.importMode,selected=this.data.assets.filter(a=>a.selected&&!a.sample&&(a.kind==='photo'&&mode!=='audio'||a.kind==='audio'&&mode!=='media'));
+    if(!selected.length||mode==='both'&&(!selected.some(a=>a.kind==='photo')||!selected.some(a=>a.kind==='audio'))){this.setData({error:mode==='both'?'请至少选择一张照片和一段声音。':'请先选择要识别的素材。'});return;}
+    if(mode!=='media'&&!recognitionAvailable('audio')){this.setData({error:'声音识别接口尚未接入；已选素材保留，可先选择「仅照片」识别。'});return;}
+    const token=++this._batchGeneration;this.setData({batching:true,error:'',batchProgress:'准备识别 '+selected.length+' 份素材'});
+    let completed=0,failed=0;
+    try{for(let i=0;i<selected.length;i++){
+      if(token!==this._batchGeneration||this.data.view!=='import')return;
+      const asset=selected[i];this.activateEvidence(asset.id);asset.status='识别中';this.setData({assets:this.data.assets,batchProgress:'正在识别 '+(i+1)+' / '+selected.length});
+      const done=await this.analyse();
+      if(token!==this._batchGeneration||this.data.view!=='import')return;
+      if(done){completed++;asset.status=asset.analysis?.state==='candidate'?'候选待复核':'已分析 · 查看结果';}else{failed++;asset.status=this.data.error||'未完成，可重试';}
+      this.setData({assets:this.data.assets});
+    }
+    this.setData({batchProgress:'已完成 '+completed+' / '+selected.length+(failed?' · '+failed+' 份未完成，可重试':''),error:''});
+    }finally{if(token===this._batchGeneration)this.setData({batching:false});}
+  },
   addSample(){this.addEvidence('/assets/samples/field-0.png','photo','album',true);},
-  review(){this.stopVision();this.resetZoomRequests();this.setData({view:'review',paused:true,cameraReady:false,error:''});this.updateZoomView(this.data.zoom);resetPageScroll(this);},
-  selectEvidence(e:WechatMiniprogram.TouchEvent){if(this.data.busy)return;const a=this.data.assets.find(a=>a.id===e.currentTarget.dataset.id);if(a){this.cancelAnalysis();this.retainReviewDraft();this.setData({analysis:a.analysis||null,isSample:a.sample,latitude:a.latitude||'',longitude:a.longitude||'',currentId:a.id,imagePath:a.path,mediaKind:a.kind,source:a.source,persisted:a.persisted,albumStatus:a.album,birdName:a.birdName||'',notes:a.notes||'',observedDate:a.observedDate||'',observedTime:a.observedTime||'',placeName:a.placeName||'',error:''});}},
-  removeEvidence(e:WechatMiniprogram.TouchEvent){if(this.data.busy)return;const id=String(e.currentTarget.dataset.id);if(this.data.currentId===id)this.cancelAnalysis();this.setData({assets:this.data.assets.filter(a=>a.id!==id),...(this.data.currentId===id?{currentId:'',imagePath:'',birdName:'',notes:'',observedDate:'',observedTime:'',placeName:'',contextOpen:false,albumStatus:'',persisted:false,error:''}:{})});},
+  review(){this.cancelAnalysis();this.stopVision();this.resetZoomRequests();this.setData({view:'review',paused:true,cameraReady:false,error:''});this.updateZoomView(this.data.zoom);resetPageScroll(this);},
+  selectEvidence(e:WechatMiniprogram.TouchEvent){if(this.data.busy)return;this.cancelAnalysis();this.activateEvidence(String(e.currentTarget.dataset.id));},
+  activateEvidence(id:string){const a=this.data.assets.find(item=>item.id===id);if(!a)return;this.retainReviewDraft();this.setData({currentName:a.name,analysis:a.analysis||null,isSample:a.sample,latitude:a.latitude||'',longitude:a.longitude||'',currentId:a.id,imagePath:a.path,mediaKind:a.kind,source:a.source,persisted:a.persisted,albumStatus:a.album,birdName:a.birdName||'',notes:a.notes||'',observedDate:a.observedDate||'',observedTime:a.observedTime||'',placeName:a.placeName||'',error:''});},
+  removeEvidence(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.batching)return;const id=String(e.currentTarget.dataset.id);if(this.data.currentId===id)this.cancelAnalysis();this.setData({assets:this.data.assets.filter(a=>a.id!==id),...(this.data.currentId===id?{currentId:'',imagePath:'',birdName:'',notes:'',observedDate:'',observedTime:'',placeName:'',contextOpen:false,albumStatus:'',persisted:false,error:''}:{})});},
   cancelAnalysis(){
+    this._batchGeneration++;
+    if(this.data.batching){const assets=this.data.assets.map(a=>a.status==='识别中'?{...a,status:'已取消，可重试'}:a);this.setData({batching:false,batchProgress:'已取消；已完成的结果保留',assets});}
     this._analysisGeneration++;
     this._photoJob?.cancel();this._photoJob=null;
     if(this.data.analyzing)this.setData({analyzing:false});
@@ -174,22 +217,26 @@ Page({
   async analyse(){
     const asset=this.data.assets.find(item=>item.id===this.data.currentId);
     if(!asset||this.data.busy||this.data.analyzing)return;
-    if(asset.sample||asset.kind!=='photo'){
-      this.setData({error:asset.sample?'示例图片仅供体验。':'视觉识别支持单张照片。'});return;
+    if(asset.sample||asset.kind==='video'||(asset.kind==='audio'&&!recognitionAvailable('audio'))){
+      this.setData({error:asset.sample?'示例图片仅供体验。':asset.kind==='video'?'请先选择一张照片；视频仍可私人保留。':'声音识别接口尚未接入，音频仍可回听和保留。'});return;
     }
     const generation=++this._analysisGeneration;
     this.setData({analyzing:true,error:''});
     try{
       observationContext(this.data,new Date().toISOString());
       const fields=historicalFields(this.data.observedDate,this.data.observedTime,this.data.latitude,this.data.longitude);
-      const connection=await connectVision();
-      if(generation!==this._analysisGeneration)return;
-      const image=await photoBytes(asset.path);
-      if(generation!==this._analysisGeneration)return;
-      this._photoJob=startRecognition(photoTransport(connection,image,fields),{kind:'photo',filePath:asset.path,reference:asset.id});
+      if(asset.kind==='audio')this._photoJob=recognizeWithProvider({kind:'audio',filePath:asset.path,reference:asset.id});
+      else{
+        const connection=await connectVision();
+        if(generation!==this._analysisGeneration)return;
+        const image=await photoBytes(asset.path);
+        if(generation!==this._analysisGeneration)return;
+        this._photoJob=startRecognition(photoTransport(connection,image,fields),{kind:'photo',filePath:asset.path,reference:asset.id});
+      }
       const result=await this._photoJob.result;
       if(generation!==this._analysisGeneration)return;
       result.photoContext=fields;asset.analysis=result;this.setData({analysis:result});
+      return true;
     }catch(error){
       if(generation!==this._analysisGeneration)return;
       const message=error instanceof Error?error.message:'照片处理失败，请重新选择照片。';
@@ -198,6 +245,12 @@ Page({
     }finally{
       if(generation===this._analysisGeneration){this._photoJob=null;this.setData({analyzing:false});}
     }
+  },
+  candidateInfo(event:WechatMiniprogram.TouchEvent){
+    const subject=this.data.analysis?.subjects.find(item=>item.rank===Number(event.currentTarget.dataset.subject));
+    const candidate=subject?.candidates.find(item=>item.rank===Number(event.currentTarget.dataset.rank));
+    if(candidate?.speciesId)hub('species',candidate.speciesId);
+    else wx.showToast({title:'该候选的鸟种资料待补充，识别结果仍保留',icon:'none'});
   },
   confirmCandidate(event:WechatMiniprogram.TouchEvent){
     if(this.data.busy||this.data.analysis?.example)return;
@@ -223,7 +276,7 @@ Page({
   },
   shareObservation(){const draft=this.draftObservation();if(draft){setDraft(draft);hub('publish');}},
   shareSaved(){if(this.data.savedDraft){setDraft(this.data.savedDraft);hub('publish');}},
-  toggleZoom(){this.setData({zoomOpen:!this.data.zoomOpen});},
+  toggleZoom(){if(this._zoomSuppressTap){this._zoomSuppressTap=false;return;}this.setData({zoomOpen:!this.data.zoomOpen});},
   compareTarget(event:WechatMiniprogram.TouchEvent){
     const rank=Number(event.currentTarget.dataset.rank), original=this.data.currentId;
     const analysisId=this.data.analysis?.analysisId;
@@ -235,7 +288,11 @@ Page({
       if(candidate)this.selectCandidate(rank,candidate.rank);
     },{src:this.data.imagePath,box:subject.box});
   },
-  clearTracks(){clearTimeout(this._staleTimer);this._frame=null;this.setData({liveTracks:[]});},
+  measureClues(){
+    if(!this.data.expanded||this.data.clueCollapsed||!wx.nextTick||!wx.createSelectorQuery)return;
+    wx.nextTick(()=>wx.createSelectorQuery().in(this).select('.clue-detail-content').boundingClientRect(result=>{if(result&&!Array.isArray(result)&&this.data.expanded)this.setData({clueHeight:Math.max(1,Math.min(this.data.cameraShort?80:130,Math.ceil(result.height)))});}).exec());
+  },
+  clearTracks(){clearTimeout(this._staleTimer);this._frame=null;this.setData({liveTracks:[]},()=>this.measureClues());},
   stopVision(){
     this._liveGeneration++;this._live?.stop();this._live=null;this.clearTracks();
     this.setData({liveActive:false,liveText:'实时识别未开启'});
@@ -259,7 +316,7 @@ Page({
         this._frame=frame;
         const viewport=this._viewport||bounds;
         const tracks=frame.tracks.map(track=>({...track,style:overlay(track.box,frame.width,frame.height,viewport.width,viewport.height)}));
-        this.setData({liveTracks:tracks,liveText:tracks[0]?.label||'当前画面未发现鸟类'});
+        this.setData({liveTracks:tracks,liveText:tracks[0]?.label||'当前画面未发现鸟类'},()=>this.measureClues());
         clearTimeout(this._staleTimer);
         this._staleTimer=setTimeout(()=>{this.clearTracks();this.setData({liveText:'等待新画面'});},this.data.mode==='wait'?4500:2800);
       },message=>{this.stopVision();this.setData({liveText:message});});

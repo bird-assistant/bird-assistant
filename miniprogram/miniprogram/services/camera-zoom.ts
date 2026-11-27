@@ -15,8 +15,15 @@ export function zoomFromDrag(start:number,deltaX:number,max:number) {
   const limit=cameraZoomMax(max),power=clamp(Math.log2(cameraZoom(start,limit))-deltaX/ZOOM_OCTAVE_PX,0,Math.log2(limit));
   return cameraZoom(Math.pow(2,power),limit);
 }
-export function zoomShortcuts(max:number) {
-  const limit=cameraZoomMax(max),values=[1,2,3,5,10].filter(value=>value<=limit);
+export function cameraZoomProfile(device:{brand?:string;model?:string}|undefined){
+  // A shortcut preference, never a claim that CameraContext selects a lens.
+  const name=((device?.brand||'')+' '+(device?.model||'')).replace(/[\s_-]/g,'').toLowerCase();
+  return /pura70pro(?:\+|plus)/.test(name)?'pura70proplus':'default';
+}
+export function zoomShortcuts(max:number,profile='default') {
+  // Unknown device names still offer 3.5×, without guessing their lens layout.
+  const presets=profile==='pura70proplus'?[1,2,3.5,5,10]:[1,2,3,3.5,5,10];
+  const limit=cameraZoomMax(max),values=presets.filter(value=>value<=limit);
   // Give small ranges (for example 1–1.8) a reachable upper endpoint too.
   if(values.length===1&&limit>1)values.push(limit);
   return values.map(value=>({value,label:String(value)+'×'}));
@@ -37,5 +44,5 @@ export function zoomTicks(value:number,max:number,width:number) {
       const mantissa=tenth/10;add(mantissa*base,[1,2,3,5].includes(mantissa));
     }
   }
-  add(limit,true);return ticks.sort((a,b)=>a.offset-b.offset);
+  add(3.5,true);add(limit,true);return ticks.sort((a,b)=>a.offset-b.offset);
 }

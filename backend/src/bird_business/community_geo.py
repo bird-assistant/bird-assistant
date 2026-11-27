@@ -1,4 +1,4 @@
-from math import cos, pi, radians, sin, sqrt
+from math import asin, cos, pi, radians, sin, sqrt
 
 
 def gcj(latitude: float, longitude: float, system: str) -> tuple[float, float]:
@@ -42,3 +42,13 @@ def display_point(point: dict, public: bool = True) -> dict:
     if public:
         lat, lon = round(lat, 1), round(lon, 1)
     return {"latitude": lat, "longitude": lon}
+
+
+def distance_km(lat, lon, other_lat, other_lon):
+    if any(value is None for value in (lat, lon, other_lat, other_lon)):
+        return None
+    arc = (
+        sin(radians(other_lat - lat) / 2) ** 2
+        + cos(radians(lat)) * cos(radians(other_lat)) * sin(radians(other_lon - lon) / 2) ** 2
+    )
+    return 12742 * asin(sqrt(min(1, arc)))

@@ -4,6 +4,7 @@ import json
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
+from math import isfinite
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Request, Response, UploadFile
@@ -75,16 +76,37 @@ def species_name(row):
 
 @router.get("/api/v1/species")
 def search_species(
-    database: DB, q: Annotated[str, Query(max_length=128)] = "", limit: Limit = 30, featured: bool = False
+    database: DB,
+    q: Annotated[str, Query(max_length=128)] = "",
+    limit: Limit = 30,
+    featured: bool = False,
+    offset: Annotated[int, Query(ge=0, le=100000)] = 0,
 ):
     with database.transaction() as db:
-        query = "%" + q + "%"
-        rows = db.execute(
-            "SELECT * FROM taxa WHERE name LIKE ? OR scientific LIKE ? OR english LIKE ? "
-            'ORDER BY (name=?) DESC,(name!="") DESC,name,scientific LIMIT ?',
-            (query, query, query, q, limit),
+        q = q.strip()
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        args = dict(q=q, contains="%" + escaped + "%", prefix=escaped + "%", limit=limit, offset=offset)
+        where = (
+            " WHERE name LIKE :contains ESCAPE '\\' OR scientific LIKE :contains ESCAPE '\\' "
+            "OR english LIKE :contains ESCAPE '\\'"
         )
-        result = {"items": [dict(row) for row in rows], "source": "AviList v2026 · CC BY 4.0"}
+        total = db.execute("SELECT count(*) FROM taxa" + where, args).fetchone()[0]
+        rows = db.execute(
+            "SELECT * FROM taxa"
+            + where
+            + " ORDER BY (:q!='' AND name=:q COLLATE NOCASE) DESC,(name LIKE :prefix ESCAPE '\\') DESC,"
+            "(english LIKE :prefix ESCAPE '\\') DESC,(name!='') DESC,name COLLATE NOCASE,"
+            "english COLLATE NOCASE,scientific COLLATE NOCASE,id LIMIT :limit OFFSET :offset",
+            args,
+        )
+        items = [dict(row) for row in rows]
+        result = {
+            "items": items,
+            "total": total,
+            "offset": offset,
+            "hasMore": offset + len(items) < total,
+            "source": "AviList v2026 · CC BY 4.0",
+        }
         if featured and not q:
             examples = db.execute(
                 "SELECT id,name,english FROM taxa WHERE scientific IN (?,?,?,?) ORDER BY name",
@@ -102,6 +124,7 @@ def species_detail(species: str, database: DB):
         return {
             **guide_record(db, database, species),
             "source": "AviList v2026 · CC BY 4.0",
+            "features": {"speciesPosts": True},
             "records": [
                 public(row)
                 for row in db.execute(
@@ -153,26 +176,45 @@ def species_places(
     startDate: str = "",
     endDate: str = "",
     origin: Literal["all", "local", "external"] = "all",
+    sort: Literal["recent", "distance"] = "recent",
+    latitude: Annotated[float | None, Query(ge=-90, le=90)] = None,
+    longitude: Annotated[float | None, Query(ge=-180, le=180)] = None,
     limit: Limit = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ):
+    if (latitude is None) != (longitude is None) or (sort == "distance" and latitude is None):
+        raise ServiceError("INVALID_REFERENCE", "距离排序需要完整的地图参考点", 422)
     with database.transaction() as db:
         taxon(db, species)
         filters = """ FROM publications WHERE channel='map' AND status='approved' AND species=:species
             AND lat IS NOT NULL AND lon IS NOT NULL AND (:start='' OR day>=:start)
             AND (:end='' OR (day!='' AND day<=:end)) AND (:origin='all' OR
             (:origin='external' AND owner='gbif') OR (:origin='local' AND owner!='gbif')) GROUP BY lat,lon"""
-        args = dict(species=species, start=startDate, end=endDate, origin=origin, limit=limit, offset=offset)
+        args = dict(
+            species=species,
+            start=startDate,
+            end=endDate,
+            origin=origin,
+            limit=limit,
+            offset=offset,
+            latitude=latitude,
+            longitude=longitude,
+        )
+        order = "km,latest DESC,lat,lon" if sort == "distance" else "latest DESC,km,lat,lon"
         count, records = db.execute(
             "SELECT count(*),coalesce(sum(n),0) FROM (SELECT count(*) n" + filters + ")", args
         ).fetchone()
         rows = db.execute(
-            "SELECT lat,lon,count(*) n,max(day) latest,min(json_extract(display,'$.placeName')) label"
+            "SELECT lat,lon,count(*) n,max(day) latest,min(json_extract(display,'$.placeName')) label,"
+            " distance_km(lat,lon,:latitude,:longitude) km"
             + filters
-            + " ORDER BY latest DESC,lat,lon LIMIT :limit OFFSET :offset",
+            + " ORDER BY "
+            + order
+            + " LIMIT :limit OFFSET :offset",
             args,
         )
         return {
+            "sort": sort,
             "placeCount": count,
             "recordCount": records,
             "items": [
@@ -180,12 +222,21 @@ def species_places(
                     "id": f"{row['lat']},{row['lon']}",
                     "placeName": row["label"],
                     "latest": row["latest"],
+                    "km": round(row["km"], 1) if row["km"] is not None else None,
                     "records": row["n"],
                     "displayLocation": {"latitude": row["lat"], "longitude": row["lon"]},
                 }
                 for row in rows
             ],
         }
+
+
+def capture_number(capture, key):
+    try:
+        value = float(capture[key])
+        return value if isfinite(value) else None
+    except (KeyError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+        return None
 
 
 @router.post(ROOT + "/media", status_code=201)
@@ -198,9 +249,25 @@ def upload(file: UploadFile, database: DB, owner: Member):
                 raise ServiceError("IMAGE_TOO_LARGE", "image too large", 413)
             exif = source.getexif()
             capture = exif.get_ifd(34665)
+            bias, flash = capture_number(capture, 37380), capture_number(capture, 37385)
             camera = {
                 key: str(value)[:100]
                 for key, value in {
+                    "resolution": f"{source.width} × {source.height} px",
+                    "lens": capture.get(42036),
+                    "whiteBalance": {0: "AWB", 1: "手动"}.get(capture.get(41987)),
+                    "exposureBias": f"{bias:+.2f} EV" if bias is not None else None,
+                    "metering": {
+                        1: "平均测光",
+                        2: "中央重点",
+                        3: "点测光",
+                        4: "多点",
+                        5: "评价测光",
+                        6: "局部测光",
+                    }.get(capture.get(37383)),
+                    "flash": ("已闪光" if int(flash) & 1 else "未闪光")
+                    if flash is not None and flash >= 0 and flash.is_integer()
+                    else None,
                     "make": exif.get(271),
                     "model": exif.get(272),
                     "exposure": capture.get(33434),
@@ -300,7 +367,7 @@ def preview(body: Preview, database: DB, owner: Member):
             if body.sighting
             else {}
         )
-        species = taxon(db, sighting.get("species"))
+        species = taxon(db, sighting.get("species") or body.species)
         citation = None
         if body.external:
             source = one(
@@ -319,6 +386,11 @@ def preview(body: Preview, database: DB, owner: Member):
         media = (body.media or sighting.get("media")) if body.share_photo else None
         if media:
             one(db, "SELECT id FROM photos WHERE owner=? AND id=?", owner, media)
+        camera = sighting.get("camera", {})
+        if media and not body.sighting:
+            camera = json.loads(
+                one(db, "SELECT camera FROM photos WHERE owner=? AND id=?", owner, media)["camera"]
+            )
         value = {
             "speciesId": species.get("id", ""),
             "sourceRecord": citation,
@@ -329,9 +401,7 @@ def preview(body: Preview, database: DB, owner: Member):
             "publicName": "匿名鸟友" if body.anonymous else member_card(db, owner)["nickname"],
             "memberId": None if body.anonymous else owner,
             "date": sighting.get("date") if body.share_date else None,
-            "camera": {key: val for key, val in sighting.get("camera", {}).items() if val}
-            if body.share_camera
-            else {},
+            "camera": {key: val for key, val in camera.items() if val} if body.share_camera else {},
             "source": "羽迹社区",
             "media": media,
             "coordinateSystem": "GCJ-02",
@@ -432,48 +502,92 @@ def photo(record: str, database: DB):
         raise ServiceError("PHOTO_UNAVAILABLE", "原社区照片暂不可用", 503) from error
 
 
+def discussion_summary(db, record, owner):
+    reactions = [
+        row[0] for row in db.execute("SELECT kind FROM reactions WHERE post=? AND owner=?", (record, owner))
+    ]
+    return {
+        "reactions": reactions,
+        "bookmarked": "bookmark" in reactions,
+        "likes": db.execute(
+            "SELECT count(*) FROM reactions WHERE post=? AND kind='like'", (record,)
+        ).fetchone()[0],
+        "replyCount": db.execute(
+            "SELECT count(*) FROM replies WHERE post=? AND status='approved'", (record,)
+        ).fetchone()[0],
+    }
+
+
+def discussion_reply(db, row):
+    result = dict(row)
+    result["publicName"] = member_card(db, result["memberId"])["nickname"]
+    parent = db.execute("SELECT owner,status FROM replies WHERE id=?", (result["parentId"],)).fetchone()
+    result["replyToName"] = (
+        member_card(db, parent["owner"])["nickname"] if parent and parent["status"] == "approved" else ""
+    )
+    return result
+
+
 @router.get(ROOT + "/publications/{record}")
-def detail(record: str, database: DB, owner: Annotated[str | None, Depends(public_reader)]):
+def detail(
+    record: str,
+    database: DB,
+    owner: Annotated[str | None, Depends(public_reader)],
+    replyOffset: Annotated[int, Query(ge=0)] = 0,
+):
     with database.transaction() as db:
         row = visible(db, record)
-        reactions = [
-            item[0]
-            for item in db.execute("SELECT kind FROM reactions WHERE post=? AND owner=?", (record, owner))
-        ]
         related = db.execute(
             "SELECT id,channel FROM publications WHERE preview=? AND id!=? AND status='approved'",
             (row["preview"], record),
         ).fetchone()
+        reply_total = db.execute(
+            "SELECT count(*) FROM replies WHERE post=? "
+            "AND (status='approved' OR (owner=? AND status='pending'))",
+            (record, owner),
+        ).fetchone()[0]
         return {
             **public(row),
+            **discussion_summary(db, record, owner),
+            "features": {"threadedReplies": True},
             "related": dict(related) if related else None,
             "ownedSighting": row["sighting"] if row["owner"] == owner else None,
-            "reactions": reactions,
-            "bookmarked": "bookmark" in reactions,
-            "likes": db.execute(
-                "SELECT count(*) FROM reactions WHERE post=? AND kind='like'", (record,)
-            ).fetchone()[0],
+            "replyHasMore": replyOffset + 100 < reply_total,
+            "replyOffset": replyOffset,
             "replies": [
-                {**dict(reply), "publicName": member_card(db, reply["memberId"])["nickname"]}
+                discussion_reply(db, reply)
                 for reply in db.execute(
-                    "SELECT id,owner memberId,body,species,created FROM replies WHERE post=? "
-                    "AND status='approved' "
-                    "ORDER BY created DESC LIMIT 100",
-                    (record,),
+                    "SELECT id,owner memberId,body,species,created,status,parent parentId "
+                    "FROM replies WHERE post=? AND (status='approved' OR (owner=? AND status='pending')) "
+                    "ORDER BY created DESC,id DESC LIMIT 100 OFFSET ?",
+                    (record, owner, replyOffset),
                 )
             ],
         }
 
 
 @router.get(ROOT + "/posts")
-def feed(database: DB, species: str = "", limit: Limit = 40, offset: Annotated[int, Query(ge=0)] = 0):
+def feed(
+    database: DB,
+    owner: Annotated[str | None, Depends(public_reader)],
+    species: str = "",
+    limit: Limit = 40,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
     with database.transaction() as db:
+        where = " FROM publications WHERE status='approved' AND channel='post' AND (?='' OR species=?)"
+        total = db.execute("SELECT count(*)" + where, (species, species)).fetchone()[0]
         rows = db.execute(
-            "SELECT * FROM publications WHERE status='approved' AND channel='post' AND (?='' OR species=?) "
-            "ORDER BY created DESC,id LIMIT ? OFFSET ?",
+            "SELECT *" + where + " ORDER BY created DESC,id LIMIT ? OFFSET ?",
             (species, species, limit, offset),
         )
-        return {"items": [public(row) for row in rows]}
+        items = [{**public(row), **discussion_summary(db, row["id"], owner)} for row in rows]
+        return {
+            "items": items,
+            "total": total,
+            "hasMore": offset + len(items) < total,
+            "features": {"threadedReplies": True},
+        }
 
 
 @router.get(ROOT + "/external")
@@ -525,6 +639,7 @@ def map_records(
     speciesId: str = "",
     startDate: str = "",
     endDate: str = "",
+    sort: Literal["collected", "recent"] = "collected",
     cursor: str = "",
     limit: Limit = 60,
     zoom: Annotated[int | None, Query(ge=3, le=20)] = None,
@@ -592,12 +707,22 @@ def map_records(
             return {"total": sum(group["count"] for group in clusters), "clusters": clusters}
         total = db.execute("SELECT count(*) FROM (" + source + ")", args).fetchone()[0]
         if cursor:
-            stamp, sep, key = cursor.partition("|")
-            if not sep or len(cursor) > 160:
+            pieces = cursor.split("|")
+            valid = len(cursor) <= 256 and (
+                len(pieces) == 2
+                if sort == "collected"
+                else len(pieces) == 5 and pieces[:2] == ["v2", "recent"]
+            )
+            if not valid:
                 raise ServiceError("INVALID_CURSOR", "invalid map cursor", 422)
-            source += " AND (created,id)<(:stamp,:key)"
-            args.update(stamp=stamp, key=key)
-        rows = db.execute(source + " ORDER BY created DESC,id DESC LIMIT :limit", args).fetchall()
+            if sort == "recent":
+                args.update(day=pieces[2], stamp=pieces[3], key=pieces[4])
+                source += " AND (day,created,id)<(:day,:stamp,:key)"
+            else:
+                args.update(stamp=pieces[0], key=pieces[1])
+                source += " AND (created,id)<(:stamp,:key)"
+        order = "day DESC,created DESC,id DESC" if sort == "recent" else "created DESC,id DESC"
+        rows = db.execute(source + " ORDER BY " + order + " LIMIT :limit", args).fetchall()
         items = []
         for row in rows[:limit]:
             if row["visibility"] == "public":
@@ -621,7 +746,9 @@ def map_records(
                     }
                 )
         next_cursor = rows[limit - 1]["created"] + "|" + rows[limit - 1]["id"] if len(rows) > limit else ""
-        return {"items": items, "nextCursor": next_cursor, "total": total}
+        if next_cursor and sort == "recent":
+            next_cursor = "v2|recent|" + rows[limit - 1]["day"] + "|" + next_cursor
+        return {"items": items, "nextCursor": next_cursor, "total": total, "sort": sort}
 
 
 @router.get("/api/v1/map/observations/{record}")
@@ -655,16 +782,30 @@ def reply(record: str, body: Reply, database: DB, owner: Member):
             "SELECT * FROM replies WHERE owner=? AND ref=?", (owner, body.reference)
         ).fetchone()
         if existing:
-            if (existing["post"], existing["body"], existing["species"]) != (record, body.body, body.species):
+            if (existing["post"], existing["body"], existing["species"], existing["parent"]) != (
+                record,
+                body.body,
+                body.species,
+                body.parentId,
+            ):
                 raise conflict()
-            return {"id": existing["id"], "status": existing["status"]}
+            return {"id": existing["id"], "status": existing["status"], "parentId": existing["parent"]}
+        if body.parentId:
+            # A reply cannot attach to another post or disclose an unapproved parent.
+            one(
+                db,
+                "SELECT id FROM replies WHERE id=? AND post=? AND status='approved'",
+                body.parentId,
+                record,
+            )
         limited(db, "replies", "owner", owner, 40)
         key = uid("reply")
         db.execute(
-            "INSERT INTO replies VALUES(?,?,?,?,?,?,?,?)",
-            (key, record, owner, body.body, body.species, "pending", now(), body.reference),
+            "INSERT INTO replies(id,post,owner,body,species,status,created,ref,parent) "
+            "VALUES(?,?,?,?,?,?,?,?,?)",
+            (key, record, owner, body.body, body.species, "pending", now(), body.reference, body.parentId),
         )
-        return {"id": key, "status": "pending"}
+        return {"id": key, "status": "pending", "parentId": body.parentId}
 
 
 @router.post("/api/v2/observations/{record}/adopt")
@@ -701,7 +842,7 @@ def react(record: str, kind: Literal["like", "bookmark"], request: Request, data
             db.execute("INSERT OR IGNORE INTO reactions VALUES(?,?,?)", (owner, record, kind))
         else:
             db.execute("DELETE FROM reactions WHERE owner=? AND post=? AND kind=?", (owner, record, kind))
-        return {"active": request.method == "PUT"}
+        return {"active": request.method == "PUT", **discussion_summary(db, record, owner)}
 
 
 @router.get(ROOT + "/bookmarks")

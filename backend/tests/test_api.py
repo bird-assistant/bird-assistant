@@ -185,9 +185,7 @@ def test_live_session_rejects_old_capture_time_and_incomplete_coordinates(
         assert old.status_code == 422
         assert old.json()["error"]["code"] == "CAPTURED_AT_CLOCK_SKEW"
 
-        session = client.post(
-            "/api/v1/vision/sessions", json={"observation_mode": "historical"}
-        ).json()
+        session = client.post("/api/v1/vision/sessions", json={"observation_mode": "historical"}).json()
         missing_time = client.post(
             f"/api/v1/vision/sessions/{session['session_id']}/frames",
             data={"frame_id": "missing-time"},

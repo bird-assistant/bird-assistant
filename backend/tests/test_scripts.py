@@ -159,12 +159,14 @@ def test_cloud_image_summary_counts_confirmed_birds_separately_from_raw_tracks(s
     assert scripts.cloud_images.resolved_frame_count(1, 3) == 3
     assert scripts.cloud_images.resolved_frame_count(5, 3) == 5
     assert scripts.cloud_images.detection_badge(summary) == ("确认鸟体", "found")
-    assert scripts.cloud_images.detection_badge(
-        {"confirmed_bird_count": 0, "track_count": 1}
-    ) == ("仅原始检测", "empty")
-    assert scripts.cloud_images.detection_badge(
-        {"confirmed_bird_count": 0, "track_count": 0}
-    ) == ("未检测到鸟体", "empty")
+    assert scripts.cloud_images.detection_badge({"confirmed_bird_count": 0, "track_count": 1}) == (
+        "仅原始检测",
+        "empty",
+    )
+    assert scripts.cloud_images.detection_badge({"confirmed_bird_count": 0, "track_count": 0}) == (
+        "未检测到鸟体",
+        "empty",
+    )
 
 
 def test_cloud_image_test_validates_effective_high_resolution_path(scripts):
@@ -188,9 +190,7 @@ def test_cloud_image_test_validates_effective_high_resolution_path(scripts):
         "min_image_ratio": 1.5,
     }
     with pytest.raises(scripts.cloud_images.TestFailure, match="没有实际触发"):
-        scripts.cloud_images.validated_high_resolution_detector(
-            models, [{"width": 800, "height": 600}]
-        )
+        scripts.cloud_images.validated_high_resolution_detector(models, [{"width": 800, "height": 600}])
 
 
 def test_cloud_image_test_prepares_unique_month_and_unknown_cache_keys(scripts):
@@ -292,9 +292,7 @@ def test_occurrence_cache_warmer_requires_location_or_merge(scripts, monkeypatch
     assert args.month is None
 
 
-def test_occurrence_cache_warmer_fails_when_result_was_not_persisted(
-    scripts, tmp_path, monkeypatch
-):
+def test_occurrence_cache_warmer_fails_when_result_was_not_persisted(scripts, tmp_path, monkeypatch):
     class Resolver:
         def __init__(self, **kwargs):
             pass
@@ -425,9 +423,12 @@ def test_ssh_output_queue_finds_markers_without_selector_buffering(scripts) -> N
     session._output.put("login banner\n")
     session._output.put("prompt without relying on select BIRD_READY\n")
     session._wait_for_line("BIRD_READY", timeout=0.1, failure="not ready")
-    assert scripts.cloud_images._marker_payload(
-        "PROMPT> BIRD_BOOTSTRAP_DONE_token=12", "BIRD_BOOTSTRAP_DONE_token="
-    ) == "12"
+    assert (
+        scripts.cloud_images._marker_payload(
+            "PROMPT> BIRD_BOOTSTRAP_DONE_token=12", "BIRD_BOOTSTRAP_DONE_token="
+        )
+        == "12"
+    )
     assert "BIRD_TEST_CONFIG=" not in scripts.cloud_images.REMOTE_BOOTSTRAP
 
 
@@ -600,9 +601,7 @@ def test_occurrence_facet_rejects_repeated_page(scripts, monkeypatch):
 def test_occurrence_grid_builds_bounded_sites_and_reconciles_catalog(scripts, tmp_path, monkeypatch):
     catalog = tmp_path / "catalog.csv"
     catalog.write_text(
-        "species_id,scientific_name,enabled\n"
-        "bird-a,Avis alpha,true\n"
-        "bird-b,Avis beta,true\n",
+        "species_id,scientific_name,enabled\nbird-a,Avis alpha,true\nbird-b,Avis beta,true\n",
         encoding="utf-8",
     )
     args = Namespace(
@@ -648,9 +647,7 @@ def test_occurrence_grid_builds_bounded_sites_and_reconciles_catalog(scripts, tm
 def test_occurrence_grid_aggregates_local_tsv_and_zip_without_gbif_requests(scripts, tmp_path, monkeypatch):
     catalog = tmp_path / "catalog.csv"
     catalog.write_text(
-        "species_id,scientific_name,enabled\n"
-        "bird-a,Avis alpha,true\n"
-        "bird-b,Avis beta,true\n",
+        "species_id,scientific_name,enabled\nbird-a,Avis alpha,true\nbird-b,Avis beta,true\n",
         encoding="utf-8",
     )
     rows = (
@@ -709,9 +706,7 @@ def test_occurrence_grid_aggregates_local_tsv_and_zip_without_gbif_requests(scri
 def test_occurrence_grid_prefers_accepted_scientific_name(scripts, tmp_path):
     catalog = tmp_path / "catalog.csv"
     catalog.write_text(
-        "species_id,scientific_name,enabled\n"
-        "bird-a,Avis accepted,true\n"
-        "bird-b,Avis synonym,true\n",
+        "species_id,scientific_name,enabled\nbird-a,Avis accepted,true\nbird-b,Avis synonym,true\n",
         encoding="utf-8",
     )
     occurrence_file = tmp_path / "occurrences.tsv"
@@ -743,8 +738,7 @@ def test_occurrence_grid_prefers_accepted_scientific_name(scripts, tmp_path):
 def test_occurrence_grid_requires_country_and_scientific_name_columns(scripts, tmp_path):
     path = tmp_path / "invalid.tsv"
     path.write_text(
-        "speciesKey\tdecimalLatitude\tdecimalLongitude\tmonth\n"
-        "101\t30.25\t116.25\t5\n",
+        "speciesKey\tdecimalLatitude\tdecimalLongitude\tmonth\n101\t30.25\t116.25\t5\n",
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="countryCode"):
@@ -789,9 +783,7 @@ def test_occurrence_grid_main_writes_output_atomically(scripts, tmp_path, monkey
         ],
     )
     assert scripts.occurrence_grid.main() == 0
-    assert json.loads(output.read_text(encoding="utf-8"))["sites"][0]["months"] == {
-        "5": {"Avis alpha": 1}
-    }
+    assert json.loads(output.read_text(encoding="utf-8"))["sites"][0]["months"] == {"5": {"Avis alpha": 1}}
     assert not list(output.parent.glob("*.tmp"))
 
 

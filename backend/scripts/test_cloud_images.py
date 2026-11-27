@@ -185,9 +185,7 @@ def sync_backend(args: argparse.Namespace, remote_shell: str) -> None:
         return
     with tempfile.TemporaryDirectory(prefix="bird-gbif-seed-") as temporary_directory:
         snapshot_path = Path(temporary_directory) / "seed.sqlite3"
-        source = sqlite3.connect(
-            f"file:{args.occurrence_cache_seed}?mode=ro", uri=True, timeout=2.0
-        )
+        source = sqlite3.connect(f"file:{args.occurrence_cache_seed}?mode=ro", uri=True, timeout=2.0)
         snapshot = sqlite3.connect(snapshot_path)
         try:
             source.backup(snapshot)
@@ -380,9 +378,7 @@ class SSHSession:
         marker = f"BIRD_SSH_READY_{marker_token}"
         # The full marker must not appear in the PTY input: the terminal may
         # echo this first command before `stty -echo` takes effect.
-        self.process.stdin.write(
-            f"stty -echo; printf 'BIRD_SSH_READY_%s\\n' {shlex.quote(marker_token)}\n"
-        )
+        self.process.stdin.write(f"stty -echo; printf 'BIRD_SSH_READY_%s\\n' {shlex.quote(marker_token)}\n")
         self.process.stdin.flush()
         self._wait_for_line(marker, timeout=120, failure="SSH 控制连接建立失败")
 
@@ -404,7 +400,7 @@ class SSHSession:
         bootstrap_input = (
             f"bash -s -- {argument_text} <<'{delimiter}'\n{script.rstrip()}\n{delimiter}\n"
             f"status=$?\nprintf 'BIRD_BOOTSTRAP_DONE_%s=%s\\n' "
-            f"{shlex.quote(completed_token)} \"$status\"\n"
+            f'{shlex.quote(completed_token)} "$status"\n'
         )
         self.process.stdin.write(bootstrap_input)
         self.process.stdin.flush()
@@ -437,8 +433,7 @@ class SSHSession:
                 detail = "\n".join(output_lines[-40:])
                 self.close()
                 raise TestFailure(
-                    f"云端初始化脚本提前结束（退出码 {status}）。"
-                    + (f"\n{detail}" if detail else "")
+                    f"云端初始化脚本提前结束（退出码 {status}）。" + (f"\n{detail}" if detail else "")
                 )
             if cleaned:
                 output_lines.append(cleaned)
@@ -477,8 +472,9 @@ class SSHSession:
                 self.process.wait(timeout=5)
         self.process = None
         if self._borrowed_forward:
-            subprocess.run(["ssh", "-O", "cancel", "-L", self._borrowed_forward, "--", self.host],
-                           capture_output=True)
+            subprocess.run(
+                ["ssh", "-O", "cancel", "-L", self._borrowed_forward, "--", self.host], capture_output=True
+            )
             self._borrowed_forward = None
         if self._reader is not None:
             self._reader.join(timeout=1)
@@ -867,9 +863,7 @@ def persistent_occurrence_cache(models: list[dict[str, Any]]) -> dict[str, Any]:
         None,
     )
     cache = (
-        species_model.get("details", {})
-        .get("live_occurrence", {})
-        .get("coordinate_cache", {})
+        species_model.get("details", {}).get("live_occurrence", {}).get("coordinate_cache", {})
         if species_model is not None
         else {}
     )
@@ -881,9 +875,7 @@ def persistent_occurrence_cache(models: list[dict[str, Any]]) -> dict[str, Any]:
 def validated_high_resolution_detector(
     models: list[dict[str, Any]], prepared: list[dict[str, Any]]
 ) -> dict[str, Any]:
-    detector = next(
-        (model for model in models if model.get("name") == "yolo-bird-detector"), None
-    )
+    detector = next((model for model in models if model.get("name") == "yolo-bird-detector"), None)
     details = detector.get("details", {}) if detector is not None else {}
     base_size = details.get("image_size")
     high_resolution = details.get("high_resolution", {})
@@ -913,10 +905,7 @@ def occurrence_cache_requests(
 ) -> list[dict[str, Any]]:
     requests: dict[tuple[str, int | None], dict[str, Any]] = {}
     for item in prepared:
-        unknown = (
-            args.capture_time_precision == "unknown"
-            or item["capture_time_source"] == "file_mtime"
-        )
+        unknown = args.capture_time_precision == "unknown" or item["capture_time_source"] == "file_mtime"
         observed_at = datetime.fromisoformat(item["captured_at"])
         key = ("unknown", None) if unknown else ("exact", observed_at.month)
         requests.setdefault(
@@ -942,32 +931,24 @@ async def prepare_occurrence_caches(
         async with concurrency:
             deadline = time.monotonic() + args.local_candidate_timeout
             while True:
-                response = await client.post(
-                    "/api/v1/species/occurrence/cache/prepare", json=payload
-                )
+                response = await client.post("/api/v1/species/occurrence/cache/prepare", json=payload)
                 if response.status_code != 200:
-                    raise TestFailure(
-                        f"准备当地候选失败：HTTP {response.status_code} {response.text[:1000]}"
-                    )
+                    raise TestFailure(f"准备当地候选失败：HTTP {response.status_code} {response.text[:1000]}")
                 result = response.json()
                 if result["status"] == "ready":
                     return {**payload, **result}
                 if result["status"] == "unavailable":
                     raise TestFailure(
-                        f"当地候选准备失败：status={result['status']} "
-                        f"source={result.get('source')}"
+                        f"当地候选准备失败：status={result['status']} source={result.get('source')}"
                     )
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     raise TestFailure(
-                        f"等待当地候选超过 {args.local_candidate_timeout} 秒；"
-                        "云端 GBIF 首次查询未完成"
+                        f"等待当地候选超过 {args.local_candidate_timeout} 秒；云端 GBIF 首次查询未完成"
                     )
                 await asyncio.sleep(min(1.0, remaining))
 
-    return await asyncio.gather(
-        *(prepare(payload) for payload in occurrence_cache_requests(prepared, args))
-    )
+    return await asyncio.gather(*(prepare(payload) for payload in occurrence_cache_requests(prepared, args)))
 
 
 def validate_session_location(
@@ -1055,8 +1036,7 @@ async def test_one_image(
                     item["captured_at"],
                     (
                         "unknown"
-                        if capture_time_precision == "unknown"
-                        or item["capture_time_source"] == "file_mtime"
+                        if capture_time_precision == "unknown" or item["capture_time_source"] == "file_mtime"
                         else "exact"
                     ),
                     latitude,
@@ -1066,9 +1046,7 @@ async def test_one_image(
                 frame_results.append(await receive_frame_event(websocket, frame_id, timeout=120))
 
             if has_pending_local_candidates(frame_results[-1]):
-                raise TestFailure(
-                    "缓存预取已完成，但图片分类仍返回 live_occurrence_lookup_pending"
-                )
+                raise TestFailure("缓存预取已完成，但图片分类仍返回 live_occurrence_lookup_pending")
     finally:
         with contextlib.suppress(httpx.HTTPError):
             await client.delete(f"/api/v1/vision/sessions/{session_id}")
@@ -1108,20 +1086,15 @@ async def run_api_tests(
         models_response = await client.get("/api/v1/models")
         if models_response.status_code != 200:
             raise TestFailure(
-                f"读取云端模型缓存状态失败：HTTP {models_response.status_code} "
-                f"{models_response.text[:1000]}"
+                f"读取云端模型缓存状态失败：HTTP {models_response.status_code} {models_response.text[:1000]}"
             )
         models = models_response.json()
-        remote["high_resolution_detector"] = validated_high_resolution_detector(
-            models, prepared
-        )
+        remote["high_resolution_detector"] = validated_high_resolution_detector(models, prepared)
         remote["models"] = models
         remote["occurrence_cache_before"] = persistent_occurrence_cache(models)
         cache_requests = occurrence_cache_requests(prepared, args)
         log(f"      正在准备 {len(cache_requests)} 个地区/月度候选缓存键……")
-        remote["occurrence_cache_prepared"] = await prepare_occurrence_caches(
-            client, prepared, args
-        )
+        remote["occurrence_cache_prepared"] = await prepare_occurrence_caches(client, prepared, args)
         total = len(prepared)
         for index, item in enumerate(prepared, 1):
             name = item["source_relative"]
@@ -1172,9 +1145,7 @@ async def run_api_tests(
                 log(f"[{index:02d}/{total:02d}] {name}：错误：{exc}")
         models_response = await client.get("/api/v1/models")
         if models_response.status_code == 200:
-            remote["occurrence_cache_after"] = persistent_occurrence_cache(
-                models_response.json()
-            )
+            remote["occurrence_cache_after"] = persistent_occurrence_cache(models_response.json())
     return results
 
 
@@ -1407,7 +1378,7 @@ def write_reports(
 def setup_remote(args: argparse.Namespace) -> None:
     if not shutil.which("rsync"):
         raise TestFailure("请先在本机 WSL 安装 rsync：sudo apt-get install rsync")
-    prerequisites = r'''
+    prerequisites = r"""
 set -eu
 packages=()
 command -v rsync >/dev/null || packages+=(rsync)
@@ -1423,15 +1394,20 @@ if (( ${#packages[@]} )); then
   apt-get install -y --no-install-recommends "${packages[@]}"
 fi
 mkdir -p -- "$1"
-'''
+"""
     command = ["ssh", "--", args.ssh_host]
     try:
-        subprocess.run([*command, shlex.join(["bash", "-s", "--", args.remote_backend])],
-                       input=prerequisites, text=True, check=True)
+        subprocess.run(
+            [*command, shlex.join(["bash", "-s", "--", args.remote_backend])],
+            input=prerequisites,
+            text=True,
+            check=True,
+        )
         sync_backend(args, "ssh")
         installer = f"{args.remote_backend.rstrip('/')}/scripts/setup_cloud_vision.sh"
-        subprocess.run([*command, shlex.join(["bash", installer, args.remote_backend, args.remote_venv])],
-                       check=True)
+        subprocess.run(
+            [*command, shlex.join(["bash", installer, args.remote_backend, args.remote_venv])], check=True
+        )
     except subprocess.CalledProcessError as exc:
         raise TestFailure(f"云端初始化失败（退出码 {exc.returncode}），请检查前面的安装输出") from exc
 

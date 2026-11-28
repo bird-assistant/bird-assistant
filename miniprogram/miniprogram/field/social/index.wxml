@@ -21,11 +21,11 @@
     <button class="primary" bindtap="save" loading="{{working}}">{{registered ? '保存修改' : '完成注册'}}</button>
     <button wx:if="{{editing}}" bindtap="cancel">取消</button><button wx:else bindtap="logout">退出本机账号</button>
   </view>
-  <block wx:elif="{{screen === 'account'}}">
+  <block wx:elif="{{screen === 'account'}}"><view class="note account-identity-note">社区账号绑定当前微信登录身份。同一微信账号换手机后，昵称、头像、好友和聊天从同一账号读取；匿名帖只隐藏署名。微信昵称和头像需要本人选择，不会自动读取。</view>
     <view class="card identity"><profile-avatar avatar="{{account.avatar}}" name="{{account.nickname}}" size="64"/><view><view class="title">{{account.nickname}}</view><view>@{{account.handle}}</view><view class="muted">{{account.bio}}</view></view></view>
     <button class="primary" bindtap="edit">编辑社区资料与隐私</button>
     <view class="choices"><button data-screen="member" data-id="{{self}}" bindtap="go">我的主页</button><button data-screen="friends" bindtap="go">我的好友</button><button data-screen="inbox" bindtap="go">私信与通知</button><button data-screen="groups" bindtap="go">我的群聊</button><button data-screen="blocked" bindtap="go">屏蔽名单</button></view>
-    <button bindtap="logout">退出本机账号</button>
+    <button class="quiet" bindtap="copyAccountIdentity">复制账号核对信息</button><view class="tiny">两台设备的社区ID应一致；昵称不是登录凭据。核对信息不含登录令牌、微信OpenID或聊天内容。</view><button bindtap="logout">退出本机账号</button>
   </block>
   <block wx:elif="{{screen === 'friends'}}"><view class="my-friend-code"><profile-avatar avatar="{{account.avatar}}" name="{{account.nickname}}" size="36"/><view><text>我的鸟友号</text><text>@{{account.handle}}</text></view><button bindtap="copyHandle">复制，告诉新鸟友</button></view>
     <view class="line"><input maxlength="64" value="{{term}}" data-field="term" bindinput="input" bindconfirm="search" placeholder="搜索昵称或完整鸟友号"/><button bindtap="search" disabled="{{working || !term}}" loading="{{working}}">搜索</button></view>

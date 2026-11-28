@@ -1,3 +1,77 @@
+# Current review candidate: 0.4.22 — capture windows and phone layouts
+
+28 November 2026. Continue on **`feat/capture-and-layout-0.4.22`** in both owned repositories. It includes all 0.4.21 work. The frozen **`release/experience-0.4.20`** and team PR #30 are preserved; this is a review candidate, not a console upload. Follow this section; the earlier sections below are retained for traceability.
+
+[Implemented changes, limits and device checks](CAPTURE-AND-LAYOUT-0.4.22.md) · [CloudBase setup still pending](CLOUDBASE-VAULT-0.4.21.md).
+
+- Fixed the editor's missing name-row allocation, bounded its independent controls scroll and made the last export/save actions reachable. Added actual left/right text lanes with Undo, fit checks and matching export geometry.
+- Enabled native map tilt/rotation with a north-up reset that preserves zoom/center. Repaired external-sightings pills, filters and card/date alignment.
+- Signed-in My shows the community profile, with account-ID diagnostics for two phones. Anonymous display stays private. The server still only supports preset avatars; an uploaded local portrait cannot be synchronised through that schema.
+- Implemented one-listener local capture: fast mode pauses after 60 seconds; wait mode keeps a sparse five-second pre-tap ring and targets five post-tap seconds at higher frequency. Selected helper JPEGs remain bounded in RAM until review. At most two helpers are analysed only when online detection is enabled. Shutter originals stay separate, with actual returned pixel dimensions shown where available. No continuous screen replay or cross-frame fusion is claimed.
+- Cleanup protects journal Undo/Redo photos and complete/recovery forum attachments. No business service, Doubao call, cloud activation or paid resource was changed.
+
+**492 client tests pass; 25 WXML / 27 WXSS compile. 456 source-layout cases (38 windows × 12 states) pass**, including actual export-button reachability. Source projections and fixture photos are not physical-device acceptance. R34 native auth/passive warnings remain open.
+
+## Update the existing Windows checkout for review
+
+Keep the helper terminal, private AppID/config, `.venv`, `image/` and local originals. The block stops if tracked/local changes need preserving and never resets or cleans files.
+
+~~~powershell
+& {
+    $ErrorActionPreference = 'Stop'
+    Set-Location 'C:\Workspace\bird-assistant\bird-assistant-miniprogram'
+    function Invoke-CheckedGit {
+        & git @args
+        if ($LASTEXITCODE -ne 0) { throw 'Git stopped; inspect the error before continuing.' }
+    }
+    $birdChanges = & git status --porcelain
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect the working tree.' }
+    if ($birdChanges) { throw 'Preserve local changes before upgrading; nothing was reset.' }
+    Invoke-CheckedGit fetch origin feat/capture-and-layout-0.4.22
+    & git show-ref --verify --quiet refs/heads/feat/capture-and-layout-0.4.22
+    if ($LASTEXITCODE -eq 0) {
+        Invoke-CheckedGit switch feat/capture-and-layout-0.4.22
+    } else {
+        Invoke-CheckedGit switch --track -c feat/capture-and-layout-0.4.22 origin/feat/capture-and-layout-0.4.22
+    }
+    Invoke-CheckedGit merge --ff-only origin/feat/capture-and-layout-0.4.22
+    & npm.cmd ci
+    if ($LASTEXITCODE -ne 0) { throw 'Dependency installation stopped.' }
+    & npm.cmd run setup
+    if ($LASTEXITCODE -ne 0) { throw 'Setup stopped.' }
+    & npm.cmd run verify
+    if ($LASTEXITCODE -ne 0) { throw 'Verification stopped.' }
+    & node -p "require('./package.json').version"
+}
+~~~
+
+Expected: **0.4.22 / 492 passed / 25 WXML / 27 WXSS**. Fully Compile the current DevTools project after switching. Leave `cloud-vault-config.ts` disabled/empty until a legitimate team environment is selected and validated.
+
+## Next checks and follow-ups
+
+1. Pura phone: editor bottom buttons and keyboard in all three ratios; external-sightings card and filter metrics. Try left/right text placement and Undo, then compare the export.
+2. Map on a phone: two-finger rotate/tilt, reset north-up, focus a row without a zoom change, drag/zoom while ripple stays alive. Keep actual auth/passive warning evidence; do not clear user data to diagnose it.
+3. Identification: fast untouched timeout/fallback/resume; wait cold start, five-second history, post-tap burst, replacement tap, pause/hide and long press/video. Measure real frame rates, photo dimensions, heat, battery and memory on iOS/Huawei/another Android. The sparse replay is a capability-limited review candidate, not an accepted hardware benchmark.
+4. Same WeChat account on two phones: copy account diagnostics and compare community IDs. Verify another account is isolated and anonymous posts remain anonymous. Custom avatar upload/moderation/migration requires the teammate's backend contract; no account is merged by nickname.
+5. Doubao: service-side provider design is ready. Confirm provider access, moderation/retention and a bounded draft schema before wiring any actual model. No provider key belongs in the client. Keep system-camera/original-import as a first-class photo-quality route.
+6. CloudBase is independent of the business server. Next activation needs the legitimate team's environment ID/type, AppID binding, deploy access and two-user permission test. Private journal-original cloud archives remain separate from the prepared bookmark snapshot.
+
+## Added tracking rows
+
+| ID | State | Review / remaining acceptance |
+|---|---|---|
+| R117 | Client fixed; native pending | Journal editor chrome/scroll/safe-bottom and keyboard reachability |
+| R118 | Client fixed; native pending | Map rotation/tilt and north-up reset without center/zoom changes |
+| R119 | Client display fixed; service check pending | Shared community identity, diagnostic comparison, custom-avatar contract |
+| R120 | Source layout verified; native pending | External-sightings pills, filters, equal cards and bottom dates |
+| R121 | Client tested; hardware/online pending | Fast 60-second policy, wait pre/post windows, bounded helper selection and cleanup |
+| R122 | Layout implemented; provider design only | Side text, matching export/Undo, Doubao media-understanding boundary |
+| R123 | Fixed and regression tested | Protect Undo-only and complete/recovery draft photos from helper cleanup |
+
+All original 48 items and R01–R116 remain below. Existing map authentication/passive warnings, multi-frame fusion, custom avatar media and live cloud permissions are not marked complete by client-only checks.
+
+---
+
 # Stable0.4.20 and reviewer/development candidate0.4.21
 
 28 November2026, Beijing time. **Keep0.4.20 as the upload checkpoint.** The user said they intend to upload; the console upload itself was not verified here. Frozen copies are `release/experience-0.4.20`. The existing `fix/recognition-acceptance-0.4.7` runtime stays0.4.20. New work is separate on **`feat/engineering-review-0.4.21`** in both owned repositories; this is the morning review candidate, not an automatic experience replacement. Team PR#30 and earlier0.4.18 remain intact.

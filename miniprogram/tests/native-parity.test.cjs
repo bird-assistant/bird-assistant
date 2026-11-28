@@ -221,7 +221,7 @@ test('arbitrary avatar rotations remain covered and reset returns the preview to
 });
 test('camera zoom previews tenths immediately, coalesces requests and respects the actual native result',()=>{
   const requests=[];const {p}=page('identify',390,844,{createCameraContext:()=>({setZoom:o=>requests.push(o)})});p.cameraReady({detail:{maxZoom:5}});p.setZoom(2.3456);assert.equal(p.data.zoom,2.3);assert.equal(p.data.zoomText,'2.3');p.setZoom(3.4567);assert.equal(p.data.zoom,3.5);assert.equal(requests.length,1);
-  requests[0].success({zoom:2.3});assert.equal(p.data.zoom,3.5);assert.equal(requests.length,2);assert.equal(requests[1].zoom,3.5);requests[1].success({zoom:3.4});assert.equal(p.data.zoom,3.4);assert.equal(p.data.zoomText,'3.4');
+  requests[0].success({zoom:2.3});assert.equal(p.data.zoom,3.5);assert.equal(requests.length,2);assert.equal(requests[1].zoom,3.5);requests[1].success({zoom:3.4});assert.equal(p.data.zoom,3.4);assert.equal(p.data.zoomText,'3.4');p.onUnload();
 });
 test('every exposed slider has a live changing binding and numeric draft parsing enforces the same precision',()=>{
   const {numberDraft,parseNumberDraft}=require('../.test-build/services/numbers.js'),fs=require('node:fs'),path=require('node:path');

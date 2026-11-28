@@ -216,3 +216,26 @@
 .guide-feature{display:block}.guide-feature>.guide-photo-frame{padding:0}.guide-feature>.guide-feature-copy{padding:10px 12px 8px}
 
 .explore-source-strip{overflow-x:auto;max-width:100%}.hub .sightings-hero~input{width:100%;min-width:0}
+
+/* Own the native button metrics; pills must fit inside their horizontal scroll owner. */
+.external-hub{max-width:960px;padding:20px 16px calc(32px + env(safe-area-inset-bottom));box-sizing:border-box}
+.external-hub .explore-hero{padding:2px 0 14px}.external-hub .explore-hero>view{font-size:25px;line-height:1.45;margin:9px 0 12px}
+.external-hub .explore-hero>text:last-child{color:#607657;font-size:12px;line-height:1.7}
+.external-hub .sightings-summary{margin:6px 0 16px;padding:12px 0;gap:0}.external-hub .sightings-summary>view{min-width:0;color:#607657;font-size:11px}
+.external-hub .sightings-summary text{font-size:24px;line-height:1.4}.external-hub input{box-sizing:border-box;max-width:100%;margin:0;height:46px;line-height:normal}
+.external-hub .explore-source-strip{height:56px;margin:10px 0 0;box-sizing:border-box;overflow:hidden;white-space:nowrap}
+.explore-source-row{display:inline-flex;align-items:center;gap:8px;min-height:52px;padding:3px 0;box-sizing:border-box}
+.external-hub .explore-source-strip button{display:inline-flex;align-items:center;justify-content:center;flex:none;width:auto;min-height:44px;height:44px;box-sizing:border-box;margin:0;padding:8px 13px;font-size:12px;line-height:20px;white-space:nowrap;border:1px solid #dce5d2;border-radius:22px;color:#526e49}
+.external-hub .explore-source-strip .source-picked{background:#315e47;color:#fffef9;border-color:#315e47}
+.external-hub .sightings-toolbar{margin:8px 0;min-height:48px;align-items:center;gap:8px}
+.external-hub .sightings-toolbar button{display:flex;align-items:center;justify-content:center;flex:none;width:auto;height:44px;min-height:44px;padding:8px 12px;line-height:20px;font-size:12px;white-space:nowrap;color:#526e49}
+.external-hub .sightings-views{align-items:center;padding:3px;gap:3px}.external-hub .sightings-views button{min-width:52px;height:38px;min-height:38px;padding:6px 10px}
+.external-hub .sightings-filter-copy{color:#607657;font-size:11px;line-height:1.7;margin:8px 0 14px}
+.external-hub .sightings-grid{align-items:stretch;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.external-hub .sighting-card{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;width:100%;min-height:0;line-height:1.5;white-space:normal;box-sizing:border-box}
+.external-hub .sighting-image{flex:none;width:100%;height:136px}.external-hub .sighting-no-photo{box-sizing:border-box;padding-bottom:26px;color:#607657}.external-hub .sighting-no-photo text{font-size:10px}
+.external-hub .sighting-source{box-sizing:border-box;display:block;width:auto;right:auto;max-width:calc(100% - 12px);padding:3px 6px;line-height:16px;font-size:9px}
+.external-hub .sighting-card-copy{box-sizing:border-box;flex:1;min-width:0;padding:12px 10px}.external-hub .sighting-card-copy>view{font-size:15px;line-height:1.5}.external-hub .sighting-card-copy>text{color:#607657;font-size:11px;line-height:1.6}.external-hub .sighting-card-copy>text:last-child{color:#697c60;font-size:10px}
+@media(max-width:340px){.external-hub .explore-hero>view{font-size:23px}.external-hub .sightings-grid{gap:8px}.external-hub .sighting-image{height:112px}.external-hub .sighting-card-copy>view{font-size:14px}}
+@media(min-width:700px){.external-hub .sightings-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.external-hub .sighting-image{height:180px}}
+.external-hub .sighting-card-copy{display:flex;flex-direction:column;align-items:stretch}.external-hub .sighting-card-copy>text:last-child{margin-top:auto;padding-top:5px}

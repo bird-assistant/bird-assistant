@@ -112,3 +112,15 @@
 
 /* One range control on the shelf, creation page and filter sheet. Zero width is flex-only. */
 .journal-date-range{display:flex;align-items:center;gap:10px;padding:2px 0 10px;color:#839078;font-size:11px}.journal-date-range>text{flex:none}.journal-date-range .date-range-trigger{display:flex;align-items:center;justify-content:center;flex:1 1 0%;width:0;min-width:0;min-height:36px;line-height:1.5;padding:6px 3px;margin:0;border:0;border-bottom:1px solid #dce5d7;border-radius:0;background:transparent;color:#839078;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Fixed viewport and one scroll owner: toolbar/name/caption never steal control space. */
+.editor-page{position:fixed;left:0;right:0;box-sizing:border-box}
+.stage-sticky{flex:0 0 auto}
+.journal-name-row{height:34px;min-height:34px;box-sizing:border-box}
+.editor-toolbar{height:54px;min-height:54px;box-sizing:border-box}
+.stage-caption{height:28px;min-height:28px;box-sizing:border-box}
+.editor-controls{flex:1 1 0;min-height:0;overflow:hidden}
+.editor-control-body{padding-bottom:calc(48px + env(safe-area-inset-bottom));box-sizing:border-box}
+@media(max-width:350px){.stage-sticky{padding-left:16px;padding-right:16px}.editor-toolbar{gap:4px}.editor-toolbar .tool{width:30px;min-width:30px;max-width:30px;padding:5px}.editor-toolbar .text-button{padding:7px 6px}.editor-toolbar .save-small{width:42px;min-width:42px;max-width:42px}.toolbar-status{font-size:9px}}
+
+.text-position-options{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.text-position-options button{width:auto;min-height:36px;padding:7px 9px;font-size:11px;line-height:20px;border:1px solid #c4d4b9;background:#e8efdf}

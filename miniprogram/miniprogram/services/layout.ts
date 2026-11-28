@@ -14,7 +14,7 @@ export function layout(focused = false) {
   return { headerHeight, tabHeight, width: info.windowWidth, height: info.windowHeight - headerHeight - (focused ? 0 : tabHeight) };
 }
 
-export const EDITOR_CHROME_HEIGHT = 94; // 54 toolbar + 28 caption + 12 spacing.
+export const EDITOR_CHROME_HEIGHT = 128; // 34 name row + 54 toolbar + 28 caption + 12 spacing.
 
 export function editorPanes(height: number, documentHeight: number) {
   const minimumControls = Math.min(190, Math.max(64, (height - EDITOR_CHROME_HEIGHT) * .45));

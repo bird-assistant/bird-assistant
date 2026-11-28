@@ -3,7 +3,7 @@ import {beginSheetDrag,moveSheetDrag,endSheetDrag,resetSheetDrag} from '../../se
 import {installAdaptiveSheets,stopAdaptiveSheets} from '../../services/adaptive-sheets';
 import {ConversationKind,conversationPrefs,saveConversationPrefs,localInbox,localGroups,localActivity,inboxFingerprint,dismissActivity,restoreActivity,readPublicShare,publicShareBody,PublicShare} from '../../services/social-local';
 import {beijingDateTime} from '../../services/observation-context';
-import {connectBusiness} from '../../services/vision-network';
+import {businessOrigin,connectBusiness} from '../../services/vision-network';
 
 type Tap = WechatMiniprogram.TouchEvent;
 type Input = WechatMiniprogram.CustomEvent<{value:string}>;
@@ -89,6 +89,7 @@ Page({
     });
   },
   friendTab(event:Tap){const tab=String(event.currentTarget.dataset.tab);if(['accepted','incoming','outgoing'].includes(tab))this.setData({friendTab:tab});},
+  copyAccountIdentity(){if(!this.data.self||sessionState()!=='active')return;let appId='未提供';try{appId=wx.getAccountInfoSync?.().miniProgram.appId||appId;}catch{}const data=['羽迹账号核对（不含登录令牌）','小程序：'+appId,'服务：'+businessOrigin(),'社区ID：'+this.data.self,'鸟友号：'+(this.data.account?.handle||'未创建')].join('\n');wx.setClipboardData({data,fail:()=>this.setData({localError:'账号核对信息未能复制，请重试。'})});},
   copyHandle(){const handle=this.data.account?.handle;if(handle)wx.setClipboardData({data:handle,fail:()=>this.setData({localError:'鸟友号未能复制，请重试。'})});},
   friendRequests(){wx.navigateTo({url:'/field/social/index?screen=friends&tab=incoming'});},
   back(){wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/community/index'})});},

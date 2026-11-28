@@ -1,7 +1,7 @@
 import {readProtectedData} from './protected-local-data';
 import { clamp } from './map-model';
 import { round2, floor2 } from './numbers';
-export interface JournalElement { id:string;type:string;x:number;y:number;w:number;h:number;rotation:number;color:string;title:string;text:string;fontSize:number;font:string;src:string;photoNumber:number;photoFit?:'cover'|'stretch';ornamentRatioLocked?:boolean;ornamentOriginalRatio?:number;ratioLock?:'current'|'original'|'free';lockedRatio?:number;photoId?:string;titleSize?:number;maxLines?:number;flowPosition?:'before-photos'|'after-photos';zoom:number;cropX:number;cropY:number;persisted:boolean;iw:number;ih:number; }
+export interface JournalElement { id:string;type:string;x:number;y:number;w:number;h:number;rotation:number;color:string;title:string;text:string;fontSize:number;font:string;src:string;photoNumber:number;photoFit?:'cover'|'stretch';ornamentRatioLocked?:boolean;ornamentOriginalRatio?:number;ratioLock?:'current'|'original'|'free';lockedRatio?:number;photoId?:string;titleSize?:number;maxLines?:number;flowPosition?:'before-photos'|'after-photos'|'left-of-photos'|'right-of-photos';zoom:number;cropX:number;cropY:number;persisted:boolean;iw:number;ih:number; }
 export interface JournalDocument { version:1;id:string;title:string;ratio:string;style:string;width:number;height:number;background:string;variant:number;elements:JournalElement[];createdAt?:string;updatedAt:string;headingId?:string;period?:string;paper?:string;editHistory?:JournalEditHistory; }
 export interface JournalAsset {id:string;src:string;label:string;notes:string;sample:boolean;selected:boolean;persisted?:boolean;source?:string;date?:string;width?:number;height?:number;}
 export interface Snapshot { document:JournalDocument;selected:string; }
@@ -59,6 +59,7 @@ export function fullTextHeight(e:JournalElement,d:JournalDocument){return textLa
 
 /** Reflow the photo region for both page ratio and photo count; keep content and crop edits. */
 export function reflowJournalPhotos(d:JournalDocument) {
+  if(d.elements.some(e=>e.type==='text'&&(e.flowPosition==='left-of-photos'||e.flowPosition==='right-of-photos')))return reflowSideStory(d);
   const photos=d.elements.filter(e=>e.type==='photo'),n=photos.length;
   const headers=d.elements.filter(e=>e.type==='text'&&!e.photoId&&!e.flowPosition).slice(0,2);
   let top=Math.max(d.height*.26,...headers.map(e=>e.y+fullTextHeight(e,d)+36));
@@ -132,8 +133,47 @@ function finishPhotoLayout(d:JournalDocument){
   return fit(d);
 }
 export function compositionName(d:JournalDocument) {
+  if(d.elements.some(e=>e.flowPosition==='left-of-photos'||e.flowPosition==='right-of-photos'))return '图文并排 · '+(d.elements.some(e=>e.flowPosition==='left-of-photos')?'左文右图':'左图右文');
   const n=d.elements.filter(e=>e.type==='photo').length,index=((d.variant-1)%3+3)%3;
   return (n===1?['留白主图','标本札记','横幅故事']:n===2?['主次叙事','上下留白','错落札记']:['照片组页','镜像组页','照片组页'])[index];
+}
+/** Real text lanes beside photos, shared by editor, previews and exported images. */
+function reflowSideStory(d:JournalDocument){
+  const texts=d.elements.filter(e=>e.type==='text'),photos=d.elements.filter(e=>e.type==='photo');
+  const headers=texts.filter(e=>!e.photoId&&!e.flowPosition).slice(0,2);
+  let top=Math.max(d.height*.24,...headers.map(e=>e.y+fullTextHeight(e,d)+28));
+  const before=texts.filter(e=>e.flowPosition==='before-photos'),after=texts.filter(e=>e.flowPosition==='after-photos');
+  for(const e of before){Object.assign(e,{x:72,y:top,w:d.width-144});top+=fullTextHeight(e,d)+20;}
+  const reserve=after.reduce((n,e)=>n+fullTextHeight({...e,w:d.width-144},d)+20,0),bottom=d.height-48-reserve;
+  let below=bottom+20;for(const e of after){Object.assign(e,{x:72,y:below,w:d.width-144});below+=fullTextHeight(e,d)+20;}
+  const left=texts.filter(e=>e.flowPosition==='left-of-photos'),right=texts.filter(e=>e.flowPosition==='right-of-photos');
+  const sides=Number(!!left.length)+Number(!!right.length),lane=Math.round(d.width*(sides===2?.24:.30)),gap=30;
+  const photoX=72+(left.length?lane+gap:0),photoW=d.width-144-sides*(lane+gap);
+  for(const pair of [{boxes:left,x:72},{boxes:right,x:d.width-72-lane}]){
+    let y=top;for(const e of pair.boxes){Object.assign(e,{x:pair.x,y,w:lane,rotation:0,maxLines:0});y+=fullTextHeight(e,d)+24;}
+  }
+  const cols=photos.length>=4?2:1,rows=Math.max(1,Math.ceil(photos.length/cols)),cellW=(photoW-gap*(cols-1))/cols;
+  let rowH=Math.max(36,(bottom-top-gap*(rows-1))/rows),captionHeights:number[]=[];
+  // Caption wrapping depends on the actual contained image width, not the grid slot.
+  for(let attempt=0;attempt<8;attempt++){
+    captionHeights=Array.from({length:rows},(_,row)=>Math.max(0,...photos.slice(row*cols,(row+1)*cols).map(p=>{const aspect=p.iw>0&&p.ih>0?p.iw/p.ih:4/3,w=Math.min(cellW,rowH*aspect);return Math.max(0,...texts.filter(e=>e.photoId===p.id).map(e=>fullTextHeight({...e,w},d)+18));})));
+    rowH=Math.max(36,Math.min(rowH,(bottom-top-gap*(rows-1)-captionHeights.reduce((a,b)=>a+b,0))/rows));
+  }
+  photos.forEach((p,i)=>{const row=Math.floor(i/cols),aspect=p.iw>0&&p.ih>0?p.iw/p.ih:4/3,w=Math.min(cellW,rowH*aspect),h=w/aspect;
+    Object.assign(p,{x:photoX+(i%cols)*(cellW+gap)+(cellW-w)/2,y:top+row*(rowH+gap)+captionHeights.slice(0,row).reduce((a,b)=>a+b,0),w,h,rotation:0,lockedRatio:w/h});
+    for(const e of texts.filter(e=>e.photoId===p.id))Object.assign(e,{x:p.x,y:p.y+p.h+18,w:p.w});
+  });
+  return fit(d);
+}
+export function positionJournalText(document:JournalDocument,id:string,position:string){
+  if(!['free','before-photos','after-photos','left-of-photos','right-of-photos'].includes(position))throw new Error('请选择有效的文字位置。');
+  const d=journalContent(document),target=d.elements.find(e=>e.id===id&&e.type==='text');if(!target)throw new Error('请先选择文字框。');
+  delete target.photoId;
+  if(position==='free')delete target.flowPosition;else target.flowPosition=position as JournalElement['flowPosition'];
+  reflowJournalPhotos(d);
+  const content=d.elements.filter(e=>e.type==='photo'||e.type==='text'),overlap=(a:JournalElement,b:JournalElement)=>a.x<b.x+b.w-.1&&b.x<a.x+a.w-.1&&a.y<b.y+b.h-.1&&b.y<a.y+a.h-.1;
+  if(d.elements.some(e=>e.type==='text'&&textLayout(e,d).overflow)||content.some((e,i)=>(e.flowPosition||e.photoId)&&content.some((b,j)=>i!==j&&overlap(e,b))))throw new Error('并排文字暂时放不下，请缩短正文或减小字号后再试。');
+  return d;
 }
 export function changeJournalRatio(d:JournalDocument,ratio:string) {
   if(!['3:4','1:1','4:3'].includes(ratio))return false;
@@ -151,7 +191,7 @@ export const validJournal=(d:any)=>d&&d.version===1&&typeof d.id==='string'&&typ
     [d.width,d.height].every(n=>typeof n==='number'&&Number.isFinite(n)&&n>0)&&Array.isArray(d.elements)&&
     d.elements.every((e:any)=>e&&typeof e.id==='string'&&typeof e.type==='string'&&typeof e.text==='string'&&typeof e.src==='string'&&(e.lockedRatio==null||(Number.isFinite(e.lockedRatio)&&e.lockedRatio>0))&&
       (e.photoFit==null||['cover','stretch'].includes(e.photoFit))&&
-      (e.flowPosition==null||['before-photos','after-photos'].includes(e.flowPosition))&&
+      (e.flowPosition==null||['before-photos','after-photos','left-of-photos','right-of-photos'].includes(e.flowPosition))&&
       (e.ornamentRatioLocked==null||typeof e.ornamentRatioLocked==='boolean')&&
       (e.ornamentOriginalRatio==null||(Number.isFinite(e.ornamentOriginalRatio)&&e.ornamentOriginalRatio>0))&&
       (e.ratioLock==null||['current','original','free'].includes(e.ratioLock))&&

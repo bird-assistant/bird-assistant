@@ -11,6 +11,7 @@ function page(){
 }
 
 test('only an explicit shutter requests original quality and starts that photo persistence while remaining in the viewfinder',()=>{
+  global.wx={};
   for(const live of [false,true]){
     const p=page(),calls=[];p.setData({cameraReady:true,paused:false,liveActive:live,demo:false});
     p._camera={takePhoto:options=>{assert.equal(options.quality,'original');assert.equal(options.captureMetadata,true);options.success({tempImagePath:'full.jpg'});}};

@@ -1,6 +1,6 @@
 {
   "name": "bird-assistant-miniprogram",
-  "version": "0.4.21",
+  "version": "0.4.22",
   "private": true,
   "description": "羽迹 Bird Assistant — native WeChat development checkpoint",
   "engines": {

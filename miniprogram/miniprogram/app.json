@@ -15,7 +15,8 @@
         "social/index",
         "compare/index",
         "trip/index",
-        "notes/index"
+        "notes/index",
+        "backup/index"
       ]
     }
   ],

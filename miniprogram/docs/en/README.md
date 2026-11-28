@@ -1,3 +1,16 @@
+# Current candidate — 0.4.20 dates and original-data backup
+
+28 November2026, Beijing time. The user chose **keep server work paused; add backup/restore now**. This patch extends0.4.19 on the same candidate branch.0.4.18 remains the user-reported uploaded experience version, frozen in `release/experience-0.4.18`; team PR#30 is unchanged. No server deployment, CloudBase activation or new experience upload happened.
+
+New-journal/home/filter date buttons now share a horizontal layout; solid green map bookmarks have a white border. Saved places and journal records have verified alternating user-file snapshots, independent of disposable preview/reference caches. **My → 本机备份与恢复** exports all saved places plus selected journals with original photos, including retained Undo/Redo-only photos. Restore verifies/stages everything, preserves current records and creates conflict copies.
+
+**A full WeChat data clear can still remove all local files. Download/save the generated backup outside WeChat first.** Generating it in the mini-program or returning from file sharing alone is insufficient. Previously erased content without a prior copy cannot be reconstructed. [Backup steps and boundaries](CACHE-SAFETY-0.4.20.md).
+
+**458 client tests pass;24 WXML/26 WXSS compile.240 focused source layout cases across30 sizes pass.** Native file permissions/share/picker, real-device restore and full DevTools Compile remain pending. This is a candidate for review, not an upload instruction.
+
+
+---
+
 # Current candidate — 0.4.18 quick popup/visual patch
 
 [Changes and quick native acceptance](POPUP-POLISH-0.4.18.md). Solid green/gold map bookmarks; green→white waves; fog fully covers dates before card contact; narrower height-derived journal cards; all15 custom sheet headers drag/flick to close, with X/backdrop retained and background scroll locked independently of content.

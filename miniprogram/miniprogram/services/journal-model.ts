@@ -1,3 +1,4 @@
+import {readProtectedData} from './protected-local-data';
 import { clamp } from './map-model';
 import { round2, floor2 } from './numbers';
 export interface JournalElement { id:string;type:string;x:number;y:number;w:number;h:number;rotation:number;color:string;title:string;text:string;fontSize:number;font:string;src:string;photoNumber:number;photoFit?:'cover'|'stretch';ornamentRatioLocked?:boolean;ornamentOriginalRatio?:number;ratioLock?:'current'|'original'|'free';lockedRatio?:number;photoId?:string;titleSize?:number;maxLines?:number;flowPosition?:'before-photos'|'after-photos';zoom:number;cropX:number;cropY:number;persisted:boolean;iw:number;ih:number; }
@@ -156,8 +157,9 @@ export const validJournal=(d:any)=>d&&d.version===1&&typeof d.id==='string'&&typ
       (e.ratioLock==null||['current','original','free'].includes(e.ratioLock))&&
       [e.x,e.y,e.w,e.h,e.rotation,e.fontSize,e.zoom,e.cropX,e.cropY,e.iw,e.ih].every(n=>typeof n==='number'&&Number.isFinite(n))&&e.w>0&&e.h>0)&&
     new Set(d.elements.map((e:any)=>e.id)).size===d.elements.length;
+export function validJournalCollection(value:unknown):value is JournalDocument[]{return Array.isArray(value)&&value.every(validJournal)&&new Set(value.map(d=>d.id)).size===value.length;}
 export function readJournals():JournalDocument[] {
-  const value:unknown=wx.getStorageSync(JOURNAL_KEY);if(value===''||value==null)return [];
+  const value:unknown=readProtectedData('journals',validJournalCollection);if(value===''||value==null)return [];
   if(!Array.isArray(value)||!value.every(validJournal)||new Set(value.map(d=>d.id)).size!==value.length)throw new Error('手帐资料无法读取，已有草稿未覆盖。');
   return copy(value as JournalDocument[]);
 }

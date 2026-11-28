@@ -27,9 +27,9 @@ const avatars = [
 const menuGroups=[
   {title:'记录与手帐',ids:['notes','journal','history','collection','places','tripHistory']},
   {title:'鸟友社区',ids:['publications','saved','friends','chat','groups','cloud']},
-  {title:'账号与偏好',ids:['account','badges','settings']}
+  {title:'账号与偏好',ids:['account','badges','backup','settings']}
 ];
-const menu=[{id:'notes',icon:'journal',name:'我的随手记'},{id:'journal',icon:'journal',name:'我的手帐'},{id:'account',icon:'user',name:'社区账号与隐私'},{id:'groups',icon:'chat',name:'观鸟群聊'},{id:'cloud',icon:'pin',name:'云端私人观察'},{id:'publications',icon:'leaf',name:'我的社区发布'},{id:'history',icon:'clock',name:'观察与识别历史'},{id:'tripHistory',icon:'leaf',name:'观鸟咨询记录'},{id:'collection',icon:'collection',name:'收藏的本机观察'},{id:'saved',icon:'collection',name:'社区内容书签'},{id:'places',icon:'pin',name:'收藏地点'},{id:'friends',icon:'user',name:'我的好友'},{id:'chat',icon:'chat',name:'私信与通知'},{id:'badges',icon:'leaf',name:'徽章与成长'},{id:'settings',icon:'settings',name:'设置与缓存'}];
+const menu=[{id:'backup',icon:'image',name:'本机备份与恢复'},{id:'notes',icon:'journal',name:'我的随手记'},{id:'journal',icon:'journal',name:'我的手帐'},{id:'account',icon:'user',name:'社区账号与隐私'},{id:'groups',icon:'chat',name:'观鸟群聊'},{id:'cloud',icon:'pin',name:'云端私人观察'},{id:'publications',icon:'leaf',name:'我的社区发布'},{id:'history',icon:'clock',name:'观察与识别历史'},{id:'tripHistory',icon:'leaf',name:'观鸟咨询记录'},{id:'collection',icon:'collection',name:'收藏的本机观察'},{id:'saved',icon:'collection',name:'社区内容书签'},{id:'places',icon:'pin',name:'收藏地点'},{id:'friends',icon:'user',name:'我的好友'},{id:'chat',icon:'chat',name:'私信与通知'},{id:'badges',icon:'leaf',name:'徽章与成长'},{id:'settings',icon:'settings',name:'设置与缓存'}];
 Page({
   data: {guideCacheInfo:null as {files:number;kilobytes:number}|null,guideCacheError:'',guideCacheNotice:'',localCloudId:'',localChannels:[] as {channel:string;status:string;reason:string;id:string}[],localStatusError:'',communityName:'',communityAvatar:'',numberEditing:'',numberDrafts:{} as Record<string,string>,cropBusy:false,name:'观鸟者',avatar:'/assets/avatars/owl.png',draftName:'',draftAvatar:'',edit:false,busy:false,avatarPersisted:true,error:'',records:[] as RecordView[],avatars,nativeAvatar:wx.canIUse('button.open-type.chooseAvatar'),view:'profile',observationCount:0,speciesCount:0,favoriteCount:0,favorites:[] as string[],shownRecords:[] as RecordView[],detail:null as RecordView|null,crop:false,cropPath:'',cropWidth:0,cropHeight:0,cropDisplayW:220,cropDisplayH:220,cropZoom:1,cropRotation:0,cropX:0,cropY:0,storageKB:0,menu,menuGroups:menuGroups.map(group=>({title:group.title,items:group.ids.map(id=>menu.find(item=>item.id===id)!)})),pageTitle:'羽迹',savedPlaces:[] as Array<SavedPlace&{dateLabel:string}>,placesBusy:false,cacheInfo:null as PreviewCacheInfo|null,cacheError:'',cacheNotice:'',writingChecking:false,writingStatus:'',writingReady:false,savedPosts:[] as Array<{id:string;title:string}>},
   _pickToken: 0,_visible:false,_profileGeneration:0,_writingCheck:0,
@@ -93,6 +93,7 @@ Page({
   },
   menu(e:WechatMiniprogram.TouchEvent){
     const view=String(e.currentTarget.dataset.id);
+    if(view==='backup'){navigate({url:'/field/backup/index'});return;}
     if(view==='notes'){navigate({url:'/field/notes/index'});return;}
     if(view==='journal'){wx.switchTab({url:'/pages/journal/index'});return;}
     if(view==='tripHistory'){navigate({url:'/field/trip/index?history=1'});return;}

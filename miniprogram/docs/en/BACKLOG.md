@@ -1,3 +1,25 @@
+# Current candidate — 0.4.20 dates and original-data backup
+
+28 November2026, Beijing time. The user chose **keep server work paused; add backup/restore now**. This patch extends0.4.19 on the same candidate branch.0.4.18 remains the user-reported uploaded experience version, frozen in `release/experience-0.4.18`; team PR#30 is unchanged. No server deployment, CloudBase activation or new experience upload happened.
+
+New-journal/home/filter date buttons now share a horizontal layout; solid green map bookmarks have a white border. Saved places and journal records have verified alternating user-file snapshots, independent of disposable preview/reference caches. **My → 本机备份与恢复** exports all saved places plus selected journals with original photos, including retained Undo/Redo-only photos. Restore verifies/stages everything, preserves current records and creates conflict copies.
+
+**A full WeChat data clear can still remove all local files. Download/save the generated backup outside WeChat first.** Generating it in the mini-program or returning from file sharing alone is insufficient. Previously erased content without a prior copy cannot be reconstructed. [Backup steps and boundaries](CACHE-SAFETY-0.4.20.md).
+
+**458 client tests pass;24 WXML/26 WXSS compile.240 focused source layout cases across30 sizes pass.** Native file permissions/share/picker, real-device restore and full DevTools Compile remain pending. This is a candidate for review, not an upload instruction.
+
+
+## Follow-up IDs
+
+| ID | Work | State |
+| --- | --- | --- |
+| R105 | Shared horizontal journal date controls | Source/30-size geometry passed; native acceptance pending |
+| R106 | Solid green bookmark with white outline | SVG/PNG updated; native map acceptance pending |
+| R107 | Protected originals separated from disposable caches | Behavioral tests passed; native filesystem acceptance pending |
+| R108 | Portable original-photo backup and merge restore |12 recovery/failure tests passed; native file handoff pending |
+
+---
+
 # Current candidate — 0.4.19 community and personal notes
 
 28 November 2026, Beijing time. **0.4.18 remains the user-reported uploaded experience version.** Its runtime and accepted comments are frozen in `release/experience-0.4.18`; [team PR #30](https://github.com/bird-assistant/bird-assistant/pull/30) is ready for review, with passing checks, and still needs the repository's required teammate approval before merge.

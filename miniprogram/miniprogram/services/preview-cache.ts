@@ -9,12 +9,12 @@ export interface PreviewCacheInfo {files:number;kilobytes:number;entries:number;
 function snapshot(){
   // Validate the authoritative collections before removing any disposable cache.
   // Raw manifests below also protect older complete drafts hidden by a recovery.
-  readJournals();readPostDrafts();localRepository().list();localRepository().profile();
+  const journals=readJournals();readPostDrafts();localRepository().list();localRepository().profile();
   const keys=wx.getStorageInfoSync().keys,cacheKeys=keys.filter(ownKey),references:string[]=[];
   const folder=wx.env.USER_DATA_PATH+'/journal-previews',prefix=folder+'/';
   const visit=(value:unknown)=>{if(typeof value==='string'){if(value.includes(prefix))references.push(value);}else if(Array.isArray(value))value.forEach(visit);else if(value&&typeof value==='object')Object.values(value).forEach(visit);};
   for(const key of keys)if(!ownKey(key))visit(wx.getStorageSync(key));
-  visit(getDraft());
+  visit(journals);visit(getDraft());
   const fs=wx.getFileSystemManager();let names:string[]=[];
   try{names=fs.readdirSync(folder);}catch(error){if(!/no such file|not exist|ENOENT/i.test(String((error as {errMsg?:string})?.errMsg||error)))throw new Error('预览缓存目录暂不能读取，请稍后重试。');}
   const files:Array<{path:string;size:number}>=[];let protectedFiles=0;

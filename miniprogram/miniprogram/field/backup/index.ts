@@ -40,5 +40,6 @@ Page({
       if(this._disposed||generation!==this._generation)return;this._importPath='';this.refresh();this.setData({importInfo:null,status:'已恢复 '+result.places+' 个收藏地点、'+result.journals+' 份手帐'+(result.copies?'（其中 '+result.copies+' 份为恢复副本）':'')+'。现有原件保留。'});
     }catch(e){if(generation===this._generation)this.setData({error:explain(e),status:''});}finally{if(generation===this._generation)this.setData({working:false});}
   },
+  cloud(){wx.navigateTo({url:'/field/cloud-vault/index'});},
   back(){if(this.data.working){this.cancel();return;}wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/profile/index'})});}
 });

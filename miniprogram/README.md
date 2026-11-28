@@ -1,3 +1,13 @@
+# 当前：0.4.20上传基线与独立0.4.21评审候选
+
+本轮修复地图涟漪整数线宽、启动同步读取、随手记过大列表载荷；新增窗口感知的笔记双栏、滚动／草稿／返回规则，修正页头旋转与零状态栏／无胶囊场景。独立CloudBase收藏副本源码已补齐，SDK审计0告警；并不依赖队友业务服务器，但尚待真实环境ID／类型、绑定与合法部署权限。
+
+[工程评审与控制台分类](ENGINEERING-REVIEW-0.4.21.md) · [窗口／返回设计](WORKSPACE-NAVIGATION-0.4.21.md) · [CloudBase开通与边界](CLOUDBASE-VAULT-0.4.21.md)。475项客户端测试、25 WXML／27 WXSS编译，另4项离线SDK检查；38窗口×18状态=684投影，另152窗格专项。原生Compile、键盘／折叠、地图鉴权／passive错误及云端双账号权限仍待验。
+
+用户计划上传的0.4.20已冻结为release/experience-0.4.20，未代确认上传；原fix候选运行时保持0.4.20。本轮是新feat/engineering-review-0.4.21分支，未改团队PR#30／业务服务器、未部署／付费。保留原48项与R01–R108，新增R109–R116；私人英文计划持续在GitHub docs/NEXT-STEPS.md。
+
+---
+
 # 羽迹微信小程序 ·0.4.20日期与资料保护候选
 
 [本轮修复、备份操作与复测](docs/CACHE-SAFETY-0.4.20.md) · [English](docs/en/CACHE-SAFETY-0.4.20.md) · [当前英文工作计划](https://github.com/NoctisBaguette/bird-assistant-miniprogram/blob/main/docs/NEXT-STEPS.md)

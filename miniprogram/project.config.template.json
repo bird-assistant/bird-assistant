@@ -1,6 +1,7 @@
 {
   "description": "羽迹 Bird Assistant native development project",
   "miniprogramRoot": "miniprogram/",
+  "cloudfunctionRoot": "cloudfunctions/",
   "compileType": "miniprogram",
   "projectname": "bird-assistant-miniprogram",
   "appid": "touristappid",

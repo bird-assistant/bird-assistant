@@ -16,7 +16,8 @@
         "compare/index",
         "trip/index",
         "notes/index",
-        "backup/index"
+        "backup/index",
+        "cloud-vault/index"
       ]
     }
   ],
@@ -76,5 +77,6 @@
     "getLocation",
     "chooseLocation"
   ],
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "resizable": true
 }

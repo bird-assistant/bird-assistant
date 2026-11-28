@@ -11,5 +11,5 @@
   </view>
   <view class="card backup-card"><view class="backup-heading"><view>从备份恢复</view><text>保留现有原件</text></view><view class="tiny">选择此前保存的 .birdbackup 文件。会合并收藏与手帐；冲突时新增手帐副本，不覆盖当前资料。</view><button class="quiet wide spaced" bindtap="chooseBackup" loading="{{picking}}" disabled="{{working || picking}}">选择备份文件</button>
     <view wx:if="{{importInfo}}" class="backup-import-info"><view>{{importInfo.date}}</view><view>{{importInfo.places}} 个地点 · {{importInfo.journals}} 份手帐 · {{importInfo.photos}} 张原图</view><view>{{importInfo.size}}</view><button class="primary wide spaced" bindtap="restore" disabled="{{working}}">校验并合并恢复</button></view>
-  </view><button wx:if="{{working}}" class="text-button backup-cancel" bindtap="cancel">取消本次操作</button><view class="tiny">备份包含你的地点和手帐照片，请只保存到可信位置。此功能不连接服务器，也不代表已开启云同步。</view>
+  </view><button class="quiet wide spaced" bindtap="cloud" disabled="{{working}}">云端收藏副本</button><button wx:if="{{working}}" class="text-button backup-cancel" bindtap="cancel">取消本次操作</button><view class="tiny">备份包含你的地点和手帐照片，请只保存到可信位置。完整文件备份在本机生成；云端收藏副本由你另行操作。</view>
 </view>

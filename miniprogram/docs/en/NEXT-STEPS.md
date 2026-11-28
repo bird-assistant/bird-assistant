@@ -1,3 +1,69 @@
+# Stable0.4.20 and reviewer/development candidate0.4.21
+
+28 November2026, Beijing time. **Keep0.4.20 as the upload checkpoint.** The user said they intend to upload; the console upload itself was not verified here. Frozen copies are `release/experience-0.4.20`. The existing `fix/recognition-acceptance-0.4.7` runtime stays0.4.20. New work is separate on **`feat/engineering-review-0.4.21`** in both owned repositories; this is the morning review candidate, not an automatic experience replacement. Team PR#30 and earlier0.4.18 remain intact.
+
+[Engineering review / console triage](ENGINEERING-REVIEW-0.4.21.md) · [Window and Back design](WORKSPACE-NAVIGATION-0.4.21.md) · [Independent CloudBase deployment](CLOUDBASE-VAULT-0.4.21.md).
+
+What changed: integer ripple widths; deferred/batched launch migration; note-list summaries instead of full bodies; a real list/editor workspace for wider windows, preserved draft/list scroll and failure-safe selection; header rotation/zero-status/no-capsule handling; improved functional caption contrast. Native unsaved-note protection is enabled while dirty where supported.
+
+CloudBase is **not intrinsically blocked by the business server**. New `birdPrivateVault` reads/writes a private, revision-checked bookmark snapshot directly in CloudBase. The old gateway remains only a proxy. Cloud activation still needs the team's environment ID/type, real AppID binding, private permissions and legitimate owner deployment access; configuration stays disabled/empty until staging checks. No resources, paid plan, cloud deployment or business-server changes happened. Free usage has real quotas/expiry; inspect the actual team environment rather than assuming an unlimited entitlement. Journal photos continue using the complete portable backup.
+
+**475 client tests pass;25 WXML/27 WXSS compile.4 offline SDK checks and clean-install dependency audit pass (0 advisories).684 source cases across38 window sizes and152 focused note-pane cases are reviewed.** Native Compile, ripple/auth/passive-listener reproduction, keyboard/rotation/fold behavior and live CloudBase IAM/two-user access remain pending. R34 remains open; runtime/tool messages were not silenced.
+
+## Review this separate branch in the existing Windows checkout
+
+Preserve the helper terminal, AppID/private config, `.venv`, `image/` and all local originals. Stop for local edits. To keep preparing the current0.4.20 experience, stay on its existing/frozen branch instead of switching to this review build.
+
+~~~powershell
+& {
+    $ErrorActionPreference = 'Stop'
+    Set-Location 'C:\Workspace\bird-assistant\bird-assistant-miniprogram'
+    function Invoke-CheckedGit {
+        & git @args
+        if ($LASTEXITCODE -ne 0) { throw 'Git stopped; inspect the error before continuing.' }
+    }
+    $birdChanges = & git status --porcelain
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect the working tree.' }
+    if ($birdChanges) { throw 'Keep local changes before upgrading; nothing was reset.' }
+    Invoke-CheckedGit fetch origin feat/engineering-review-0.4.21
+    Invoke-CheckedGit switch feat/engineering-review-0.4.21
+    Invoke-CheckedGit merge --ff-only origin/feat/engineering-review-0.4.21
+    & npm.cmd ci
+    if ($LASTEXITCODE -ne 0) { throw 'Dependency installation stopped.' }
+    & npm.cmd run setup
+    if ($LASTEXITCODE -ne 0) { throw 'Setup stopped.' }
+    & npm.cmd run verify
+    if ($LASTEXITCODE -ne 0) { throw 'Verification stopped.' }
+    & node -p "require('./package.json').version"
+}
+~~~
+
+Expected0.4.21 /475 passed /25 WXML /27 WXSS. Fully Compile the existing DevTools project. Optional `npm run verify:cloud` installs only the function's pinned dependencies, runs offline checks and audits; it does not deploy or require cloud credentials.
+
+## Morning feedback / next work
+
+1. Notes: create/open, scroll the list, edit and resize/fold. Wide windows should retain the list next to the editor. Back closes the inner link picker, then the note, then the page. Test failed-save preservation with independent test data; actual keyboard/native unload protection remains to be confirmed.
+2. Repeat map focus while dragging/zooming and check the circle-width warning. Re-measure real startup; compare the installed stable SDK with the reported canary when isolating native auth/passive warnings. Keep the actual failed request/stack instead of clearing data or rotating credentials speculatively.
+3. Inspect **My → 本机备份与恢复 → 云端收藏副本**. It correctly says not open in the unconfigured build. The prepared CloudBase path does not need the teammates' server. When available, provide/select the team environment ID and PG/traditional type through a legitimate owner session; no password/provider key is requested in chat.
+4. After this visual feedback: library/detail and forum list/thread workspaces; per-note private sync/conflict handling; private original-photo cloud archives with explicit retention. Keep social/moderation/account authority on the existing business backend. Identification/deeper journal expansion remains coordinated with the teammate.
+
+## Added follow-ups
+
+| ID | Work | State |
+| --- | --- | --- |
+| R109 | Integer native map ripple widths | Payload regression passed; native renderer retest pending |
+| R110 | Defer/batch startup original protection | Launch callback/one-pass migration tested; native total latency pending |
+| R111 | Bounded note-list view model and readable captions |300-note bridge test and source review passed |
+| R112 | Adaptive notes workspace, Back/scroll/draft ownership | Window/failure/unload-guard tests passed; real keyboard/fold acceptance pending |
+| R113 | Resize-aware header, valid zero status bar and absent capsule | Pure/header lifecycle regressions passed |
+| R114 | Independent private CloudBase bookmark snapshots | Client/function source tested; environment/IAM activation pending |
+| R115 | Cloud SDK dependency hardening and offline verification |4 SDK checks and clean-install0-advisory audit passed |
+| R116 | Engineering findings, console triage and wider-screen roadmap | Review published; native auth/passive/idle defects remain open |
+
+All48 original IDs and R01–R108 remain. Earlier plans below are historical; the blanket CloudBase pause is superseded only for this independent private-vault preparation. Business-server restoration/deployment remains with the teammates.
+
+---
+
 # Current candidate — 0.4.20 dates and original-data backup
 
 28 November2026, Beijing time. The user chose **keep server work paused; add backup/restore now**. This patch extends0.4.19 on the same candidate branch.0.4.18 remains the user-reported uploaded experience version, frozen in `release/experience-0.4.18`; team PR#30 is unchanged. No server deployment, CloudBase activation or new experience upload happened.

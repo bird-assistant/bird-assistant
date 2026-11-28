@@ -210,6 +210,62 @@
       "height": 600,
       "dpr": 2,
       "source": "boundary test"
+    },
+    {
+      "name": "iPad mini landscape window",
+      "width": 1133,
+      "height": 744,
+      "dpr": 2,
+      "source": "engineering review window-size scenario; not a measured physical-device viewport"
+    },
+    {
+      "name": "iPad Air landscape window",
+      "width": 1180,
+      "height": 820,
+      "dpr": 2,
+      "source": "engineering review window-size scenario; not a measured physical-device viewport"
+    },
+    {
+      "name": "iPad Pro 11 landscape window",
+      "width": 1210,
+      "height": 834,
+      "dpr": 2,
+      "source": "engineering review window-size scenario; not a measured physical-device viewport"
+    },
+    {
+      "name": "iPad Pro 13 landscape window",
+      "width": 1376,
+      "height": 1032,
+      "dpr": 2,
+      "source": "engineering review window-size scenario; not a measured physical-device viewport"
+    },
+    {
+      "name": "Tablet split view narrow",
+      "width": 600,
+      "height": 1024,
+      "dpr": 2,
+      "source": "engineering review window-size scenario; not a measured physical-device viewport"
+    },
+    {
+      "name": "Tablet split view medium",
+      "width": 820,
+      "height": 1024,
+      "dpr": 2,
+      "source": "engineering review window-size scenario; not a measured physical-device viewport"
+    },
+    {
+      "name": "Two-pane threshold below",
+      "width": 859,
+      "height": 720,
+      "dpr": 2,
+      "source": "engineering review window-size scenario; not a measured physical-device viewport"
+    },
+    {
+      "name": "Two-pane threshold at",
+      "width": 860,
+      "height": 720,
+      "dpr": 2,
+      "source": "engineering review window-size scenario; not a measured physical-device viewport"
     }
   ]
 }

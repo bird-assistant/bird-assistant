@@ -1,6 +1,6 @@
 {
   "name": "bird-assistant-miniprogram",
-  "version": "0.4.20",
+  "version": "0.4.21",
   "private": true,
   "description": "羽迹 Bird Assistant — native WeChat development checkpoint",
   "engines": {
@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit --module Node16 --moduleResolution Node16",
     "test": "node scripts/test.mjs",
     "verify": "npm run check && npm run typecheck && npm run compile:templates && npm test",
-    "compile:templates": "node scripts/compile-templates.mjs"
+    "compile:templates": "node scripts/compile-templates.mjs",
+    "verify:cloud": "npm --prefix cloudfunctions/birdPrivateVault ci --ignore-scripts && npm --prefix cloudfunctions/birdPrivateVault test && npm --prefix cloudfunctions/birdPrivateVault audit --omit=dev"
   },
   "devDependencies": {
     "miniprogram-api-typings": "5.2.3",

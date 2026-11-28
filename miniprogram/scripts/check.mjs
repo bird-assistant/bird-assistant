@@ -49,8 +49,13 @@ for(const path of files(resolve(root,'miniprogram'))){
   if(!path.endsWith('.ts'))continue;
   const source=readFileSync(path,'utf8');
   assertRuntimeSyntax(source,path);
-  assert(!/wx\.cloud\.(?:init|callFunction|database)/.test(source),'Unconfigured cloud call in '+path);
-  assert(!/wx[0-9a-f]{16}|cloud1-[0-9a-z]+/.test(source),'Unrelated project identity in runtime source.');
+  if(/wx\.cloud\.(?:init|callFunction|database)/.test(source)){
+    assert(relative(resolve(root,'miniprogram'),path).replace(/\\/g,'/')==='services/cloud-vault.ts'&&source.includes('if(!cloudVaultReady())'),
+      'Cloud calls must stay inside the explicitly configured private-vault transport: '+path);
+  }
+  assert(!/wx[0-9a-f]{16}/.test(source),'Unrelated project AppID in runtime source.');
+  assert(!/cloud1-[0-9a-z]+/.test(source)||relative(resolve(root,'miniprogram'),path).replace(/\\/g,'/')==='services/cloud-vault-config.ts',
+    'Cloud environment IDs belong only in the reviewed private-vault configuration.');
 }
 if(existsSync(resolve(root,'project.config.json'))){
   const local=json('project.config.json');assert(local.miniprogramRoot==='miniprogram/','Local config points at a different root.');

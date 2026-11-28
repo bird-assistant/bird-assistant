@@ -23,13 +23,16 @@ function latest(fs:WechatMiniprogram.FileSystemManager):Vault|null{
       valid.push(v);
     }catch{unreadable=true;}
   }
-  if(!valid.length&&unreadable)throw new Error('本机保护文件暂不能读取，原内容未覆盖。请使用外部备份恢复或保留现场。');
+  if(!valid.length&&unreadable)throw new Error('本机保护文件暂不能读取，原内容未覆盖。请保留现有文件以便修复。');
   return valid.sort((a,b)=>b.revision-a.revision)[0]||null;
 }
 function mirror(values:Vault['values']){for(const kind of Object.keys(values) as ProtectedKind[])try{wx.setStorageSync(keys[kind],values[kind]);}catch{/* The verified user file remains authoritative. */}}
 export function commitProtectedData(patch:Vault['values']){
   const fs=fileSystem();if(!fs){for(const kind of Object.keys(patch) as ProtectedKind[])wx.setStorageSync(keys[kind],patch[kind]);return;}
-  const previous=latest(fs),values={...previous?.values,...patch},revision=(previous?.revision||0)+1;
+  writeSnapshot(fs,latest(fs),patch);
+}
+function writeSnapshot(fs:WechatMiniprogram.FileSystemManager,previous:Vault|null,patch:Vault['values']){
+  const values={...previous?.values,...patch},revision=(previous?.revision||0)+1;
   const vault:Vault={version:1,revision,values,checksum:stringChecksum(JSON.stringify(values))},raw=JSON.stringify(vault);
   if(utf8Length(raw)>4*1024*1024)throw new Error('本机资料过大，请先导出备份后分批整理，当前内容仍保留。');
   try{fs.mkdirSync(protectedDirectory(),true);}catch{/* The write reports a real filesystem failure. */}
@@ -37,6 +40,15 @@ export function commitProtectedData(patch:Vault['values']){
   try{fs.writeFileSync(protectedDirectory()+'/records-'+(revision%2)+'.json',raw,'utf8');}
   catch{throw new Error('本机资料未能写入保护文件，请检查空间后重试，当前内容仍保留。');}
   mirror(values);
+}
+/** One scan/commit for launch migration; domain reads remain synchronous and independently safe. */
+export function migrateProtectedCollections(validators:Record<ProtectedKind,(value:unknown)=>boolean>){
+  const fs=fileSystem();if(!fs)return;const previous=latest(fs),patch:Vault['values']={};
+  for(const kind of Object.keys(keys) as ProtectedKind[]){
+    if(previous&&Object.prototype.hasOwnProperty.call(previous.values,kind))continue;
+    const value=wx.getStorageSync(keys[kind]);if(value!==''&&value!=null&&validators[kind](value))patch[kind]=value;
+  }
+  if(Object.keys(patch).length)writeSnapshot(fs,previous,patch);
 }
 export function readProtectedData(kind:ProtectedKind,valid:(value:unknown)=>boolean):unknown{
   const fs=fileSystem(),vault=fs?latest(fs):null;

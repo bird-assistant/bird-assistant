@@ -3,8 +3,8 @@ type SheetPage={data:Record<string,unknown>;setData:(values:Record<string,unknow
 type Measured={height:number;dataset?:{sheetId?:string}};
 const schedules=new WeakMap<object,()=>void>();
 const cleanups=new WeakMap<object,()=>void>();
-export function sheetBodyHeight(content:number,header:number,viewport:number,top=0){
-  const available=Math.max(40,Math.min(viewport*.84,viewport-top-56)-header);
+export function sheetBodyHeight(content:number,header:number,viewport:number,top=0,fraction=.84,gap=56){
+  const available=Math.max(40,Math.min(viewport*fraction,viewport-top-gap)-header);
   return Math.floor(Math.min(available,Math.max(64,Number.isFinite(content)?content:64)));
 }
 export function fitAdaptiveSheets(page:object){schedules.get(page)?.();}
@@ -30,7 +30,7 @@ export function installAdaptiveSheets(page:SheetPage,visible:()=>boolean=()=>tru
           // Some Android versions resize windowHeight for the keyboard, others overlay it.
           // Never subtract the keyboard twice, and include the body's safe-area padding.
           const viewport=Math.min(window.windowHeight,(initialHeight||window.windowHeight)-keyboard);
-          const height=sheetBodyHeight(body.height,header,viewport,window.statusBarHeight||0);
+          const height=sheetBodyHeight(body.height,header,viewport,window.statusBarHeight||0,id==='journalShare'?.94:.84,id==='journalShare'?16:56);
           if(heights[id]!==height){heights[id]=height;changed=true;}
         }
         const finish=()=>{if(again){again=false;schedule();}};

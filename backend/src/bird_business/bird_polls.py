@@ -42,6 +42,16 @@ def vote(db, post, member, species):
         db.execute("UPDATE bird_polls SET updated=? WHERE post=?", (now(), post["id"]))
 
 
+def retract_vote(db, post, member):
+    if blocked(db, member, post["owner"]):
+        raise missing()
+    if one(db, "SELECT result FROM bird_polls WHERE post=?", post["id"])[0]:
+        raise ServiceError("POLL_CLOSED", "楼主已采纳鉴定结果", 409)
+    changed = db.execute("DELETE FROM bird_votes WHERE post=? AND member=?", (post["id"], member)).rowcount
+    if changed:
+        db.execute("UPDATE bird_polls SET updated=? WHERE post=?", (now(), post["id"]))
+
+
 def resolve_poll(db, post, member, species):
     if post["owner"] != member:
         raise missing()

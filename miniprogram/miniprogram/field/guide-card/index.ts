@@ -1,3 +1,4 @@
+import {previewMedia} from '../../services/native-ui';
 import {api} from '../../services/community';
 import {fieldCard,rememberFieldCard,guideTraits,GuideBird,GuidePhoto,picture,speciesPath} from '../../services/field-guide';
 Component({
@@ -33,7 +34,7 @@ Component({
       }catch{if(seq===this.data._seq&&this.data._alive)this.setData({notice:'参考图库暂不可用，可稍后重试。'});}
       finally{if(seq===this.data._seq&&this.data._alive)this.setData({busy:false});}
     },
-    showPhoto(){if(this.data.src&&!this.data.photoFailed)wx.previewImage({urls:[this.data.src]});},
+    showPhoto(){if(this.data.src&&!this.data.photoFailed)previewMedia([this.data.src]);},
     copySource(event:WechatMiniprogram.TouchEvent){const url=String(event.currentTarget.dataset.url||'');if(url)wx.setClipboardData({data:url});}
   }
 });

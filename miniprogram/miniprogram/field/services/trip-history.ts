@@ -19,3 +19,5 @@ export function saveTripHistory(owner:string,row:TripConversation){
   const items=readTripHistory(owner).filter(item=>item.id!==row.id);
   wx.setStorageSync(storageKey(owner),{version:1,items:[{...row,turns:row.turns.slice(-6)},...items].slice(0,20)});
 }
+
+export function removeTripHistory(owner:string,id:string){const items=readTripHistory(owner);wx.setStorageSync(storageKey(owner),{version:1,items:items.filter(row=>row.id!==id)});}

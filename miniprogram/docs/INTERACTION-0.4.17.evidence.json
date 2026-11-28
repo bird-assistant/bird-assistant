@@ -1,0 +1,397 @@
+{
+  "version": "0.4.17",
+  "baseTeamCommit": "a6a3f88f028836278dfa91620e5f080b0cfff426",
+  "previousSourceCommit": "01e1ccae5b56fa632b97e255d1184fdfbfb5fff8",
+  "scope": [
+    "R75–R86",
+    "map geographic focus/row anchoring",
+    "calendar",
+    "trip/history",
+    "journal recovery/share lifecycle",
+    "forum state and vertical drafts",
+    "social UI/design",
+    "inactive CloudBase source"
+  ],
+  "client": {
+    "command": "npm run verify",
+    "passed": 416,
+    "failed": 0,
+    "skipped": 0,
+    "baselinePassed": 391,
+    "newRegressionCases": 25,
+    "tests": 416
+  },
+  "offlineTemplateCompiler": {
+    "package": "miniprogram-compiler@0.2.3",
+    "wccVersion": "v0.5vv_20200413_syb_scopedata",
+    "wcscVersion": "v0.4me_20190328_db",
+    "wxml": 22,
+    "wxss": 24,
+    "conclusion": "PASS",
+    "mandatoryIn": "npm run verify",
+    "fullCurrentDevToolsCompile": false
+  },
+  "backend": {
+    "command": "pytest",
+    "passed": 510,
+    "skipped": 53,
+    "coveragePercent": 86.76,
+    "requiredCoveragePercent": 80,
+    "ruffCheck": "PASS",
+    "ruffFormat": "PASS",
+    "databaseMigration": false,
+    "limits": "Optional model/dependency/device paths skipped; no hosted model call or deployment."
+  },
+  "sourceLayoutProjection": {
+    "cases": 900,
+    "profiles": [
+      {
+        "name": "iPhone 12/13 mini",
+        "width": 375,
+        "height": 812,
+        "dpr": 3,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "iPhone 12/13 (Pro)",
+        "width": 390,
+        "height": 844,
+        "dpr": 3,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "iPhone 12/13 Pro Max",
+        "width": 428,
+        "height": 926,
+        "dpr": 3,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "iPhone 14/15 Pro Max",
+        "width": 430,
+        "height": 932,
+        "dpr": 3,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "iPhone 16",
+        "width": 393,
+        "height": 852,
+        "dpr": 3,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "iPhone 17",
+        "width": 402,
+        "height": 874,
+        "dpr": 3,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "Pixel 9",
+        "width": 412,
+        "height": 923,
+        "dpr": 2.625,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "Pixel 9 Pro",
+        "width": 410,
+        "height": 914,
+        "dpr": 3.125,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "Windows",
+        "width": 480,
+        "height": 800,
+        "dpr": 2,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "Mac 13-inch and below",
+        "width": 375,
+        "height": 667,
+        "dpr": 2,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "Mac 15-inch",
+        "width": 375,
+        "height": 736,
+        "dpr": 2,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "Mac 21-inch and above",
+        "width": 414,
+        "height": 896,
+        "dpr": 2,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "iPad mini 6/7",
+        "width": 744,
+        "height": 1133,
+        "dpr": 2,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "iPad (10th)/Air 11",
+        "width": 820,
+        "height": 1180,
+        "dpr": 2,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "iPad Pro 11 (M4)",
+        "width": 834,
+        "height": 1210,
+        "dpr": 2,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "iPad Pro 13 (M4)",
+        "width": 1032,
+        "height": 1376,
+        "dpr": 2,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI Mate 80",
+        "width": 366,
+        "height": 809,
+        "dpr": 3.5,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI Mate 70 Pro",
+        "width": 376,
+        "height": 809,
+        "dpr": 3.5,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI Pura 80 Pro",
+        "width": 365,
+        "height": 814,
+        "dpr": 3.5,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI nova 13",
+        "width": 361,
+        "height": 804,
+        "dpr": 3,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI nova 14 Ultra",
+        "width": 363,
+        "height": 817,
+        "dpr": 3.5,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI Pocket 2",
+        "width": 364,
+        "height": 861,
+        "dpr": 3.125,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI Pura X inner",
+        "width": 440,
+        "height": 707,
+        "dpr": 3,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI Pura X outer",
+        "width": 327,
+        "height": 327,
+        "dpr": 3,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI Pura X Max inner",
+        "width": 940,
+        "height": 666,
+        "dpr": 2.75,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI Pura X Max outer",
+        "width": 460,
+        "height": 672,
+        "dpr": 2.75,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI Mate X6 inner",
+        "width": 717,
+        "height": 781,
+        "dpr": 3.125,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "HUAWEI Mate X6 outer",
+        "width": 346,
+        "height": 781,
+        "dpr": 3.125,
+        "source": "user DevTools device-list screenshot"
+      },
+      {
+        "name": "Custom narrow boundary",
+        "width": 320,
+        "height": 568,
+        "dpr": 2,
+        "source": "boundary test"
+      },
+      {
+        "name": "Custom short boundary",
+        "width": 375,
+        "height": 600,
+        "dpr": 2,
+        "source": "boundary test"
+      }
+    ],
+    "statesPerProfile": 30,
+    "horizontalOverflow": 0,
+    "offscreenPanels": 0,
+    "blockedArmedCards": 0,
+    "nativeEmulation": false,
+    "commands": [
+      "node scripts/review-phone-layouts.mjs --followup",
+      "python scripts/review-layout-projections.py DIRECTORY --profiles docs/testing/device-profiles.json --browser-config OPTIONAL_CONFIG"
+    ],
+    "limits": "Browser source projections, not native WeChat/device screenshots, accessibility or FPS evidence.",
+    "finalGeometry": {
+      "cases": 900,
+      "devices": 30,
+      "overflow": [],
+      "offscreenPanels": [],
+      "blockedArmedCards": [],
+      "deckBelowTabs": [],
+      "squashedCloseButtons": [],
+      "overlappingShareHints": [],
+      "draftActionsOffscreen": []
+    },
+    "deckBelowTabs": 0,
+    "squashedCloseButtons": 0,
+    "overlappingShareHints": 0,
+    "draftActionsOffscreen": 0
+  },
+  "idleRecovery": {
+    "mapFallbackBeforeMs": 240,
+    "mapFallbackAfterMs": 2500,
+    "regionEvents": "immediate",
+    "hideStopsPolling": true,
+    "syntheticMapSoakHours": 1,
+    "lostHoldReleaseMs": null,
+    "hardNativeDeadlines": true,
+    "allPhysicalFreezesResolved": false,
+    "openIssue": "R34 native auth/network/null and physical idle freeze still needs first complete stack/request/device/build.",
+    "holdTimer": "REMOVED",
+    "partialHoldSimulatedMs": 60000
+  },
+  "publicReadOnlyProbe": {
+    "checked": "2026-11-27T20:47:05.965Z",
+    "origin": "https://api.auroraliu.cn:8080",
+    "readOnly": true,
+    "vision": {
+      "status": 200,
+      "ready": true,
+      "models": [
+        {
+          "name": "yolo-bird-detector",
+          "backend": "ultralytics-yolo",
+          "device": "cuda:0",
+          "ready": true
+        },
+        {
+          "name": "bioclip-2-zero-shot",
+          "backend": "open-clip",
+          "device": "cuda:0",
+          "ready": true
+        },
+        {
+          "name": "inference-runtime",
+          "backend": "session-manager",
+          "device": "cuda:0",
+          "ready": true
+        }
+      ]
+    },
+    "audio": {
+      "status": 404,
+      "ready": false,
+      "actualRecognition": "NOT TESTED"
+    },
+    "writing": {
+      "suggestionsStatus": 404,
+      "capabilitiesStatus": 404,
+      "routePresent": false,
+      "configured": "NOT CHECKED WITHOUT A USER SESSION",
+      "action": "Deploy the active business checkout and journal proxy route; a working trip endpoint does not establish writing readiness."
+    },
+    "trip": {
+      "status": 405,
+      "routePresent": true
+    },
+    "privateMapProtection": {
+      "status": 401,
+      "passed": true
+    },
+    "placesOrdering": {
+      "status": 200,
+      "current": true,
+      "action": "current"
+    },
+    "acceptance": {
+      "realIdentification": "NOT TESTED",
+      "wechatLogin": "NOT TESTED",
+      "qwen": "NOT CALLED",
+      "publications": "NOT CREATED"
+    }
+  },
+  "nativeCompile": "NOT RUN",
+  "physicalDevices": "NOT TESTED HERE",
+  "experienceUpload": "NOT RUN",
+  "productionDeployment": "NOT RUN",
+  "credentialChanges": "NONE",
+  "providerCalls": "NOT CALLED",
+  "teamMerge": "NOT RUN",
+  "deploymentRequired": [
+    "Existing hosted journal writing routes/proxy/configuration",
+    "DELETE /api/v1/community/publications/{record}/identification/vote",
+    "Enriched /mine and /bookmarks feed counts/poll summaries",
+    "Public/private visibility-aware map clustering"
+  ],
+  "open": [
+    "Full current DevTools Compile and Pura70Pro+/friend phone acceptance",
+    "Physical long-idle/background recovery, native gesture feel/permissions/FPS",
+    "Hosted journal capabilities/suggestions404",
+    "Audio readyz404",
+    "Full waiting-mode pre-capture/audio-vision fusion and resource measurements",
+    "Cross-device journals and remaining cloud modules",
+    "Native9-second ripple/scroll anchoring and partial-hold retry acceptance",
+    "CloudBase staging environment/SDK policy acceptance",
+    "Deferred post-forward success design"
+  ],
+  "cloudBase": {
+    "prepared": true,
+    "activated": false,
+    "deployed": false,
+    "clientInitialized": false,
+    "sdk": "wx-server-sdk4.0.2",
+    "handlerTests": 5,
+    "liveSdkTested": false,
+    "businessIdentity": "existing bearer remains authoritative"
+  },
+  "userConfirmedBeforeRevision": [
+    "WeChat image share works",
+    "journal-to-forum draft works",
+    "right-neighbour deck arrival after deletion works"
+  ]
+}

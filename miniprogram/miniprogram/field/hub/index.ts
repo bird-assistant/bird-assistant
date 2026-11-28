@@ -1,8 +1,12 @@
+import {beginSheetDrag,moveSheetDrag,endSheetDrag,resetSheetDrag} from '../../services/sheet-gesture';
+import {previewMedia} from '../../services/native-ui';
 import {displayedDistance} from '../../services/map-ordering';
 import {acceptPickedMedia} from '../../services/media-import';
 import {savePublishedPhoto} from '../services/media-save';
 import {PostImage,postGallery,checkPostImages} from '../../services/post-media';
 import {cleanPhotoDetails,withPhotoDetails,withEmbeddedPhotoDetails,PhotoDetails} from '../../services/photo-details';
+import {forumReadStamp,rememberForumPost,patchForumPost,patchForumReaction} from '../../services/forum-state';
+import {installAdaptiveSheets,stopAdaptiveSheets} from '../../services/adaptive-sheets';
 import {navigate} from '../../services/navigation';
 import {api,community,Draft,getDraft,hub,imageUrl,key,openMap,Point,privatePhoto,sessionState,setCompose,setDraft,takeCompose,uploadPhoto} from '../../services/community';
 
@@ -19,13 +23,15 @@ type Input=WechatMiniprogram.CustomEvent<{value:string}>;
 function message(error:unknown){return error instanceof Error?error.message:'请求失败，请重试。';}
 
 Page({
-  data:{savingPhoto:false,publishAttachments:[] as PostImage[],recordGallery:[] as any[],reactionBusy:{like:false,bookmark:false},placesError:'',postsError:'',placeSort:'recent',placePoint:null as {latitude:number;longitude:number}|null,mapOpening:false,displayResolution:'',manualCamera:{} as PhotoDetails,manualPhotoInfo:null as ReturnType<typeof photoInfo>,photoInfo:null as ReturnType<typeof photoInfo>,postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
+  sheetDragStart(event:WechatMiniprogram.TouchEvent){beginSheetDrag(this,event);},sheetDragMove(event:WechatMiniprogram.TouchEvent){moveSheetDrag(this,event);},sheetDragEnd(){endSheetDrag(this);},sheetDragCancel(){resetSheetDrag(this);},
+  data:{sheetDragStyle:'',pollOpen:false,pollBusy:false,pollError:'',pollSelection:'',pollSelectionName:'',sheetHeights:{} as Record<string,number>,savingPhoto:false,publishAttachments:[] as PostImage[],recordGallery:[] as any[],reactionBusy:{like:false,bookmark:false},placesError:'',postsError:'',placeSort:'recent',placePoint:null as {latitude:number;longitude:number}|null,mapOpening:false,displayResolution:'',manualCamera:{} as PhotoDetails,manualPhotoInfo:null as ReturnType<typeof photoInfo>,photoInfo:null as ReturnType<typeof photoInfo>,postSpecies:'',postSpeciesName:'',speciesSupported:false,placeLoading:false,replyTarget:null as {id:string;name:string}|null,replyFocused:false,replySuggestOpen:false,replyThreads:[] as Array<{id:string;root:ReplyView;children:ReplyView[]}>,pendingReplies:[] as any[],photoWidth:300,photoFailed:false,photoHeight:200,featured:[] as {id:string;name:string;english:string;image:string;photo:{credit:string;license:string}|null}[],sourceId:'',tab:'identity',placeCount:0,recordCount:0,places:[] as any[],speciesPosts:[] as any[],screen:'',id:'',items:[] as any[],record:null as any,keyword:'',body:'',title:'',error:'',notice:'',busy:false,
     draft:null as Draft|null,anonymous:true,shareDate:false,shareCamera:false,sharePhoto:true,map:false,post:true,identificationHelp:false,
     externalPage:0,externalNext:false,preview:null as any,previewLines:[] as string[],photo:'',replySpecies:'',self:'',selectedSpecies:'',matches:[] as any[]},
   _galleryUploads:null as unknown as Map<string,{id:string;camera:Record<string,string>}>,
+  _pollGeneration:0,_pollNeedsRefresh:false,
   _placesSequence:0,_mapGeneration:0,_cameraDetails:{} as Record<string,string>,_media:'',_sighting:'',_generation:0,_submitKey:'',_replySignature:'',_path:'',_closed:false,_replyOffset:0,_replyLoading:false,
-  onLoad(options:Record<string,string|undefined>){
-    this._galleryUploads=new Map();
+  onLoad(options:Record<string,string|undefined>){resetSheetDrag(this);
+    installAdaptiveSheets(this,()=>this.data.pollOpen);this.setData({pollOpen:options.poll==='1'});this._galleryUploads=new Map();
     const screen=options.screen&&names[options.screen]?options.screen:'feed';
     this._submitKey=key();
     const placePoint=readMapView();this.setData({screen,id:options.id||'',placePoint,placeSort:'recent'});wx.setNavigationBarTitle({title:names[screen]});
@@ -37,8 +43,9 @@ Page({
     }
     void this.load();
   },
-  onHide(){this._mapGeneration++;this.setData({mapOpening:false});},
-  onUnload(){this._mapGeneration++;this._closed=true;this._generation++;},
+  onShow(){if(this._pollNeedsRefresh){this._pollNeedsRefresh=false;void this.load();}},
+  onHide(){resetSheetDrag(this);this._pollNeedsRefresh=this.data.pollBusy;this._pollGeneration++;this.setData({pollBusy:false,pollOpen:false});this._mapGeneration++;this.setData({mapOpening:false});},
+  onUnload(){stopAdaptiveSheets(this);this._pollGeneration++;this._mapGeneration++;this._closed=true;this._generation++;},
   copyCredit(event:Tap){void wx.setClipboardData({data:event.currentTarget.dataset.url});},
   onShareAppMessage(){
     const record=this.data.record;
@@ -59,12 +66,12 @@ Page({
     if(!routes[screen])return;
     this._mapGeneration++;this.setData({mapOpening:false,busy:true,error:'',photoFailed:false,displayResolution:''});
     try{
-      const result=screen==='external'?await api(routes.external,'GET',{limit:40,offset:this.data.externalPage*40}):await api(routes[screen]);if(generation!==this._generation)return;
+      const readStamp=forumReadStamp();const result=screen==='external'?await api(routes.external,'GET',{limit:40,offset:this.data.externalPage*40}):await api(routes[screen]);if(generation!==this._generation)return;
       if(screen==='library')this.setData({featured:(result.featured||[]).map((bird:{id:string;photo:object|null})=>({...bird,image:bird.photo?picture(bird.id):''}))});
       const items=(result.items||result.records||[]).map((row:any)=>({...row,image:imageUrl(row.image),placeName:chinesePlace(row.placeName)}));
       this.setData({items,externalNext:result.hasMore??items.length===40,record:{...result,image:imageUrl(result.image)},photo:imageUrl(result.image)});
       if(screen==='record'){
-        this._replyOffset=(result.replies||[]).length;
+        Object.assign(result,rememberForumPost(result,readStamp));this._replyOffset=(result.replies||[]).length;
         const pending=result.features?.threadedReplies?[]:this.data.pendingReplies;
         const replies=(result.replies||[]).concat(pending),record={...result,...forumPost(result),placeName:chinesePlace(result.placeName),place:chinesePlace(result.place),image:imageUrl(result.image),replies,replyCount:result.replyCount??(result.replies||[]).length};
         const recordGallery=postGallery(result).map(image=>({...image,image:imageUrl(image.image)}));
@@ -83,7 +90,7 @@ Page({
     try{await savePublishedPhoto(photo);if(!this._closed&&generation===this._generation)wx.showToast({title:'已保存公开图片',icon:'success'});}
     catch(error){if(!this._closed&&generation===this._generation)this.setData({error:message(error)});}finally{if(!this._closed)this.setData({savingPhoto:false});}
   },
-  previewGallery(event:Tap){const index=Number(event.currentTarget.dataset.index)||0,urls=this.data.publishAttachments.map(item=>item.path);if(urls[index])wx.previewImage({current:urls[index],urls});},
+  previewGallery(event:Tap){const index=Number(event.currentTarget.dataset.index)||0,urls=this.data.publishAttachments.map(item=>item.path);if(urls[index])previewMedia(urls,urls[index]);},
   selectRecordImage(event:Tap){const image=this.data.recordGallery[Number(event.currentTarget.dataset.index)];if(!image)return;
     this.setData({photo:image.image,photoFailed:false,displayResolution:'',photoInfo:photoInfo(image.camera),manualPhotoInfo:photoInfo(image.manualCamera,'作者填写')});
   },
@@ -114,7 +121,21 @@ Page({
   chooseReplySpecies(event:WechatMiniprogram.CustomEvent<{id:string;name:string}>){this.setData({replySpecies:event.detail.id,selectedSpecies:event.detail.name,replySuggestOpen:false});},
   clearReplySpecies(){this.setData({replySpecies:'',selectedSpecies:''});},
   toggleReplySpecies(){this.setData({replySuggestOpen:!this.data.replySuggestOpen});},
-  openIdentification(){this.setData({replySuggestOpen:true});wx.pageScrollTo({selector:'#reply-composer',duration:160});},
+  holdPoll(){},
+  openPoll(){const poll=this.data.record?.poll;if(!poll)return;const candidate=poll.candidates.find((item:{id:string})=>item.id===poll.mine);this.setData({pollOpen:true,pollSelection:poll.mine||'',pollSelectionName:candidate?.name||'',pollError:''});},
+  closePoll(){this.setData({pollOpen:false});},
+  openIdentification(){this.openPoll();},
+  selectPollCandidate(event:Tap){const candidate=this.data.record?.poll?.candidates.find((item:{id:string})=>item.id===event.currentTarget.dataset.id);if(candidate)this.setData({pollSelection:candidate.id,pollSelectionName:candidate.name});},
+  choosePollSpecies(event:WechatMiniprogram.CustomEvent<{id:string;name:string}>){this.setData({pollSelection:event.detail.id,pollSelectionName:event.detail.name});},
+  async submitPollVote(){if(!this.data.pollSelection)return;await this.changePollVote(false);},
+  async retractPollVote(){await this.changePollVote(true);},
+  async changePollVote(retract:boolean){const poll=this.data.record?.poll;if(!poll||poll.result||this.data.pollBusy||this._closed||retract&&!poll.mine)return;
+    const token=++this._pollGeneration,id=this.data.id;this.setData({pollBusy:true,pollError:''});
+    try{const result=await api(community+'/publications/'+id+'/identification/vote',retract?'DELETE':'PUT',retract?undefined:{species:this.data.pollSelection});if(this._closed||token!==this._pollGeneration||id!==this.data.id)return;
+      patchForumPost(id,{poll:result});const candidate=result.candidates.find((item:{id:string})=>item.id===result.mine);this.setData({record:{...this.data.record,poll:result},pollSelection:result.mine||'',pollSelectionName:candidate?.name||'',notice:retract?'已撤回你的鉴定票。':'已记录你的鉴定票。'});
+    }catch(error){if(!this._closed&&token===this._pollGeneration)this.setData({pollError:retract&&([404,405].includes(Number((error as {statusCode?:number}).statusCode))||/撤回或不可见/.test(message(error)))?'线上投票服务尚未更新撤票接口，当前票保留。请维护者更新业务服务。':message(error)});}
+    finally{if(!this._closed&&token===this._pollGeneration)this.setData({pollBusy:false});}
+  },
   replyTo(event:Tap){const id=String(event.currentTarget.dataset.id),row=this.data.record?.replies?.find((item:any)=>item.id===id);if(!row||row.status==='pending')return;
     if(!this.data.record.features?.threadedReplies){this.setData({notice:'当前服务需更新后才能回复指定楼层，你仍可发表普通回复。'});this.focusReplies();return;}
     this.setData({replyTarget:{id,name:row.publicName||'鸟友'},replyFocused:true});wx.pageScrollTo({selector:'#reply-composer',duration:160});},
@@ -231,7 +252,7 @@ Page({
       const result=await api(base+(active?'/reactions/':'/')+op,active?'DELETE':'PUT');
       if(this._closed||generation!==this._generation||this.data.id!==id)return;
       const record=this.data.record,reactions=(record.reactions||[]).filter((item:string)=>item!==op);if(result.active)reactions.push(op);
-      this.setData({record:{...record,reactions,...(op==='like'?{liked:!!result.active,likes:result.likes??record.likes,hasLikes:typeof result.likes==='number'||record.hasLikes}:{bookmarked:!!result.active})}});
+      patchForumReaction(id,op,!!result.active,result.likes??record.likes);this.setData({record:{...record,reactions,...(op==='like'?{liked:!!result.active,likes:result.likes??record.likes,hasLikes:typeof result.likes==='number'||record.hasLikes}:{bookmarked:!!result.active})}});
     }catch(error){if(!this._closed&&generation===this._generation)this.setData({error:message(error)});}
     finally{if(!this._closed)this.setData({reactionBusy:{...this.data.reactionBusy,[op]:false}});}
   },
@@ -250,20 +271,14 @@ Page({
       }
       if(op==='reply'||op==='send'){
         const text=this.data.body.trim(),parent=this.data.replyTarget;
-        const voting=op==='reply'&&!!this.data.record?.poll&&!this.data.record.poll.result&&!!this.data.replySpecies;
-        if(!text&&!voting)throw new Error('请输入内容。');
-        if(voting&&!text){
-          await api(community+'/publications/'+this.data.id+'/identification/vote','PUT',{species:this.data.replySpecies});
-          this.setData({replySpecies:'',selectedSpecies:'',replySuggestOpen:false,notice:'已记录你的鉴定票。'});
-          await this.load();return;
-        }
+        if(!text)throw new Error('请输入内容。');
         const signature=JSON.stringify([this.data.id,text,this.data.replySpecies,parent?.id||'']);
         if(this._replySignature&&this._replySignature!==signature)this._submitKey=key();this._replySignature=signature;
         const result=await api(op==='reply'?community+'/publications/'+this.data.id+'/replies':community+'/messages/'+this.data.id,'POST',
-          {body:text,reference:this._submitKey,...(op==='reply'?{species:this.data.replySpecies||null,...(voting?{identification_vote:true}:{}),...(parent?{parentId:parent.id}:{})}:{})});
+          {body:text,reference:this._submitKey,...(op==='reply'?{species:this.data.replySpecies||null,...(parent?{parentId:parent.id}:{})}:{})});
         if(this._closed)return;
         if(op==='reply'&&result.id)this.setData({pendingReplies:this.data.pendingReplies.concat({id:result.id,body:text,publicName:'我',memberId:this.data.self,species:this.data.replySpecies||'',parentId:parent?.id||'',replyToName:parent?.name||'',status:'pending',created:new Date().toISOString()})});
-        this._submitKey=key();this._replySignature='';this.setData({body:'',replyTarget:null,replyFocused:false,replySuggestOpen:false,replySpecies:'',selectedSpecies:'',notice:voting?'鉴定票已计入，文字回复待审核。':op==='reply'?'回复已提交，审核通过后公开显示。':'已发送。'});wx.hideKeyboard?.();
+        this._submitKey=key();this._replySignature='';this.setData({body:'',replyTarget:null,replyFocused:false,replySuggestOpen:false,replySpecies:'',selectedSpecies:'',notice:op==='reply'?'回复已提交，审核通过后公开显示。':'已发送。'});wx.hideKeyboard?.({fail:()=>{}});
       }
       if(op==='adopt'){await api('/api/v2/observations/'+this.data.record.ownedSighting+'/adopt','POST',{reply:id});this.setData({notice:'已更新私人观察的鸟种。'});}
       if(op==='unbookmark'){await api(community+'/publications/'+id+'/reactions/bookmark','DELETE');}

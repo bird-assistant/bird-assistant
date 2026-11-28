@@ -10,7 +10,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query, Request, Response, UploadFile
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from bird_business.bird_polls import poll_summary, resolve_poll, vote
+from bird_business.bird_polls import poll_summary, resolve_poll, retract_vote, vote
 from bird_business.community_geo import display_point
 from bird_business.community_models import (
     MAX_POST_IMAGES,
@@ -610,6 +610,15 @@ def identify(record: str, action: Literal["vote", "resolve"], body: BirdChoice, 
         return poll_summary(db, post, owner)
 
 
+@router.delete(ROOT + "/publications/{record}/identification/vote")
+def retract_identification(record: str, database: DB, owner: Member):
+    with database.transaction() as db:
+        db.execute("BEGIN IMMEDIATE")
+        post = visible(db, record)
+        retract_vote(db, post, owner)
+        return poll_summary(db, post, owner)
+
+
 @router.get(ROOT + "/publications/{record}")
 def detail(
     record: str,
@@ -687,7 +696,7 @@ def mine(database: DB, owner: Member):
     with database.transaction() as db:
         return {
             "items": [
-                {**public(row), "ownedSighting": row["sighting"], "reason": row["reason"]}
+                {**discussion_post(db, row, owner), "ownedSighting": row["sighting"], "reason": row["reason"]}
                 for row in db.execute(
                     "SELECT p.*, coalesce(f.reason,'') reason FROM publications p "
                     "LEFT JOIN review_feedback f ON f.target=p.id WHERE p.owner=? "
@@ -765,17 +774,18 @@ def map_records(
                 step *= 2
             args["step"] = step
             groups = db.execute(
-                """SELECT count(*) AS size, avg(lat) AS lat, avg(lon) AS lon,
+                """SELECT visibility, count(*) AS size, avg(lat) AS lat, avg(lon) AS lon,
                 min(lat) AS south, max(lat) AS north, min(lon) AS west, max(lon) AS east
                 FROM ("""
                 + source
-                + """) GROUP BY cast((lat+90)/:step AS integer),
+                + """) GROUP BY visibility, cast((lat+90)/:step AS integer),
                 cast((lon+180)/:step AS integer)""",
                 args,
             )
             clusters = [
                 dict(
                     count=row["size"],
+                    visibility=row["visibility"],
                     latitude=row["lat"],
                     longitude=row["lon"],
                     minLatitude=row["south"],
@@ -935,7 +945,7 @@ def bookmarks(database: DB, owner: Member):
     with database.transaction() as db:
         return {
             "items": [
-                public(row)
+                discussion_post(db, row, owner)
                 for row in db.execute(
                     "SELECT p.* FROM publications p JOIN reactions r "
                     "ON p.id=r.post WHERE r.owner=? AND r.kind='bookmark' AND p.status='approved' "

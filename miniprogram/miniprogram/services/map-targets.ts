@@ -13,7 +13,7 @@ export class MapTargets{
       const key=filters+'|'+JSON.stringify(group);
       let id=this.ids.get(key);
       if(id===undefined){id=++this.sequence;this.ids.set(key,id);}
-      this.targets.delete(id);this.targets.set(id,{group,query:{...query},zoom});current.add(id);
+      this.targets.delete(id);this.targets.set(id,{group,query:{...query,...(group.visibility?{scope:group.visibility==='private'?'mine':'public'}:{})},zoom});current.add(id);
       return id;
     });
     // Retain a bounded history for delayed native callbacks, never evict live IDs.

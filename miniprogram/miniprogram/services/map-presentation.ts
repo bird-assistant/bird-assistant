@@ -12,11 +12,9 @@ export function mapPanes(width:number,height:number){
 /** Exactly one to three 44px options; additional matches scroll. */
 export function speciesResultsHeight(count:number,more:boolean,available:number){return Math.min(Math.max(0,available),44*Math.min(3,Math.max(0,count)+(more?1:0)));}
 export const INDIVIDUAL_PIN_ZOOM=16;
-export function clusterMarker(group:{latitude:number;longitude:number;count:number},index:number,zoom=4){
-  const cluster=group.count>1||zoom<INDIVIDUAL_PIN_ZOOM;
+export function clusterMarker(group:{latitude:number;longitude:number;count:number},index:number,_zoom=4){
   return {id:index+1,latitude:group.latitude,longitude:group.longitude,
-    iconPath:cluster?'/assets/icons/map-cluster.png':'/assets/icons/pin.png',width:cluster?40:26,height:cluster?40:30,
-    ...(cluster?{anchor:{x:.5,y:.5}}:{}),
+    iconPath:'/assets/icons/map-cluster.png',width:40,height:40,anchor:{x:.5,y:.5},
     callout:{content:group.count+' 条',display:'BYCLICK' as const,padding:6,borderRadius:10,color:'#285b49',bgColor:'#fffef9'}};
 }
 

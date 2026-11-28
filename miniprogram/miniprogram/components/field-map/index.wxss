@@ -33,10 +33,19 @@
 
 /* Title and count keep the same baseline in both drawer states. */
 .sheet-header{align-items:flex-start;padding-top:10px;box-sizing:border-box}.sheet-header-copy{justify-content:flex-start;gap:3px}.sheet-close{margin-top:2px}.sheet-order{line-height:16px}.field-compact .sheet-header{padding-top:6px}
-.results-heading{height:36px}.results-close{height:36px;width:40px}.search-results{background:#fffef9ed}.results-scroll{max-height:132px;min-height:0}.species-result{height:44px;min-height:44px;max-height:44px;padding:8px 12px;background:transparent;display:flex;align-items:center}.species-result>.map-text:first-child{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.species-latin{flex:none;max-width:44%}
+.results-heading{height:36px}.results-close{height:36px;width:40px}.search-results{background:#fffef9ed}.results-scroll{max-height:132px;min-height:0}.species-result{height:44px;min-height:44px;max-height:44px;padding:8px 12px;background:transparent;display:flex;align-items:center}.species-result>.map-text{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.species-latin{flex:none;max-width:44%}
 
 
 
 .map-marker-canvas{position:fixed;left:-200px;top:-200px;width:96px;height:96px;pointer-events:none}
 
-.record-locate{display:flex;flex-direction:column;gap:2px;flex:none;width:42px;min-height:44px;padding:4px;background:transparent;font-size:10px}.record-locate image{width:20px;height:20px}.drawn-chevron{width:8px;height:8px;border-top:1.6px solid #72866b;border-right:1.6px solid #72866b;transform:rotate(45deg);flex:none;margin:0 4px}.record-main{height:auto;min-height:74px}.sheet-scroll-tail{height:16px}.sheet-fade{height:18px}.sheet-order{white-space:normal;font-size:9px;line-height:12px}.sheet-header-copy{max-height:100%;overflow:hidden}
+.record-locate{display:flex;flex-direction:column;gap:2px;flex:none;width:42px;min-height:44px;padding:4px;background:transparent;font-size:10px}.drawn-chevron{width:8px;height:8px;border-top:1.6px solid #72866b;border-right:1.6px solid #72866b;transform:rotate(45deg);flex:none;margin:0 4px}.record-main{height:auto;min-height:74px}.sheet-scroll-tail{height:16px}.sheet-fade{height:18px}.sheet-order{white-space:normal;font-size:9px;line-height:12px}.sheet-header-copy{max-height:100%;overflow:hidden}
+.action-spinner{box-sizing:border-box;width:22px;height:22px;flex:none;border:2px solid #b8cdbf;border-top-color:#285b49;border-radius:50%;animation:location-spin .8s linear infinite}.map-action{display:flex;align-items:center;justify-content:center}.map-action{opacity:1}@keyframes location-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.action-spinner{animation:none;border-style:dashed}}
+
+.filter-control{flex:1;width:0;min-width:0;margin:0;min-height:36px;padding:6px 10px;display:flex;align-items:center;justify-content:space-between;font-size:12px;border:0;background:#edf3e7;border-radius:22px}.filter-control::after{border:0}
+.location-signal{position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center}.location-signal .location-core{position:absolute;width:7px;height:7px;border-radius:50%;background:#4b856c}.location-signal .location-wave{width:19px;height:19px;background:transparent;border:1px solid #639c7d;opacity:.5}.signal-active .location-wave{animation:location-ripple 2.2s ease-out 2}.signal-active .wave-late{animation-delay:1.1s}@keyframes location-ripple{0%{transform:scale(.35);opacity:.8}100%{transform:scale(1.25);opacity:0}}
+.save-map-place{display:flex;align-items:center;justify-content:flex-start;width:100%;gap:9px;min-height:40px;margin:6px 0 0;padding:9px 12px;border-radius:12px;background:#fafbf5f2;color:#285b49;font-size:12px}.save-place-icon{width:17px;height:17px;flex:none}.save-place-hint{margin-left:auto;color:#89977c;font-size:10px}.save-map-place::after{border:0}@media(prefers-reduced-motion:reduce){.location-signal .location-wave{animation:none;opacity:.6}}
+
+.location-wave{position:absolute;box-sizing:border-box;border-radius:50%}
+
+.record-row.record-focused{border-radius:10px;background:#e8f0e2;box-shadow:inset 3px 0 #659879}.record-focused .record-main{padding-left:8px}.map-actions .map-action{flex:none}.location-signal .location-wave{animation:none}.record-scroll{scroll-padding-top:0}

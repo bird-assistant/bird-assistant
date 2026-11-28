@@ -41,3 +41,5 @@
 .search-panel-above{top:auto;bottom:calc(100% + 6px)}
 
 .check-symbol{width:15px;height:15px;flex:none}
+
+.search-field .search-input{box-sizing:border-box;flex:1;min-width:0;width:0;height:44px;min-height:0;margin:0!important;padding:0!important;border:0!important;border-radius:0;background:transparent!important;font-size:14px;line-height:44px}.search-panel-inline{position:relative;left:auto;right:auto;top:auto;bottom:auto;margin-top:8px;box-shadow:none}.search-field{min-width:0;overflow:hidden}.search-shell .search-icon{width:18px;height:18px;flex:none}

@@ -1,0 +1,215 @@
+{
+  "note": "CSS dimensions and DPR transcribed from the user's DevTools list, plus two custom boundaries. Pura70Pro+ physical-device acceptance is separate; its CSS viewport has not been measured here.",
+  "profiles": [
+    {
+      "name": "iPhone 12/13 mini",
+      "width": 375,
+      "height": 812,
+      "dpr": 3,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "iPhone 12/13 (Pro)",
+      "width": 390,
+      "height": 844,
+      "dpr": 3,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "iPhone 12/13 Pro Max",
+      "width": 428,
+      "height": 926,
+      "dpr": 3,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "iPhone 14/15 Pro Max",
+      "width": 430,
+      "height": 932,
+      "dpr": 3,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "iPhone 16",
+      "width": 393,
+      "height": 852,
+      "dpr": 3,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "iPhone 17",
+      "width": 402,
+      "height": 874,
+      "dpr": 3,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "Pixel 9",
+      "width": 412,
+      "height": 923,
+      "dpr": 2.625,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "Pixel 9 Pro",
+      "width": 410,
+      "height": 914,
+      "dpr": 3.125,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "Windows",
+      "width": 480,
+      "height": 800,
+      "dpr": 2,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "Mac 13-inch and below",
+      "width": 375,
+      "height": 667,
+      "dpr": 2,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "Mac 15-inch",
+      "width": 375,
+      "height": 736,
+      "dpr": 2,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "Mac 21-inch and above",
+      "width": 414,
+      "height": 896,
+      "dpr": 2,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "iPad mini 6/7",
+      "width": 744,
+      "height": 1133,
+      "dpr": 2,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "iPad (10th)/Air 11",
+      "width": 820,
+      "height": 1180,
+      "dpr": 2,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "iPad Pro 11 (M4)",
+      "width": 834,
+      "height": 1210,
+      "dpr": 2,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "iPad Pro 13 (M4)",
+      "width": 1032,
+      "height": 1376,
+      "dpr": 2,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI Mate 80",
+      "width": 366,
+      "height": 809,
+      "dpr": 3.5,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI Mate 70 Pro",
+      "width": 376,
+      "height": 809,
+      "dpr": 3.5,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI Pura 80 Pro",
+      "width": 365,
+      "height": 814,
+      "dpr": 3.5,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI nova 13",
+      "width": 361,
+      "height": 804,
+      "dpr": 3,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI nova 14 Ultra",
+      "width": 363,
+      "height": 817,
+      "dpr": 3.5,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI Pocket 2",
+      "width": 364,
+      "height": 861,
+      "dpr": 3.125,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI Pura X inner",
+      "width": 440,
+      "height": 707,
+      "dpr": 3,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI Pura X outer",
+      "width": 327,
+      "height": 327,
+      "dpr": 3,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI Pura X Max inner",
+      "width": 940,
+      "height": 666,
+      "dpr": 2.75,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI Pura X Max outer",
+      "width": 460,
+      "height": 672,
+      "dpr": 2.75,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI Mate X6 inner",
+      "width": 717,
+      "height": 781,
+      "dpr": 3.125,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "HUAWEI Mate X6 outer",
+      "width": 346,
+      "height": 781,
+      "dpr": 3.125,
+      "source": "user DevTools device-list screenshot"
+    },
+    {
+      "name": "Custom narrow boundary",
+      "width": 320,
+      "height": 568,
+      "dpr": 2,
+      "source": "boundary test"
+    },
+    {
+      "name": "Custom short boundary",
+      "width": 375,
+      "height": 600,
+      "dpr": 2,
+      "source": "boundary test"
+    }
+  ]
+}

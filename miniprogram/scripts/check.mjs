@@ -2,6 +2,7 @@ import {readFileSync,existsSync,readdirSync,statSync} from 'node:fs';
 import {resolve,dirname,join,relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {assertRuntimeSyntax} from './runtime-syntax.mjs';
+import {assertWxmlSyntax} from './wxml-syntax.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const json=path=>JSON.parse(readFileSync(resolve(root,path),'utf8'));
@@ -24,21 +25,10 @@ for(const route of new Set([...app.pages,...subpages,...templates])){
   for(const ext of ['ts','json','wxml','wxss'])assert(existsSync(base+'.'+ext),'Missing '+route+'.'+ext);
   JSON.parse(readFileSync(base+'.json','utf8'));
   const source=readFileSync(base+'.ts','utf8'),markup=readFileSync(base+'.wxml','utf8');
+  assertWxmlSyntax(markup,route+'.wxml');
   const handlers=[...markup.matchAll(/\b(?:bind|catch)(?::)?[\w-]+="([A-Za-z_$][\w$]*)"/g)].map(m=>m[1]);
   for(const name of handlers)assert(new RegExp('\\b'+name+'\\s*\\(').test(source),'Missing handler '+name+' in '+route);
   for(const [,asset] of markup.matchAll(/src="(\/assets\/[^"{}]+)"/g))assert(existsSync(resolve(root,'miniprogram','.'+asset)),'Missing image: '+asset);
-  const stack=[];
-  for(const [tag,closing,name] of markup.matchAll(/<(\/?)([\w-]+)\b(?:[^>"']|"[^"]*"|'[^']*')*>/g)){
-    if(!closing){
-      const names=new Set(),tail=tag.slice(name.length+1).replace(/\/?\s*>$/,'');
-      for(const [,attribute] of tail.matchAll(/([\w:-]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'))?/g)){
-        assert(!names.has(attribute),'Duplicate WXML attribute '+attribute+' in '+route);names.add(attribute);
-      }
-    }
-    if(tag.endsWith('/>'))continue;
-    if(closing)assert(stack.pop()===name,'Unbalanced WXML tags in '+route);else stack.push(name);
-  }
-  assert(stack.length===0,'Unclosed WXML tag in '+route);
 }
 for(const component of ['custom-tab-bar/index','components/app-header/index']){
   const stylesheet=readFileSync(resolve(root,'miniprogram',component+'.wxss'),'utf8');
@@ -66,4 +56,4 @@ if(existsSync(resolve(root,'project.config.json'))){
   const local=json('project.config.json');assert(local.miniprogramRoot==='miniprogram/','Local config points at a different root.');
   assert(existsSync(resolve(root,local.miniprogramRoot,'app.json')),'Local config cannot resolve app.json.');
 }
-process.stdout.write('PASS: native routes, config, assets, handlers, tag balance and service boundaries. DevTools compilation still required.\n');
+process.stdout.write('PASS: routes, config, assets, handlers, strict WXML attributes/expressions/tag balance and service boundaries. DevTools compilation still required.\n');

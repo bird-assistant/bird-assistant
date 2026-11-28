@@ -44,10 +44,10 @@ test('location picker results survive hide/show in either native callback order 
  }
 });
 
-test('a sighting location action centers and highlights that displayed region without claiming a public precise capture point',t=>{
+test('a sighting location action centers and highlights that displayed region without claiming a public precise capture point',async t=>{
  const {p}=map(t,{createMapContext:()=>({moveToLocation(){}})});
  p.data.selected=[{id:'public1',speciesName:'丑鸭',placeName:'北京',date:'2017-02-20',visibility:'public',displayLocation:{latitude:40,longitude:116.4},precisionLabel:'约十公里公开区域'}];
- p.focusRecord(tap('public1'));assert.equal(p.data.scale,12);assert.match(p.data.focusLabel,/公开区域/);p.renderClusters(12);assert.ok(p.data.markers.some(marker=>marker.id===2147483600&&marker.latitude===40));
+ await p.focusRecord(tap('public1'));assert.equal(p.data.scale,12);assert.match(p.data.focusLabel,/公开区域/);p.renderClusters(12);assert.ok(p.data.circles.some(circle=>circle.latitude===40));assert.ok(!p.data.markers.some(marker=>marker.iconPath.endsWith('pin.png')));
 });
 
 test('distance choice stays selected against an older service and missing distances use only displayed region coordinates',async t=>{
@@ -130,12 +130,14 @@ test('thumbnail preparation downsizes only temporary copies and cleans them with
  const d=model.makeJournal([{...assets(1)[0],src:'/private/original.jpg'}],'Original'),before=JSON.stringify(d),prepared=await shelf.prepareThumbnailDocument(d);assert.equal(JSON.stringify(d),before);assert.equal(prepared.document.elements.find(e=>e.type==='photo').src,'/tmp/derivative.jpg');prepared.release();assert.deepEqual(e.deleted,['/tmp/derivative.jpg']);
 });
 
-test('paper gestures require a hold, cancel horizontal motion and open options or deletion confirmation only after release',()=>{
+test('paper gestures arm after one second, resist short drags, cancel sideways and act only on deliberate release',t=>{
+ t.mock.timers.enable({apis:['Date','setTimeout'],now:0});
  const e=environment(),p=page('pages/journal');p.onLoad();const d=model.makeJournal(assets(1),'Paper');e.values.set(model.JOURNAL_KEY,[d]);p.data.libraryRows=[{id:d.id}];const actions=[];p.shareJournal=()=>actions.push('share');p.deleteJournal=()=>actions.push('confirm-delete');
- p.deckTouchStart(touch(d.id));p.deckTouchMove(touch(d.id,50,50));p.deckTouchEnd();assert.deepEqual(actions,[]);
- p.deckTouchStart(touch(d.id));p.startDeckGesture(touch(d.id));p.deckTouchMove(touch(d.id,50,80));assert.equal(p.data.paperDragAction,'share');assert.deepEqual(actions,[]);p.deckTouchEnd();assert.deepEqual(actions,['share']);
- p.deckTouchStart(touch(d.id));p.startDeckGesture(touch(d.id));p.deckTouchMove(touch(d.id,50,320));p.deckTouchEnd();assert.deepEqual(actions,['share','confirm-delete']);assert.equal(model.readJournals().length,1);
- p.deckTouchStart(touch(d.id));p.startDeckGesture(touch(d.id));p.deckTouchMove(touch(d.id,200,205));assert.equal(p.data.paperActionOpen,false);p.deckTouchEnd();assert.equal(actions.length,2);p.onUnload();
+ p.deckTouchStart(touch(d.id));t.mock.timers.tick(999);assert.equal(p.data.paperArmedId,'');p.deckTouchEnd();assert.deepEqual(actions,[]);
+ p.deckTouchStart(touch(d.id));t.mock.timers.tick(1000);assert.equal(p.data.paperArmedId,d.id);p.deckTouchMove(touch(d.id,50,110));p.deckTouchEnd();assert.deepEqual(actions,[]);assert.equal(p.data.paperArmedId,d.id);
+ p.deckTouchStart(touch(d.id));p.deckTouchMove(touch(d.id,50,-50));assert.equal(p._paperLatest.action,'share');assert.deepEqual(actions,[]);p.deckTouchEnd();assert.deepEqual(actions,[]);t.mock.timers.tick(360);assert.deepEqual(actions,['share']);p.closePaperAction();
+ p.deckTouchStart(touch(d.id));t.mock.timers.tick(1000);p.deckTouchMove(touch(d.id,50,450));p.deckTouchEnd();t.mock.timers.tick(360);assert.deepEqual(actions,['share','confirm-delete']);p.closePaperAction();assert.equal(model.readJournals().length,1);
+ p.deckTouchStart(touch(d.id));t.mock.timers.tick(1000);p.deckTouchMove(touch(d.id,200,205));assert.equal(p.data.paperArmedId,'');p.deckTouchEnd();assert.equal(actions.length,2);p.onUnload();
 });
 
 test('sharing a composed journal creates a local forum draft and never publishes or alters the editable journal',async t=>{

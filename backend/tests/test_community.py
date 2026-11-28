@@ -156,6 +156,94 @@ def test_unknown_bird_poll_votes_replies_result_and_author_feedback(field):
     assert not updates(author) and choose(first).status_code == 404
 
 
+def test_ballot_retraction_only_removes_the_current_members_vote_and_is_idempotent(field):
+    client, (author, reader, other), staff, _store = field
+    first, second = [row["id"] for row in client.get("/api/v1/species", params={"limit": 2}).json()["items"]]
+    preview = client.post(
+        ROOT + "/previews",
+        headers=author,
+        json={"body": "这是什么鸟？", "channels": ["post"], "identification_help": True},
+    ).json()
+    record = client.post(ROOT + "/publications", headers=author, json={"preview": preview["id"]}).json()[
+        "items"
+    ][0]["id"]
+    client.post(ROOT + "/moderation/" + record, headers=staff, json={"status": "approved"})
+    path = ROOT + "/publications/" + record + "/identification/"
+    assert client.put(path + "vote", headers=reader, json={"species": first}).status_code == 200
+    assert client.put(path + "vote", headers=other, json={"species": second}).status_code == 200
+    assert client.delete(path + "vote").status_code == 401
+    result = client.delete(path + "vote", headers=reader)
+    assert result.status_code == 200
+    assert result.json()["mine"] is None and result.json()["total"] == 1
+    assert result.json()["candidates"] == [
+        {"id": second, "name": result.json()["candidates"][0]["name"], "votes": 1}
+    ]
+    assert client.delete(path + "vote", headers=reader).json() == result.json()
+    assert client.get(ROOT + "/publications/" + record, headers=other).json()["poll"]["mine"] == second
+    assert client.put(path + "vote", headers=reader, json={"species": first}).json()["total"] == 2
+    assert client.put(path + "resolve", headers=author, json={"species": second}).status_code == 200
+    assert client.delete(path + "vote", headers=reader).status_code == 409
+    assert client.get(ROOT + "/publications/" + record).json()["poll"]["total"] == 2
+
+
+def test_retraction_hides_non_polls_hidden_posts_and_blocked_relationships(field):
+    client, (author, reader, _), staff, _store = field
+    species = client.get("/api/v1/species", params={"limit": 1}).json()["items"][0]["id"]
+    for help_requested in (False, True):
+        preview = client.post(
+            ROOT + "/previews",
+            headers=author,
+            json={"body": "看见一只鸟", "channels": ["post"], "identification_help": help_requested},
+        ).json()
+        record = client.post(ROOT + "/publications", headers=author, json={"preview": preview["id"]}).json()[
+            "items"
+        ][0]["id"]
+        path = ROOT + "/publications/" + record + "/identification/vote"
+        assert client.delete(path, headers=reader).status_code == 404
+        client.post(ROOT + "/moderation/" + record, headers=staff, json={"status": "approved"})
+        if not help_requested:
+            assert client.delete(path, headers=reader).status_code == 404
+            continue
+        assert client.put(path, headers=reader, json={"species": species}).status_code == 200
+        author_id = client.get(ROOT + "/me", headers=author).json()["id"]
+        assert client.put(ROOT + "/blocks/" + author_id, headers=reader).status_code == 200
+        assert client.delete(path, headers=reader).status_code == 404
+
+
+def test_my_posts_and_bookmarks_include_the_same_reaction_counts_and_poll_as_feed(field):
+    client, (author, reader, _), staff, _store = field
+    species = client.get("/api/v1/species", params={"limit": 1}).json()["items"][0]["id"]
+    preview = client.post(
+        ROOT + "/previews",
+        headers=author,
+        json={"body": "一起辨鸟", "channels": ["post"], "identification_help": True},
+    ).json()
+    record = client.post(ROOT + "/publications", headers=author, json={"preview": preview["id"]}).json()[
+        "items"
+    ][0]["id"]
+    client.post(ROOT + "/moderation/" + record, headers=staff, json={"status": "approved"})
+    path = ROOT + "/publications/" + record
+    assert (
+        client.put(path + "/identification/vote", headers=reader, json={"species": species}).status_code
+        == 200
+    )
+    assert client.put(path + "/like", headers=reader).status_code == 200
+    assert client.put(path + "/bookmark", headers=reader).status_code == 200
+    feed = next(
+        row for row in client.get(ROOT + "/posts", headers=reader).json()["items"] if row["id"] == record
+    )
+    saved = next(
+        row for row in client.get(ROOT + "/bookmarks", headers=reader).json()["items"] if row["id"] == record
+    )
+    mine = next(
+        row for row in client.get(ROOT + "/mine", headers=author).json()["items"] if row["id"] == record
+    )
+    assert saved["poll"] == feed["poll"] and saved["reactions"] == feed["reactions"]
+    assert mine["likes"] == saved["likes"] == 1
+    assert mine["poll"]["total"] == 1 and mine["poll"]["owner"] is True
+    assert client.get(ROOT + "/mine").status_code == client.get(ROOT + "/bookmarks").status_code == 401
+
+
 def test_shared_photo_settings_are_allowlisted_and_standalone_posts_require_camera_consent(field):
     client, (author, _, _), _, _ = field
     buffer = BytesIO()
@@ -793,3 +881,51 @@ def test_observation_date_cursor_is_stable_and_cannot_be_used_for_collection_ord
     assert not cursor
     first = client.get(MAP, headers=owner, params={"sort": "recent", "limit": 1}).json()
     assert client.get(MAP, headers=owner, params={"cursor": first["nextCursor"]}).status_code == 422
+
+
+def test_map_clusters_distinguish_the_owners_private_records_without_exposing_them_to_others(field):
+    client, (author, reader, _), _staff, store = field
+    row = dict(
+        key=76001,
+        datasetKey="6ff8b3b0-ef0f-4f79-a310-5a5615c6aa0b",
+        occurrenceStatus="DETECTED",
+        species="Passer montanus",
+        eventDate="2026-11-01",
+        decimalLatitude=39.9,
+        decimalLongitude=116.4,
+        license="http://creativecommons.org/licenses/by/4.0/legalcode",
+        coordinateUncertaintyInMeters=15,
+        recordedBy="Contributor",
+    )
+    assert snapshot(store, [row]) == 1
+    species = client.get("/api/v1/species", params={"q": "树麻雀"}).json()["items"][0]["id"]
+    photo = BytesIO()
+    Image.new("RGB", (40, 30), "green").save(photo, "JPEG")
+    media = client.post(
+        ROOT + "/media", headers=author, files={"file": ("bird.jpg", photo.getvalue())}
+    ).json()["id"]
+    response = client.post(
+        OBS,
+        headers=author,
+        json={
+            "reference": "private-cluster",
+            "analysis": "analysis-private",
+            "target": 1,
+            "species": species,
+            "date": "2026-11-28",
+            "time": "07:30",
+            "point": {"latitude": 39.9, "longitude": 116.4, "system": "GCJ-02"},
+            "place": "private location",
+            "media": media,
+        },
+    )
+    assert response.status_code == 201
+    own = client.get(MAP, params={"zoom": 3}, headers=author).json()
+    other = client.get(MAP, params={"zoom": 3}, headers=reader).json()
+    assert own["total"] == 2
+    assert sorted((group["visibility"], group["count"]) for group in own["clusters"]) == [
+        ("private", 1),
+        ("public", 1),
+    ]
+    assert other["total"] == 1
+    assert all(group["visibility"] == "public" for group in other["clusters"])

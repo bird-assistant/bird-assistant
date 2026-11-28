@@ -1,4 +1,5 @@
 import type {PostImage} from './post-media';
+import {nativeDeadline} from './native-deadline';
 import {navigate} from './navigation';
 import {PhotoDetails} from './photo-details';
 import {businessOrigin,connectBusiness,forgetConnection,sendImage,VisionConnection} from './vision-network';
@@ -21,7 +22,10 @@ export function setDraft(value:Draft){draft=value;}
 export function getDraft(){return draft;}
 export function key(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);}
 const socialScreens = ['account','friends','member','inbox','chat','groups','group','blocked'];
+let forumTab='';
+export function takeForumTab(){const tab=forumTab;forumTab='';return tab;}
 export function hub(screen:string,id=''){
+  if(!id&&['mine','bookmarks'].includes(screen)){forumTab=screen;wx.switchTab({url:'/pages/community/index',fail:()=>{forumTab='';wx.showToast?.({title:'讨论页未能打开，请重试。',icon:'none'});}});return;}
   const page=socialScreens.includes(screen)?'social':'hub';
   navigate({url:'/field/'+page+'/index?screen='+encodeURIComponent(screen)+'&id='+encodeURIComponent(id)});
 }
@@ -47,15 +51,16 @@ function failure(status:number,body:any){
     HANDLE_TAKEN:'鸟友号已被使用，请换一个。',FRIENDS_ONLY:'请先成为好友。',REGISTRATION_REQUIRED:'请先完善社区账号资料。',
     UNKNOWN_BIRD_REQUIRED:'请选择未知鸟种的社区讨论帖。',SPECIES_REQUIRED:'请选择名录中的鸟种。',POLL_CLOSED:'楼主已采纳鸟种。请刷新查看结果。',
     INVALID_IMAGE:'请选择 JPEG、PNG 或 WebP 照片。',MESSAGE_UNAVAILABLE:'当前无法向该用户发送消息。'};
-  return new Error(reasons[code]||({401:'微信登录已失效。',403:'当前账号没有此权限。',404:'内容已撤回或不可见。',409:'内容已变化，请刷新后重试。',413:'照片超过上传大小限制。',422:'请检查必填项和坐标。',429:'操作频繁，请稍后重试。'} as Record<number,string>)[status]||'业务服务连接失败，请重试。');
+  return Object.assign(new Error(reasons[code]||({401:'微信登录已失效。',403:'当前账号没有此权限。',404:'内容已撤回或不可见。',409:'内容已变化，请刷新后重试。',413:'照片超过上传大小限制。',422:'请检查必填项和坐标。',429:'操作频繁，请稍后重试。'} as Record<number,string>)[status]||'业务服务连接失败，请重试。'),{statusCode:status,code:typeof code==='string'?code:'BUSINESS_REQUEST_FAILED'});
 }
 export async function api(path:string,method:Method='GET',data?:object):Promise<any>{
   const guest=method==='GET' && (path.startsWith('/api/v1/species') || (path===community+'/posts' && data && 'species' in data) || (sessionState()==='out' && (path===community+'/posts'||path===community+'/external'||path.startsWith(community+'/publications/'))));
   if(!guest)ensureSession();
   for(const refresh of [false,true]){
     const connection=guest?{origin:businessOrigin(),header:{}}:await connectBusiness(refresh);
-    const reply=await new Promise<{statusCode:number;data:any}>((resolve,reject)=>wx.request({url:connection.origin+path,
-      method,data,header:connection.header,timeout:path==='/api/v1/map/trip-plan'?60000:15000,success:resolve,fail:()=>reject(new Error('网络连接失败，请重试。'))}));
+    const timeout=path==='/api/v1/map/trip-plan'?60000:15000;
+    const reply=await nativeDeadline<{statusCode:number;data:any}>((resolve,reject)=>wx.request({url:connection.origin+path,
+      method,data,header:connection.header,timeout,success:resolve,fail:()=>reject(new Error('网络连接失败，请重试。'))}),timeout+2000,'网络响应超时，请重试。');
     if(reply.statusCode>=200&&reply.statusCode<300)return reply.data;
     if(reply.statusCode!==401||refresh)throw failure(reply.statusCode,reply.data);
   }

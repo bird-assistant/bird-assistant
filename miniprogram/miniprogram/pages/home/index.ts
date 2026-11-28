@@ -1,3 +1,4 @@
+import {beginSheetDrag,moveSheetDrag,endSheetDrag,resetSheetDrag} from '../../services/sheet-gesture';
 import {installAdaptiveSheets,fitAdaptiveSheets,stopAdaptiveSheets} from '../../services/adaptive-sheets';
 import { round2 } from '../../services/numbers';
 import { layout } from '../../services/layout';
@@ -7,15 +8,20 @@ import { places, currentPoint, mapRecords, clamp, markers, offsetFor, centerAt, 
 const tiles=Array.from({length:9},(_,i)=>({id:i,x:(i%3-1)*100,y:(Math.floor(i/3)-1)*100}));
 type Touch = WechatMiniprogram.TouchEvent;
 Page({
+  sheetDragStart(event:WechatMiniprogram.TouchEvent){beginSheetDrag(this,event);},sheetDragMove(event:WechatMiniprogram.TouchEvent){moveSheetDrag(this,event);},sheetDragEnd(){endSheetDrag(this);},sheetDragCancel(){resetSheetDrag(this);},
   holdSheet(){},
-  data: {sheetHeights:{} as Record<string,number>,mapMoving:false,searchFocused:false,screenMarkers:[] as Array<ReturnType<typeof markers>[number]&{screenX:number;screenY:number}>,focusPin:null as {screenX:number;screenY:number}|null,height:600,viewportW:390,sheetHeight:390,tiles,focusPoint:null as {x:number;y:number}|null,selectedMarkerIds:[] as string[],worldW:400,worldH:640,x:0,y:0,zoom:1,invZoom:1,markers:markers(mapRecords,400,640,1),query:'',searchOpen:false,results:places,visibility:0,date:0,species:0,visibilityOptions:['公开与我的','公开鸟讯','我的标记'],dateOptions:['所有示例日期','10月21日'],speciesOptions:['所有鸟种','树麻雀','大山雀','普通翠鸟'],region:'lake',regionName:'湖畔公园',focused:'',sheet:false,detail:null as typeof mapRecords[number]|null,sheetRecords:mapRecords.slice(0,1),saved:false,checked:false },
+  mapOverlayChange(event:WechatMiniprogram.CustomEvent<{open:boolean}>){this.setData({mapOverlay:event.detail.open});syncNavigation(this);},
+  openHomeFilter(event:Touch){const field=String(event.currentTarget.dataset.key),options=field==='visibility'?this.data.visibilityOptions:field==='date'?this.data.dateOptions:this.data.speciesOptions;this.setData({filterOpen:true,filterField:field,filterOptions:options,filterSelected:Number((this.data as Record<string,unknown>)[field])});syncNavigation(this);},
+  closeHomeFilter(){this.setData({filterOpen:false});syncNavigation(this);},
+  homeFilterChange(event:WechatMiniprogram.CustomEvent<{value:number}>){this.filter({currentTarget:{dataset:{key:this.data.filterField}},detail:{value:String(event.detail.value)}} as any);this.closeHomeFilter();},
+  data: {sheetDragStyle:'',mapOverlay:false,filterOpen:false,filterField:'',filterOptions:[] as string[],filterSelected:0,sheetHeights:{} as Record<string,number>,mapMoving:false,searchFocused:false,screenMarkers:[] as Array<ReturnType<typeof markers>[number]&{screenX:number;screenY:number}>,focusPin:null as {screenX:number;screenY:number}|null,height:600,viewportW:390,sheetHeight:390,tiles,focusPoint:null as {x:number;y:number}|null,selectedMarkerIds:[] as string[],worldW:400,worldH:640,x:0,y:0,zoom:1,invZoom:1,markers:markers(mapRecords,400,640,1),query:'',searchOpen:false,results:places,visibility:0,date:0,species:0,visibilityOptions:['公开与我的','公开鸟讯','我的标记'],dateOptions:['所有示例日期','10月21日'],speciesOptions:['所有鸟种','树麻雀','大山雀','普通翠鸟'],region:'lake',regionName:'湖畔公园',focused:'',sheet:false,detail:null as typeof mapRecords[number]|null,sheetRecords:mapRecords.slice(0,1),saved:false,checked:false },
   _gesture:null as {x:number;y:number;offsetX:number;offsetY:number;distance:number;zoom:number;moved:boolean}|null,
   _flight:null as {from:MapView;to:MapView;startedAt:number|null}|null,
   _flightTimer:null as ReturnType<typeof setTimeout>|null,
-  onLoad(){installAdaptiveSheets(this,()=>this.data.sheet);const box=layout(),w=Math.max(box.width,box.height*.625);this.setData({height:box.height,viewportW:box.width,sheetHeight:Math.min(420,box.height*.65),worldW:w,worldH:w*1.6});this.updateMap();},
+  onLoad(){resetSheetDrag(this);installAdaptiveSheets(this,()=>this.data.sheet);const box=layout(),w=Math.max(box.width,box.height*.625);this.setData({height:box.height,viewportW:box.width,sheetHeight:Math.min(420,box.height*.65),worldW:w,worldH:w*1.6});this.updateMap();},
   onResize(){fitAdaptiveSheets(this);},
   onShow(){this.resetGesture();this.stopFlight();selectTab(this,0);},
-  onHide(){this.resetGesture();this.stopFlight();this.closeSearch();},onUnload(){stopAdaptiveSheets(this);this.resetGesture();this.stopFlight();},
+  onHide(){resetSheetDrag(this);this.resetGesture();this.stopFlight();this.closeSearch();},onUnload(){stopAdaptiveSheets(this);this.resetGesture();this.stopFlight();},
   resetGesture(){this._gesture=null;},
   stopFlight(){
     if(this._flightTimer!==null){clearTimeout(this._flightTimer);this._flightTimer=null;}
@@ -48,7 +54,7 @@ Page({
   search(e:WechatMiniprogram.CustomEvent<{value:string}>){const query=e.detail.value;this.setData({query,searchOpen:true,results:places.filter(p=>!query||p.name.includes(query))});},
   searchFocus(){if(!this.data.searchOpen||!this.data.searchFocused)this.setData({searchOpen:true,searchFocused:true});},searchBlur(){if(this.data.searchFocused)this.setData({searchFocused:false});},
   searchAction(){if(this.data.searchOpen)this.closeSearch();else this.searchFocus();},
-  closeSearch(){if(this.data.searchOpen||this.data.searchFocused){this.setData({searchOpen:false,searchFocused:false});wx.hideKeyboard?.();}},
+  closeSearch(){if(this.data.searchOpen||this.data.searchFocused){this.setData({searchOpen:false,searchFocused:false});wx.hideKeyboard?.({fail:()=>{}});}},
   choosePlace(e:Touch){this.closeSearch();const p=places.find(p=>p.id===e.currentTarget.dataset.id);if(!p)return;const zoom=Math.max(.7,this.data.zoom);this.setData({focused:p.id,focusPoint:{x:p.x,y:p.y},selectedMarkerIds:[],query:p.name,sheet:true,detail:null});syncNavigation(this);this.flyTo(p,zoom,true);},
   filter(e:WechatMiniprogram.CustomEvent<{value:string}>){const key=String(e.currentTarget.dataset.key);if(['visibility','date','species'].includes(key)){this.stopFlight();this.setData({[key]:Number(e.detail.value),focused:'',focusPoint:null,selectedMarkerIds:[]});this.updateMap();}},
   openSummary(){this.closeSearch();const p=this.data.focusPoint||places.find(p=>p.id===(this.data.focused||this.data.region));this.setData({sheet:true,detail:null});syncNavigation(this);if(p)this.flyTo(p,this.data.zoom,true);},

@@ -1,0 +1,58 @@
+{
+  "version": "0.4.18",
+  "previousSourceCommit": "3d6d1cbe475b22a805771c6d7ef7161cf9fc523b",
+  "scope": [
+    "R87",
+    "R88",
+    "R89",
+    "R90"
+  ],
+  "client": {
+    "command": "npm run verify",
+    "passed": 421,
+    "failed": 0,
+    "skipped": 0,
+    "wxml": 22,
+    "wxss": 24
+  },
+  "popupHeaders": 15,
+  "sheetDismissal": {
+    "slowDistancePx": 72,
+    "fastMinDistancePx": 28,
+    "fastVelocityPxPerMs": 0.65,
+    "headerOnly": true,
+    "idleTimeout": false,
+    "nativeContentScrollPreserved": true,
+    "pageScrollLocked": true,
+    "forumNativeBackgroundScrollLocked": true
+  },
+  "fog": {
+    "leadingZonePx": 64,
+    "fullyOpaqueBeforeBoundaryPx": 16,
+    "fixedProgressGateRemoved": true,
+    "restAndDownFog": false
+  },
+  "bookmark": {
+    "face": "#285b49",
+    "border": "#e5c45b",
+    "faceAndBorderOpaque": true
+  },
+  "sourceLayout": {
+    "cases": 900,
+    "devices": 30,
+    "overflow": [],
+    "offscreenPanels": [],
+    "blockedArmedCards": [],
+    "deckBelowTabs": [],
+    "squashedCloseButtons": [],
+    "overlappingShareHints": [],
+    "draftActionsOffscreen": []
+  },
+  "backendChanges": false,
+  "nativeCompile": "NOT RUN HERE",
+  "physicalDevices": "NOT TESTED HERE",
+  "productionDeployment": false,
+  "cloudBaseActivated": false,
+  "experienceUpload": false,
+  "limits": "Browser source projection and synthetic gestures are not native touch/FPS/permission acceptance."
+}

@@ -1,3 +1,69 @@
+#0.4.18 experience checkpoint — frozen for team review
+
+The user reports uploading the current experience version. [Handoff and accepted feedback](EXPERIENCE-0.4.18-HANDOFF.md). Further work uses a separate branch; older not-uploaded statements below are pre-upload history.
+
+---
+
+# Current candidate — 0.4.18 quick popup/visual patch
+
+[Changes and quick native acceptance](POPUP-POLISH-0.4.18.md). Solid green/gold map bookmarks; green→white waves; fog fully covers dates before card contact; narrower height-derived journal cards; all15 custom sheet headers drag/flick to close, with X/backdrop retained and background scroll locked independently of content.
+
+**421 client tests;22 WXML/24 WXSS compile;900 browser source layout cases/30 sizes pass.** Full native Compile and short gesture/scroll smoke still precede experience upload. Keep existing helper terminal/AppID/private config/local data. Server/cloud scope is unchanged; next pass covers CloudBase, profile/personal notes and the six More modules. Identification/journal expansion waits for the teammate's return. All48 IDs and R01–R86 remain; newR87–R90 are in the revision. Earlier counts/behavior below are historical.
+
+---
+
+# Current candidate — 0.4.17 interaction stability
+
+28 November2026, Beijing time. [Revision and native acceptance](INTERACTION-0.4.17.md) · [CloudBase preparation](CLOUDBASE-0.4.17.md) · [friends/DM/group design](SOCIAL-0.4.17.md).
+
+Map:9-second geographic ripple without a focus pin, preserved zoom/row anchor, separate own/public counts and saved-place symbols. Calendar endpoint adjustment/cancellation and single-day cycle; shorter time sheet and richer trip history. Journal: stable viewport/edge fades/outward glow, cloud-entry threshold, **removed45-second timeout**, and share menu retained after success/cancel/native return. Shared forum interactions and legacy-list hydration; labelled voting; vertical draft deck; friend-request tabs.
+
+**416 client tests;22 WXML/24 WXSS compile; backend510 passed/53 skipped,86.76% coverage.**30 profiles×30 browser states=900source projections; native Compile, phone permissions/gestures/FPS and long-idle recovery still require acceptance. The user's accepted WeChat/forum share and right-neighbour deletion remain intact.
+
+CloudBase function source/instructions are prepared **inactive**, retaining existing business identity/permissions. No deployment/environment or client transport switch happened. Read-only probe04:47:05: writing404/404, audio404, vision200ready. Hosted withdrawal405 needs current business deployment; the original vote is preserved on failure. Full waiting/pre-capture/fusion and deferred forward-success redesign remain visible in the backlog. All48 original IDs and R01–R74 below remain; R75–R86 are in this revision. Historical0.4.16's45-second auto-release is superseded.
+
+Follow the canonical English Windows commands below. Keep the helper terminal running and retain AppID/private config, `.venv`, untracked`image/` and local data. Update the existing candidate checkout, npm ci/setup/verify, then full Compile; do not switch to the older main runtime or clear storage.
+
+
+---
+
+# Current candidate — 0.4.16 interaction follow-up
+
+28 November 2026, Beijing time. [Changes, deployment contracts and focused native acceptance](INTERACTION-0.4.16.md). All original 48 backlog IDs and R01–R64 below remain; this revision adds R65–R74. The previous 0.4.15 records below are historical.
+
+App-styled map/journal choices and a range calendar; ripple location feedback; balanced trip controls; thicker green→white journal glow, closed/open bin, staged cloud/bin departure and fade return; adaptive sharing; same-feed forum tabs with sliding selection, anchored reaction icons and explicit identification voting/withdrawal. My/profile links select the matching feed tab. Home map now exposes 收藏地点, a local bookmark, not a check-in. Cache cleanup still preserves original work.
+
+**391 client tests pass; 22 WXML/24 WXSS compile. Backend:509 passed/53 skipped,86.78% coverage.660 browser layout cases across30 supplied/custom sizes fit, with no blocked armed cards.** Browser projection, fake-time idle soak and the older bundled template compilers do not prove native WeChat touch/FPS or current DevTools full Compile. Test Pura70Pro+ and the friend's phone before uploading.
+
+R71 addresses missing bridge callbacks, excessive fallback polling and lost gesture states; the user's complete idle-freeze root cause remains open under R34 pending native evidence. R73 requires deploying DELETE identification/vote plus enriched mine/bookmarks responses; an old404/405 preserves the vote and explains the deployment gap. Writing still404/404 at02:31:36 Beijing; the active HTTPS business/proxy needs updating. The Windows helper is DevTools-only and stays running. No secrets/passwords were changed and no production deployment, team merge or experience upload was performed.
+
+Use the [canonical English Windows update commands](https://github.com/NoctisBaguette/bird-assistant-miniprogram/blob/main/docs/NEXT-STEPS.md). Keep the candidate branch, AppID and local data; run npm ci, setup, verify, then full Compile. See R65–R74 in the revision handoff for exact scope and remaining checks.
+
+---
+
+# Current candidate — 0.4.15 interaction and profile revision
+
+R64: repaired the identify zoom binding that broke Compile; mandatory strict WXML validation and bundled WeChat WCC/WCSC now compile20 WXML/22 WXSS. The earlier360-test green result missed this defect. Run npm ci before verify; still complete full DevTools Compile.
+
+28 November 2026, Beijing time. [Changes, evidence and native acceptance](INTERACTION-0.4.15.md). Built on team main a6a3f88 after merged PR27, preserving the teammate's polls, bird selector, photo gateway, Dongniao fallback, frame recovery and tab motion. Client368/368 passes. Native Compile/two-phone acceptance remains required; this candidate has not been uploaded by the assistant.
+
+The same-card one-second hold, damped share/delete drag, three-card deck, custom sharing sheet, centered locate spinner, visible plus icons, measured discovery, grouped My entries, real saved locations, protected preview-cache cleanup and safer social drafts are implemented. Latest public health: vision200 ready and current place sorting; hosted writing404/404 and audio404 remain. Settings can check hosted writing without sending photos or calling a model. R34 native auth/null errors remain open.
+
+| ID | New feedback and remaining acceptance |
+| --- | --- |
+| R57 / M01/X01 | One centered locate/loading slot; redundant floating refresh removed. Native permissions/centering acceptance pending. |
+| R58 / X01 | Real image icons with button contrast/alignment; centered discovery close and content-sized scrolling; tabs cannot cover these sheets. Native short-screen check pending. |
+| R59 / Q05/X02 | Stationary ≥1s hold on the same card, mist, damped deliberate release, horizontal/multi-touch/background cancellation; only3 cards mounted. Phone gesture/FPS acceptance pending. |
+| R60 / R43 | Custom composed-page share sheet and guarded PNG/draft/WeChat destinations. Native album/share permissions and cancellation pending; no automatic publication. |
+| R61 / A02 | Grouped My entries, real local saved places and narrowly owned rebuildable preview cleanup. Device persistence/rebuild acceptance pending; no inferred check-ins or cloud sync. |
+| R62 / F01 | Existing social APIs/polls retained; clearer inbox/groups and late-send protection. Real two-account friend/group/poll acceptance pending. |
+| R63 / Q03/X03 | Preserve latest team integrations; hosted readiness check and motion feedback. Vision health/order recovered; phone writing deployment, R34 logs and wider adaptation remain open. |
+| R64 / X01 | Identify zoom binding compile regression repaired; strict complete WXML parsing and actual WCC/WCSC gates now run in verify. Full DevTools acceptance pending. |
+
+All original48 IDs and R01–R56 below are preserved as history. Canonical Windows instructions and next actions stay in the [private English next steps](https://github.com/NoctisBaguette/bird-assistant-miniprogram/blob/main/docs/NEXT-STEPS.md). Keep the existing writing-helper terminal and AppID; do not clear local data. Current native acceptance is in the revision notes above.
+
+---
+
 27 November 2026 · **Current candidate0.4.14:** [Phone review, evidence and acceptance](PHONE-REVIEW-0.4.14.md). PR26 is merged; uploaded0.4.13 stays available for debugging. Client map/import/sheet/deck changes and bounded capture/share work are ready for native testing. Hosted writing404, vision502 and old global ordering remain open. All existing backlog IDs below are preserved.
 
 | ID | Phone-feedback work and current boundary |

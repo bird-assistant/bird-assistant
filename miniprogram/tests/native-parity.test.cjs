@@ -34,7 +34,7 @@ test('all 1–6 photo compositions fit every ratio and style without image or ca
 });
 test('changing page ratio reflows linked photos and captions while preserving content, crop and undo',()=>{
   let option=1;const {p}=page('journal',390,844,{showActionSheet:o=>o.success({tapIndex:option})});p.sample();p.generate();const photo=p.data.doc.elements.find(e=>e.type==='photo');photo.zoom=2.25;photo.cropX=73.5;const before=structuredClone(p.data.doc);
-  for(const choice of [1,2]){option=choice;p.layoutRatio();const changed=p.data.doc.elements.find(e=>e.id===photo.id);assert.equal(changed.zoom,2.25);assert.equal(changed.cropX,73.5);for(const e of p.data.doc.elements.filter(e=>e.photoId)){const image=p.data.doc.elements.find(a=>a.id===e.photoId);assert.equal(e.x,image.x);assert.equal(e.w,image.w);assert.ok(e.y>=image.y+image.h);assert.ok(e.y+e.h<=p.data.doc.height);}p.undo();assert.deepEqual(p.data.doc,before);}
+  for(const choice of [1,2]){option=choice;p.layoutRatio();p.chooseJournalChoice({detail:{value:choice}});assert.equal(p.data.doc.ratio,['3:4','1:1','4:3'][choice]);const changed=p.data.doc.elements.find(e=>e.id===photo.id);assert.equal(changed.zoom,2.25);assert.equal(changed.cropX,73.5);for(const e of p.data.doc.elements.filter(e=>e.photoId)){const image=p.data.doc.elements.find(a=>a.id===e.photoId);assert.equal(e.x,image.x);assert.equal(e.w,image.w);assert.ok(e.y>=image.y+image.h);assert.ok(e.y+e.h<=p.data.doc.height);}p.undo();assert.deepEqual(p.data.doc,before);}
 });
 test('background selection is separate from elements and paper-color changes undo without deletion',()=>{
   const {p}=page('journal');p.sample();p.generate();p.select(tap(p.data.doc.elements[1].id));const count=p.data.doc.elements.length,history=p._past.length,color=p.data.doc.background;
@@ -59,7 +59,7 @@ test('home touch ownership leaves controls, search and all sheet exits outside t
     if(!tag.endsWith('/>'))stack.push(node);
   }
   assert.equal(stack.length,0);
-  const touchKeys=a=>Object.keys(a).filter(k=>/^(bind|catch)(:)?touch/.test(k)&&!(k==='catchtouchmove'&&a[k]==='holdSheet'));
+  const touchKeys=a=>Object.keys(a).filter(k=>/^(bind|catch)(:)?touch/.test(k)&&!(k==='catchtouchmove'&&a[k]==='holdSheet')&&!(/^sheetDrag/.test(a[k])&&a['data-dismiss']==='closeSheet'));
   const surfaces=nodes.filter(n=>touchKeys(n.attrs).length);assert.equal(surfaces.length,1);assert.equal(surfaces[0].attrs.class,'map-gesture');
   const actions=nodes.filter(n=>['button','input','picker','scroll-view','app-header'].includes(n.tag)||n.attrs.catchtap==='closeSheet');assert.ok(actions.length>=17);
   for(const action of actions)for(const ancestor of [action,...action.parents])assert.equal(touchKeys(ancestor.attrs).length,0,action.tag+' must not be trapped by '+ancestor.attrs.class);

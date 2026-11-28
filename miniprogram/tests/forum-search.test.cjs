@@ -13,35 +13,14 @@ function page(name,data={}){
 }
 const tap=(op,id)=>({currentTarget:{dataset:{op,id}}});
 
-test('identification posts keep a failed ballot and submit species-only votes or moderated explanations',async t=>{
-  const requests=[];
-  let fail=true;
+test('identification voting has explicit confirmation and attached reply species do not silently cast a ballot',async t=>{
+  const requests=[];let fail=true;
   const poll={total:1,candidates:[{id:'owl',name:'短耳鸮',votes:1}],mine:'owl',result:null};
   t.mock.method(service,'sessionState',()=> 'out');
-  t.mock.method(service,'api',async(path,method,body)=>{
-    if(method==='PUT'||method==='POST'){
-      requests.push({path,method,body});
-      if(fail)throw Error('offline');
-      return method==='PUT'?poll:{id:'r1',status:'pending'};
-    }
-    return {id:'post',channel:'post',poll,replies:[]};
-  });
-  const hub=page('field/hub',{screen:'record',id:'post',record:{poll},replySpecies:'owl',selectedSpecies:'短耳鸮'});
-  await hub.action(tap('reply'));
-  assert.equal(hub.data.replySpecies,'owl');
-  fail=false;
-  await hub.action(tap('reply'));
-  assert.equal(requests[1].path,'/api/v1/community/publications/post/identification/vote');
-  assert.deepEqual(requests[1].body,{species:'owl'});
-  assert.equal(hub.data.replySpecies,'');
-  assert.equal(hub.data.record.pollPreview,'短耳鸮 1票');
-  hub.chooseReplySpecies({detail:{id:'owl',name:'短耳鸮'}});
-  hub.setData({body:'脸盘圆，眼周深色'});
-  await hub.action(tap('reply'));
-  assert.equal(requests[2].body.identification_vote,true);
-  assert.equal(requests[2].body.body,'脸盘圆，眼周深色');
-  assert.match(hub.data.notice,/待审核/);
-  hub.onUnload();
+  t.mock.method(service,'api',async(path,method,body)=>{if(method==='PUT'||method==='POST'){requests.push({path,method,body});if(fail)throw Error('offline');return method==='PUT'?poll:{id:'r1',status:'pending'};}return {id:'post',channel:'post',poll,replies:[]};});
+  const hub=page('field/hub',{screen:'record',id:'post',record:{poll:{...poll,mine:null}}});hub.choosePollSpecies({detail:{id:'owl',name:'短耳鸮'}});assert.equal(requests.length,0);
+  await hub.submitPollVote();assert.equal(hub.data.pollSelection,'owl');assert.match(hub.data.pollError,/offline/);fail=false;await hub.submitPollVote();assert.equal(requests[1].path,'/api/v1/community/publications/post/identification/vote');assert.deepEqual(requests[1].body,{species:'owl'});assert.equal(hub.data.record.poll.mine,'owl');
+  hub.chooseReplySpecies({detail:{id:'owl',name:'短耳鸮'}});hub.setData({body:'脸盘圆，眼周深色'});await hub.action(tap('reply'));assert.equal(requests[2].body.identification_vote,undefined);assert.equal(requests[2].body.species,'owl');assert.equal(requests[2].body.body,'脸盘圆，眼周深色');assert.match(hub.data.notice,/审核/);assert.equal(hub.data.pendingReplies[0].status,'pending');hub.onUnload();
 });
 
 test('a help request cannot silently become an ordinary post on an older server',async t=>{
@@ -184,8 +163,8 @@ test('a search near the bottom opens above its field and ignores a measurement a
   const entry=require.resolve('../.test-build/components/species-search/index.js');delete require.cache[entry];require(entry);
   global.wx={getWindowInfo:()=>({windowHeight:600}),createSelectorQuery:()=>({in(){return this;},select(){return this;},boundingClientRect(fn){callback=fn;return this;},exec(){}})};
   const instance={data:{...structuredClone(definition.data),selectedIds:[]},...definition.methods,setData(v){Object.assign(this.data,v);}};
-  definition.lifetimes.attached.call(instance);callback({top:490,bottom:536});assert.equal(instance.data.above,true);assert.equal(instance.data.listHeight,240);
-  instance.resizeResults();callback({top:100,bottom:146});assert.equal(instance.data.above,false);assert.equal(instance.data.listHeight,240);
+  definition.lifetimes.attached.call(instance);callback({top:490,bottom:536});assert.equal(instance.data.above,true);assert.equal(instance.data.listHeight,54);assert.equal(instance.data.availableHeight,240);
+  instance.resizeResults();callback({top:100,bottom:146});assert.equal(instance.data.above,false);assert.equal(instance.data.listHeight,54);assert.equal(instance.data.availableHeight,240);
   instance.resizeResults();definition.lifetimes.detached.call(instance);const before=structuredClone(instance.data);callback({top:490,bottom:536});assert.deepEqual(instance.data,before);
 });
 

@@ -1,0 +1,8 @@
+{
+  "name": "bird-assistant-gateway",
+  "version": "0.4.17",
+  "private": true,
+  "main": "index.js",
+  "engines": {"node": ">=18"},
+  "dependencies": {"wx-server-sdk": "4.0.2"}
+}

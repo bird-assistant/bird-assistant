@@ -1,0 +1,78 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const api=require('../.test-build/services/community.js');
+const model=require('../.test-build/services/journal-model.js');
+const storage=require('../.test-build/services/journal-storage.js');
+const settle=()=>new Promise(resolve=>setImmediate(resolve));
+const tap=(key,value)=>({currentTarget:{dataset:{[key]:value}}});
+const finger=(id,x=100,y=400)=>({...tap('id',id),touches:[{clientX:x,clientY:y}]});
+function environment(extra={}){const values=new Map();global.wx={getStorageSync:key=>structuredClone(values.get(key)??''),setStorageSync:(key,value)=>values.set(key,structuredClone(value)),removeStorageSync:key=>values.delete(key),getWindowInfo:()=>({windowWidth:390,windowHeight:844,screenHeight:844,statusBarHeight:24,safeArea:{bottom:824}}),getMenuButtonBoundingClientRect:()=>({top:30,bottom:62,left:270}),getDeviceInfo:()=>({platform:'android'}),getAppBaseInfo:()=>({}),getFileSystemManager:()=>({accessSync(){},mkdirSync(){},unlink(){}}),env:{USER_DATA_PATH:'/user'},nextTick:fn=>fn(),pageScrollTo(){},hideKeyboard(){},showToast(){},setNavigationBarTitle(){},canIUse:()=>false,...extra};return values;}
+function page(path){let definition;global.Page=value=>definition=value;const file=require.resolve('../.test-build/'+path+'/index.js');delete require.cache[file];require(file);const p={data:structuredClone(definition.data),getTabBar:()=>({setData(){}}),setData(value,done){Object.assign(this.data,value);done?.();}};for(const[k,v]of Object.entries(definition))if(k!=='data')p[k]=typeof v==='function'?v.bind(p):structuredClone(v);return {p,definition};}
+function component(name,properties={}){let d;global.Component=value=>d=value;const file=require.resolve('../.test-build/components/'+name+'/index.js');delete require.cache[file];require(file);const p={...d.methods,data:{...Object.fromEntries(Object.entries(d.properties||{}).map(([k,v])=>[k,structuredClone(v.value)])),...structuredClone(d.data),...properties},setData(value,done){Object.assign(this.data,value);done?.();},triggerEvent(){}};return {p,d};}
+function journal(t){t.mock.timers.enable({apis:['Date','setTimeout'],now:1000});environment();const {p}=page('pages/journal');p.onLoad();const doc=model.makeJournal([],'Recovery');storage.saveJournalState(doc,storage.editorHistory([],[]));p.onShow();t.after(()=>p.onUnload());return {p,id:doc.id};}
+
+test('geographic ripples repeat for nine seconds at the same point and scale with zoom instead of becoming a pin',()=>{
+ const {mapRippleCircles,MAP_RIPPLE_MS}=require('../.test-build/services/map-effects.js'),point={latitude:40,longitude:116.3,started:1000,color:'#477e65'};
+ const a=mapRippleCircles(point,1400,12),b=mapRippleCircles(point,1400,13);assert.equal(a.length,3);assert.equal(a[0].latitude,40);assert.equal(a[1].radius,b[1].radius*2);assert.notDeepEqual(a,mapRippleCircles(point,1800,12));assert.equal(mapRippleCircles(point,1000+MAP_RIPPLE_MS,13).length,0);
+});
+test('sighting focus preserves the actual native scale, anchors its existing row and survives a map gesture until replaced',async t=>{
+ t.mock.timers.enable({apis:['Date','setTimeout'],now:1000});environment({createMapContext:()=>({getScale:o=>o.success({scale:10.75}),moveToLocation:o=>o.complete?.()})});const {p,d}=component('field-map');t.after(()=>d.lifetimes.detached.call(p));p.queueLoad=()=>{};p.watchViewport=()=>{};p.data._ready=true;p.data.selected=[{id:'old',date:'2026-11-28'},{id:'focus',speciesName:'鸳鸯',visibility:'public',precisionLabel:'约十公里公开区域',displayLocation:{latitude:40,longitude:116.4}}];
+ await p.focusRecord(tap('id','focus'));assert.equal(p.data.scale,10.75);assert.equal(p.data.recordAnchor,'map-record-1');assert.equal(p.data.selected[0].id,'old');assert.equal(p.data.recordFocusLocked,true);assert.equal(p.data.circles.length,3);p.moved({detail:{type:'begin',causedBy:'drag'}});t.mock.timers.tick(4000);assert.equal(p.data.circles.length,3);assert.equal(p.data.selected[1].id,'focus');p.moved({detail:{type:'end',causedBy:'drag',scale:12}});t.mock.timers.tick(5100);assert.equal(p.data.circles.length,0);assert.equal(p.data.recordFocusLocked,true);p.expandList();assert.equal(p.data.recordFocusLocked,false);
+});
+test('a new location replaces the old ripple and opening the list ends it before nine seconds',t=>{
+ t.mock.timers.enable({apis:['Date','setTimeout'],now:1000});environment();const {p,d}=component('field-map');t.after(()=>d.lifetimes.detached.call(p));p.showRecords=async()=>{};p.startMapRipple({latitude:40,longitude:116});t.mock.timers.tick(400);p.startMapRipple({latitude:31,longitude:121});assert.equal(p.data.circles[0].latitude,31);p.list();assert.equal(p.data.circles.length,0);t.mock.timers.tick(10000);assert.equal(p.data.circles.length,0);
+});
+test('bookmarked coordinates render their own native marker without blocking ordinary records when their index is unreadable',()=>{
+ environment();const places=require('../.test-build/services/saved-places.js');const saved=places.savePlace({name:'湿地',address:'入口',latitude:31.2,longitude:121.5});const {p}=component('field-map');p.renderClusters(12);assert.ok(p.data.markers.some(row=>row.latitude===saved.latitude&&row.iconPath.endsWith('map-bookmark.png')));global.wx.getStorageSync=()=>({broken:true});assert.doesNotThrow(()=>p.renderClusters(12));
+});
+test('map date presets cover week month season year with inclusive Beijing dates and no today-only option',()=>{
+ const {mapDateRange}=require('../.test-build/services/map-effects.js');assert.deepEqual(mapDateRange(0,'2026-11-28'),{startDate:'',endDate:''});assert.deepEqual(mapDateRange(1,'2026-11-28'),{startDate:'2026-11-22',endDate:'2026-11-28'});assert.equal(mapDateRange(4,'2026-11-28').startDate,'2025-11-29');environment();assert.equal(component('field-map').p.data.periods.length,5);assert.ok(!component('field-map').p.data.periods.includes('今天'));
+});
+test('public and private clusters at identical coordinates keep separate counts and query scopes',()=>{
+ const {spacedClusters}=require('../.test-build/services/map-clusters.js'),{MapTargets}=require('../.test-build/services/map-targets.js');const point={latitude:40,longitude:116,minLatitude:40,maxLatitude:40,minLongitude:116,maxLongitude:116};const rows=spacedClusters([{...point,count:3,visibility:'public'},{...point,count:2,visibility:'private'}],12);assert.equal(rows.length,2);const targets=new MapTargets(),ids=targets.assign(rows,{scope:'all'},12);for(let i=0;i<rows.length;i++)assert.equal(targets.get(ids[i]).query.scope,rows[i].visibility==='private'?'mine':'public');
+});
+test('same-day calendar selection cycles start, diagonal one-day range, then clear; endpoint cancellation preserves the other date',()=>{
+ environment();const {p,d}=component('date-calendar');d.observers.open.call(p,true);p.select(tap('date','2026-11-12'));assert.equal(p.data.draftTo,'');p.select(tap('date','2026-11-12'));assert.equal(p.data.cells.find(row=>row.value==='2026-11-12').single,true);p.select(tap('date','2026-11-12'));assert.equal(p.data.draftFrom,'');assert.equal(p.data.draftTo,'');p.select(tap('date','2026-11-10'));p.select(tap('date','2026-11-18'));p.select(tap('date','2026-11-10'));assert.equal(p.data.draftFrom,'');assert.equal(p.data.draftTo,'2026-11-18');p.select(tap('date','2026-11-09'));assert.equal(p.data.draftTo,'2026-11-18');assert.equal(p.data.draftFrom,'2026-11-09');
+});
+test('calendar endpoint adjustment preserves the other endpoint and a range band continues underneath both selected faces',()=>{
+ environment();const {p,d}=component('date-calendar',{from:'2026-11-10',to:'2026-11-20'});d.observers.open.call(p,true);p.select(tap('date','2026-11-11'));assert.equal(p.data.draftTo,'2026-11-20');assert.equal(p.data.activeEdge,'end');p.select(tap('date','2026-11-22'));assert.equal(p.data.draftFrom,'2026-11-11');assert.equal(p.data.activeEdge,'');assert.equal(p.data.cells.find(row=>row.value==='2026-11-11').band,true);assert.equal(p.data.cells.find(row=>row.value==='2026-11-22').band,true);
+});
+test('long time lists have a four-row body and keep the selected hour as the native scroll anchor',()=>{
+ environment();const {p,d}=component('choice-sheet',{options:Array.from({length:24},(_,i)=>String(i)),maxBody:216,selected:16});d.observers['open, options, maxBody'].call(p,true,p.data.options,p.data.maxBody);assert.equal(p.data.bodyHeight,216);assert.match(readFileSync('miniprogram/components/choice-sheet/index.wxml','utf8'),/scroll-into-view="choice-{{selected}}"/);
+});
+test('the reported 45-second partial journal hold remains operable and blank cancellation releases the next ordinary tap',t=>{
+ const {p,id}=journal(t);p.deckTouchStart(finger(id));t.mock.timers.tick(1000);p.deckTouchMove(finger(id,100,370));t.mock.timers.tick(60000);assert.equal(p.data.paperArmedId,id);p.cancelPaper();assert.equal(p._paperTouch,null);assert.equal(p._paperSuppressTap,false);let opened=0;p.openDraft=()=>opened++;p.deckCard({...tap('id',id),currentTarget:{dataset:{id,index:0}}});assert.equal(opened,1);assert.equal(p.data.paperPhase,'');
+});
+test('upward paper stays opaque until it meets the cloud; downward movement has no cloud',t=>{
+ const {p,id}=journal(t);p.deckTouchStart(finger(id));t.mock.timers.tick(1000);p._paperOrigin=700;p._paperCardHeight=320;p._paperCardWidth=280;p._paperCloudBottom=300;p._paperShareY=-436;p.deckTouchMove(finger(id,100,360));assert.equal(p.data.paperFog,0);t.mock.timers.tick(20);assert.match(p.data.paperDragStyle,/opacity:1/);p.deckTouchMove(finger(id,100,140));t.mock.timers.tick(20);assert.equal(p.data.paperFog,1);p.deckTouchMove(finger(id,100,650));t.mock.timers.tick(20);assert.equal(p.data.paperFog,0);
+});
+test('home deck sizing depends on available frame height rather than page scroll position',t=>{
+ const {p}=journal(t);let callback;global.wx.createSelectorQuery=()=>({select(){return this;},boundingClientRect(fn){callback=fn;return this;},exec(){}});p.fitDeck();callback({top:400,height:360});const h=p.data.deckHeight;p.fitDeck();callback({top:260,height:360});assert.equal(p.data.deckHeight,h);assert.equal(h,298);p.fitDeck();callback({top:260,height:0});assert.equal(p.data.deckHeight,h);
+});
+test('closing a share destination returns to the sheet, background/native return releases busy state, and explicit close fades the deck back',async t=>{
+ const {p,id}=journal(t),canvas=require('../.test-build/services/canvas.js'),render=require('../.test-build/services/journal-render.js');t.mock.method(canvas,'getCanvas',async()=>({}));t.mock.method(canvas,'exportCanvas',async()=>'/tmp/share.png');t.mock.method(render,'renderJournal',async()=>{});global.wx.showShareImageMenu=o=>{p.onHide();p.onShow();o.fail({errMsg:'showShareImageMenu:fail cancel'});};p.shareJournal(tap('id',id));p.data.paperVisualId=id;p.data.paperPhase='hidden';await p.shareJournalImage(id,2);assert.equal(p.data.shareOpen,true);assert.equal(p.data.exporting,false);assert.equal(p.data.paperPhase,'hidden');p.closeShare();assert.equal(p.data.paperPhase,'returning');t.mock.timers.tick(340);assert.equal(p.data.paperPhase,'');assert.equal(p._paperSuppressTap,false);
+});
+test('forum page definitions contain no Map or Set free data that WeChat would deep-clone incorrectly',()=>{
+ environment();const {p,definition}=page('pages/community');for(const value of Object.values(definition))assert.ok(!(value instanceof Map||value instanceof Set));p.onLoad();assert.equal(p._feedCache,undefined);p.onUnload();
+});
+test('legacy bookmark lists retain shared reactions and hydrate omitted counts from detail with bounded work',async t=>{
+ environment();api.setSession(true);const {p}=page('pages/community');p.onLoad();const row={id:'post',channel:'post',body:'正文',likes:4,replyCount:2,reactions:['like','bookmark'],poll:{total:2,candidates:[]}};const calls=[];t.mock.method(api,'api',async path=>{calls.push(path);if(path.endsWith('/bookmarks'))return {items:[{id:'post',channel:'post',body:'正文'}]};if(path.endsWith('/post'))return row;return {items:[row]};});await p.loadFeed();p.switchFeed(tap('tab','bookmarks'));await settle();assert.equal(p.data.remotePosts[0].likes,4);assert.equal(p.data.remotePosts[0].replyCount,2);assert.equal(p.data.remotePosts[0].favorited,true);assert.equal(p.data.remotePosts[0].liked,true);assert.equal(p.data.remotePosts[0].poll.total,2);assert.ok(calls.some(path=>path.endsWith('/publications/post')));p.onUnload();
+});
+test('a stale interaction response cannot erase another reaction or overwrite a later mutation during list hydration',()=>{
+ environment();api.setSession(true);const state=require('../.test-build/services/forum-state.js');state.rememberForumPost({id:'post',likes:0,reactions:[]});const stamp=state.forumReadStamp();state.patchForumReaction('post','like',true,1);state.patchForumReaction('post','bookmark',true);const row=state.rememberForumPost({id:'post',likes:0,reactions:[]},stamp);assert.equal(row.likes,1);assert.deepEqual(new Set(row.reactions),new Set(['like','bookmark']));state.patchForumReaction('post','bookmark',false);const updated=state.rememberForumPost({id:'post'});assert.equal(updated.bookmarked,false);assert.deepEqual(updated.reactions,['like']);api.setSession(false);assert.equal(state.rememberForumPost({id:'post'}).likes,undefined);
+});
+test('consultation deletion is local to one account and approximate region labels never invent a district',()=>{
+ environment();const {approximateRegion}=require('../.test-build/services/region-label.js');assert.match(approximateRegion({latitude:40,longitude:116.3}),/北京/);assert.equal(approximateRegion({latitude:0,longitude:0}),'');assert.doesNotMatch(approximateRegion({latitude:40,longitude:116.3}),/海淀/);
+ const history=require('../.test-build/field/services/trip-history.js'),row={id:'history',updated:'2026-11-28T00:00:00Z',conditions:{point:{latitude:40,longitude:116.3},place:'北京',date:'2026-11-28',hour:7,hours:2,radius:30,species:'',speciesLabel:'所有鸟种'},turns:[{question:'去哪看鸟',saved:'2026-11-28T00:00:00Z',plan:{answer:'沿湖观察',turn:'turn',start:'2026-11-28T00:00:00Z',end:'2026-11-28T02:00:00Z'}}]};history.saveTripHistory('account-a',row);history.saveTripHistory('account-b',row);history.removeTripHistory('account-a','history');assert.equal(history.readTripHistory('account-a').length,0);assert.equal(history.readTripHistory('account-b').length,1);
+});
+test('a native image preview rejecting null is observed once and keeps the content available',async()=>{
+ let failures=0;environment({previewImage:()=>Promise.reject(null)});require('../.test-build/services/native-ui.js').previewMedia(['/tmp/photo.png'],undefined,()=>failures++);await settle();assert.equal(failures,1);
+});
+
+test('the source gate rejects the exact WeChat free-data Map regression and allows lifecycle or module caches',async()=>{
+ const {assertRuntimeSyntax}=await import('../scripts/runtime-syntax.mjs');assert.throws(()=>assertRuntimeSyntax('Page({_feedCache:new Map(),onLoad(){}})'),/non-plain Page/);assert.throws(()=>assertRuntimeSyntax('Component({data:{cache:new Set()}})'),/non-plain Page/);assert.doesNotThrow(()=>assertRuntimeSyntax('const caches=new WeakMap();Page({cache:null,onLoad(){this.cache=new Map();}})'));
+});
+test('projecting a cached forum row cannot overwrite a newer detail reaction',()=>{
+ environment();const state=require('../.test-build/services/forum-state.js');const id='cached-detail-race-0417',cached={id,likes:1,replyCount:0,reactions:[]};state.rememberForumPost(cached);state.patchForumReaction(id,'like',true,2);const projected=state.knownForumPost(cached);assert.equal(projected.likes,2);assert.deepEqual(projected.reactions,['like']);assert.equal(state.rememberForumPost({id}).likes,2);
+});

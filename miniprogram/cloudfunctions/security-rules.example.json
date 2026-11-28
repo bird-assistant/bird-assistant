@@ -1,0 +1,8 @@
+{
+  "*": {
+    "invoke": false
+  },
+  "birdGateway": {
+    "invoke": "auth != null && auth.loginType != 'ANONYMOUS'"
+  }
+}

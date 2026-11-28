@@ -1,3 +1,4 @@
+import {publicGuideCacheInfo,clearPublicGuideCache} from '../../services/public-guide-photos';
 import {readSavedPlaces,savePlace,removeSavedPlace,SavedPlace} from '../../services/saved-places';
 import {previewCacheInfo,clearPreviewCache,PreviewCacheInfo} from '../../services/preview-cache';
 import {connectBusiness} from '../../services/vision-network';
@@ -24,23 +25,23 @@ const avatars = [
 ];
 
 const menuGroups=[
-  {title:'记录与手帐',ids:['journal','history','collection','places','tripHistory']},
+  {title:'记录与手帐',ids:['notes','journal','history','collection','places','tripHistory']},
   {title:'鸟友社区',ids:['publications','saved','friends','chat','groups','cloud']},
-  {title:'账号与偏好',ids:['account','badges','settings']}
+  {title:'账号与偏好',ids:['account','badges','backup','settings']}
 ];
-const menu=[{id:'journal',icon:'journal',name:'我的手帐'},{id:'account',icon:'user',name:'社区账号与隐私'},{id:'groups',icon:'chat',name:'观鸟群聊'},{id:'cloud',icon:'pin',name:'云端私人观察'},{id:'publications',icon:'leaf',name:'我的社区发布'},{id:'history',icon:'clock',name:'观察与识别历史'},{id:'tripHistory',icon:'leaf',name:'观鸟咨询记录'},{id:'collection',icon:'collection',name:'收藏的本机观察'},{id:'saved',icon:'collection',name:'社区内容书签'},{id:'places',icon:'pin',name:'收藏地点'},{id:'friends',icon:'user',name:'我的好友'},{id:'chat',icon:'chat',name:'私信与通知'},{id:'badges',icon:'leaf',name:'徽章与成长'},{id:'settings',icon:'settings',name:'设置与缓存'}];
+const menu=[{id:'backup',icon:'image',name:'本机备份与恢复'},{id:'notes',icon:'journal',name:'我的随手记'},{id:'journal',icon:'journal',name:'我的手帐'},{id:'account',icon:'user',name:'社区账号与隐私'},{id:'groups',icon:'chat',name:'观鸟群聊'},{id:'cloud',icon:'pin',name:'云端私人观察'},{id:'publications',icon:'leaf',name:'我的社区发布'},{id:'history',icon:'clock',name:'观察与识别历史'},{id:'tripHistory',icon:'leaf',name:'观鸟咨询记录'},{id:'collection',icon:'collection',name:'收藏的本机观察'},{id:'saved',icon:'collection',name:'社区内容书签'},{id:'places',icon:'pin',name:'收藏地点'},{id:'friends',icon:'user',name:'我的好友'},{id:'chat',icon:'chat',name:'私信与通知'},{id:'badges',icon:'leaf',name:'徽章与成长'},{id:'settings',icon:'settings',name:'设置与缓存'}];
 Page({
-  data: {localCloudId:'',localChannels:[] as {channel:string;status:string;reason:string;id:string}[],localStatusError:'',communityName:'',communityAvatar:'',numberEditing:'',numberDrafts:{} as Record<string,string>,cropBusy:false,name:'观鸟者',avatar:'/assets/avatars/owl.png',draftName:'',draftAvatar:'',edit:false,busy:false,avatarPersisted:true,error:'',records:[] as RecordView[],avatars,nativeAvatar:wx.canIUse('button.open-type.chooseAvatar'),view:'profile',observationCount:0,speciesCount:0,favoriteCount:0,favorites:[] as string[],shownRecords:[] as RecordView[],detail:null as RecordView|null,crop:false,cropPath:'',cropWidth:0,cropHeight:0,cropDisplayW:220,cropDisplayH:220,cropZoom:1,cropRotation:0,cropX:0,cropY:0,storageKB:0,menu,menuGroups:menuGroups.map(group=>({title:group.title,items:group.ids.map(id=>menu.find(item=>item.id===id)!)})),pageTitle:'羽迹',savedPlaces:[] as Array<SavedPlace&{dateLabel:string}>,placesBusy:false,cacheInfo:null as PreviewCacheInfo|null,cacheError:'',cacheNotice:'',writingChecking:false,writingStatus:'',writingReady:false,savedPosts:[] as Array<{id:string;title:string}>},
+  data: {identityLoading:false,identityError:'',communityHandle:'',communityMemberId:'',communityActive:false,guideCacheInfo:null as {files:number;kilobytes:number}|null,guideCacheError:'',guideCacheNotice:'',localCloudId:'',localChannels:[] as {channel:string;status:string;reason:string;id:string}[],localStatusError:'',communityName:'',communityAvatar:'',numberEditing:'',numberDrafts:{} as Record<string,string>,cropBusy:false,name:'观鸟者',avatar:'/assets/avatars/owl.png',draftName:'',draftAvatar:'',edit:false,busy:false,avatarPersisted:true,error:'',records:[] as RecordView[],avatars,nativeAvatar:wx.canIUse('button.open-type.chooseAvatar'),view:'profile',observationCount:0,speciesCount:0,favoriteCount:0,favorites:[] as string[],shownRecords:[] as RecordView[],detail:null as RecordView|null,crop:false,cropPath:'',cropWidth:0,cropHeight:0,cropDisplayW:220,cropDisplayH:220,cropZoom:1,cropRotation:0,cropX:0,cropY:0,storageKB:0,menu,menuGroups:menuGroups.map(group=>({title:group.title,items:group.ids.map(id=>menu.find(item=>item.id===id)!)})),pageTitle:'羽迹',savedPlaces:[] as Array<SavedPlace&{dateLabel:string}>,placesBusy:false,cacheInfo:null as PreviewCacheInfo|null,cacheError:'',cacheNotice:'',writingChecking:false,writingStatus:'',writingReady:false,savedPosts:[] as Array<{id:string;title:string}>},
   _pickToken: 0,_visible:false,_profileGeneration:0,_writingCheck:0,
   _player:null as LocalAudioPlayback|null,
   _cropDrag:null as {x:number;y:number;offsetX:number;offsetY:number}|null,
   onShow() {
     this._visible=true;const generation=++this._profileGeneration,revision=sessionRevision();
     selectTab(this, 4);
-    this.setData({communityName:'',communityAvatar:''});
+    this.setData({communityName:'',communityAvatar:'',communityHandle:'',communityMemberId:'',communityActive:sessionState()==='active',identityLoading:sessionState()==='active',identityError:''});
     if(sessionState()==='active')void api(community+'/account').then(account=>{
-      if(this._visible&&generation===this._profileGeneration&&revision===sessionRevision()&&sessionState()==='active'&&account.profile)this.setData({communityName:account.profile.nickname,communityAvatar:'/assets/avatars/'+account.profile.avatar+'.png'});
-    }).catch(()=>{});
+      if(this._visible&&generation===this._profileGeneration&&revision===sessionRevision()&&sessionState()==='active')this.setData({identityLoading:false,communityMemberId:account.id,communityHandle:account.profile?.handle||'',communityName:account.profile?.nickname||'',communityAvatar:account.profile?'/assets/avatars/'+account.profile.avatar+'.png':''});
+    }).catch(()=>{if(this._visible&&generation===this._profileGeneration&&revision===sessionRevision())this.setData({identityLoading:false,identityError:'社区资料暂未读取成功，可打开社区账号重试。'});});
     if (this.data.edit) return;
     try {
       const repository = localRepository(), profile = repository.profile();
@@ -92,6 +93,8 @@ Page({
   },
   menu(e:WechatMiniprogram.TouchEvent){
     const view=String(e.currentTarget.dataset.id);
+    if(view==='backup'){navigate({url:'/field/backup/index'});return;}
+    if(view==='notes'){navigate({url:'/field/notes/index'});return;}
     if(view==='journal'){wx.switchTab({url:'/pages/journal/index'});return;}
     if(view==='tripHistory'){navigate({url:'/field/trip/index?history=1'});return;}
     const item=this.data.menu.find(m=>m.id===view),destinations:Record<string,string>={friends:'friends',account:'account',groups:'groups',chat:'inbox',badges:'growth',saved:'bookmarks',cloud:'observations',publications:'mine'};
@@ -116,8 +119,13 @@ Page({
     wx.showModal({title:'移除收藏地点？',content:place.name,confirmText:'移除',success:reply=>{if(!reply.confirm||this.data.view!=='places')return;try{removeSavedPlace(place.id);this.loadPlaces();}catch(error){this.setData({error:errorText(error)});}}});
   },
   refreshSettings(){
+    try{this.setData({guideCacheInfo:publicGuideCacheInfo(),guideCacheError:''});}catch(error){this.setData({guideCacheInfo:null,guideCacheError:errorText(error)});}
     try{this.setData({storageKB:wx.getStorageInfoSync().currentSize,cacheInfo:previewCacheInfo(),cacheError:''});}
     catch(error){this.setData({cacheInfo:null,cacheError:errorText(error)});}
+  },
+  cleanGuideCache(){
+    try{const result=clearPublicGuideCache();this.setData({guideCacheNotice:'已清理 '+result.removed+' 张公开图鉴照片'+(result.remaining?'，'+result.remaining+' 张稍后可重试清理':'')+'。',guideCacheError:''});this.refreshSettings();}
+    catch(error){this.setData({guideCacheError:errorText(error)});}
   },
   cleanPreviewCache(){
     if(!this.data.cacheInfo)return;

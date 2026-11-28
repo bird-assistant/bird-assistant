@@ -12,7 +12,8 @@
     </view>
   </view>
   <view class="map-canvas" style="top:{{toolbarHeight}}px;height:{{mapHeight}}px">
-    <map show-location="{{showUserLocation}}" id="field-map" latitude="{{latitude}}" longitude="{{longitude}}" scale="{{scale}}" markers="{{markers}}" circles="{{circles}}" bindregionchange="moved" bindupdated="mapUpdated" bindtap="closeSearch" bindmarkertap="marker" bindcallouttap="marker" enable-rotate="{{false}}" enable-overlooking="{{false}}" class="native"/>
+    <map show-location="{{showUserLocation}}" id="field-map" latitude="{{latitude}}" longitude="{{longitude}}" scale="{{scale}}" rotate="{{rotate}}" skew="{{skew}}" markers="{{markers}}" circles="{{circles}}" bindregionchange="moved" bindupdated="mapUpdated" bindtap="closeSearch" bindmarkertap="marker" bindcallouttap="marker" enable-rotate enable-overlooking class="native"/>
+    <button wx:if="{{rotate || skew}}" class="reset-map-view" bindtap="resetPerspective" aria-label="恢复朝北的平面地图">朝北 · 2D</button>
     <view wx:if="{{focusLabel || savedPlaceNotice}}" class="focus-notice">{{savedPlaceNotice || focusLabel}}</view><view wx:if="{{!compact}}" class="map-actions"><button class="map-action" bindtap="position" disabled="{{locating}}" aria-label="{{locating ? '正在定位' : '定位到我的位置'}}"><view wx:if="{{locating}}" class="action-spinner" aria-role="status"/><image wx:else class="action-icon" src="/assets/icons/locate.png"/></button><button class="map-action" bindtap="saveMapPlace" aria-label="收藏地点"><image class="action-icon" src="/assets/icons/collection.png"/></button></view>
     <view wx:if="{{!listOpen}}" class="map-dock" style="bottom:24px">
       <view wx:if="{{error}}" class="map-notice"><text class="map-text notice-text">{{error}}</text><button class="notice-retry" bindtap="load">重试</button></view>

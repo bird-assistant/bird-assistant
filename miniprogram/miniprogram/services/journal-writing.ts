@@ -45,7 +45,7 @@ export function journalWritingBrief(d:JournalDocument,o:JournalWritingOptions):{
 export function writingDestinationLabel(context:Pick<JournalWritingContext,'destination'|'placement'>){
   if(context.destination==='selected')return '仅更新所选文本框';
   if(context.destination==='overview')return '更新页首概述 · 手帐名称不变';
-  return '新增文字框 · '+['照片区上方','照片区下方','自由放置'][context.placement];
+  return '新增文字框 · '+['照片区上方','照片区下方','自由放置','照片区左侧','照片区右侧'][context.placement];
 }
 /** Apply to a copy: a stale/invalid plan cannot partially overwrite a document. */
 export function applyJournalWriting(document:JournalDocument,context:JournalWritingContext,suggestion:JournalAiSuggestion,design=false){
@@ -60,7 +60,7 @@ export function applyJournalWriting(document:JournalDocument,context:JournalWrit
     if(!target){target=element('text',{x:72,y:d.height*.105,w:756,fontSize:23,titleSize:40});d.elements.push(target);d.headingId=target.id;}
   }else{
     target=element('text',{x:72,y:d.height*.45,w:756,fontSize:22,font:'sans',maxLines:0,
-      ...(context.placement===0?{flowPosition:'before-photos' as const}:context.placement===1?{flowPosition:'after-photos' as const}:{})});d.elements.push(target);
+      ...(context.placement===0?{flowPosition:'before-photos' as const}:context.placement===1?{flowPosition:'after-photos' as const}:context.placement===3?{flowPosition:'left-of-photos' as const}:context.placement===4?{flowPosition:'right-of-photos' as const}:{})});d.elements.push(target);
   }
   target.text=suggestion.body;target.maxLines=0;if(context.includeTitle)target.title=suggestion.title;
   if(context.includeCaptions){

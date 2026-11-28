@@ -49,3 +49,5 @@
 .location-wave{position:absolute;box-sizing:border-box;border-radius:50%}
 
 .record-row.record-focused{border-radius:10px;background:#e8f0e2;box-shadow:inset 3px 0 #659879}.record-focused .record-main{padding-left:8px}.map-actions .map-action{flex:none}.location-signal .location-wave{animation:none}.record-scroll{scroll-padding-top:0}
+
+.reset-map-view{position:absolute;top:12px;left:12px;z-index:4;width:auto;min-height:36px;padding:6px 12px;border:1px solid #d5e1cf;border-radius:18px;background:#fffef9;color:#285b49;font-size:12px;line-height:22px;box-shadow:0 3px 10px #253c3414}

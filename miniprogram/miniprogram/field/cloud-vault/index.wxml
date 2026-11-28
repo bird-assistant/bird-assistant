@@ -1,0 +1,9 @@
+<app-header title="云端收藏副本" back bindback="back"/>
+<view class="page vault-page"><view class="eyebrow">YOUR PLACES / 羽迹</view><view class="title">想去的地方，另留一份</view><view class="subtitle">当前微信账号专属的收藏地点副本，独立于社区账号。由你决定何时备份与合并，不自动上传。</view>
+ <view wx:if="{{!ready}}" class="vault-pending"><image src="/assets/icons/collection.png"/><view>云端收藏备份尚未开通</view><text>完整文件备份现已可用。开通后可将收藏副本保留在当前微信账号下，并在其他设备合并恢复。</text></view>
+ <view wx:if="{{error}}" class="note error" role="alert">{{error}}</view><view wx:if="{{status}}" class="note" role="status">{{status}}</view>
+ <view class="card vault-local"><view class="strong">这台设备</view><text class="vault-number">{{localCount}}</text><text class="muted">个收藏地点 · 本机原件保留</text></view>
+ <view class="card vault-cloud"><view class="strong">我的云端副本</view><view class="vault-cloud-copy">{{known ? present ? cloudCount+' 个地点' : '还没有副本' : '先读取当前副本，再决定下一步'}}</view><view wx:if="{{when}}" class="tiny">更新于 {{when}}</view><view wx:if="{{names.length}}" class="vault-names"><text wx:for="{{names}}" wx:key="*this">{{item}}</text><text wx:if="{{cloudCount > names.length}}">还有 {{cloudCount - names.length}} 个地点</text></view>
+  <button class="quiet wide spaced" bindtap="read" loading="{{working}}" disabled="{{!ready || working}}">读取云端副本</button><view wx:if="{{known}}" class="vault-actions"><button class="primary" bindtap="upload" disabled="{{working}}">更新云端副本</button><button class="quiet" wx:if="{{present}}" bindtap="merge" disabled="{{working}}">合并到本机</button></view><button wx:if="{{known && present}}" class="text-button vault-remove" bindtap="remove" disabled="{{working}}">删除云端副本</button>
+ </view><view class="tiny">此处仅备份收藏地点，最多250个／128 KiB。手帐与原照片请使用上一页的完整文件备份。云端副本不等同于永久存档；完整文件仍可由你另存到微信之外。</view>
+</view>

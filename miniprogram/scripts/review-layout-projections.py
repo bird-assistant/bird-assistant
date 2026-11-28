@@ -35,8 +35,9 @@ async def review(args):
                   const anchors=[...document.querySelectorAll('.post-action,.record-action')].map(e=>{const i=e.querySelector('img'),r=e.getBoundingClientRect(),b=i?.getBoundingClientRect();return b?{offset:b.x-r.x,width:b.width}:null});
                   const deck=document.querySelector('.deck-active .deck-card'),hint=document.querySelector('.paper-share-hint');
                   const draftActions=document.querySelector('.draft-deck .draft-card-actions');
-                  const closeShapes=[...document.querySelectorAll('.calendar-close,.choice-close')].map(box);
-                  return {width:innerWidth,scroll:document.documentElement.scrollWidth,panels,blockedCard,anchors,deck:deck?box(deck):null,hint:hint?box(hint):null,closeShapes,draftActions:draftActions?box(draftActions):null};
+                  const closeShapes=[...document.querySelectorAll('.calendar-close,.choice-close,.social-sheet-title button')].map(box);
+                  const notePanes=[...document.querySelectorAll('.notes-list-pane,.note-detail-pane')].map(box);
+                  return {width:innerWidth,scroll:document.documentElement.scrollWidth,panels,blockedCard,anchors,deck:deck?box(deck):null,hint:hint?box(hint):null,closeShapes,draftActions:draftActions?box(draftActions):null,notePanes};
                 }""")
                 result.update(device=profile["name"], viewport=[width, height], dpr=profile["dpr"], kind=kind)
                 results.append(result)
@@ -44,8 +45,9 @@ async def review(args):
                     "tripSetup", "trip", "journalDeck", "journalArmed", "journalDelete", "journalUp", "journalShare",
                     "journalShareSquare", "journalShareLandscape", "forum", "pollSearch", "mapFilter",
                     "libraryCalendar", "libraryFilter", "calendarDay", "journalUpEarly", "tripHistory", "drafts", "friends",
+                    "birdLibrary", "birdSaved", "externalGallery", "externalTimeline", "noteList", "noteEdit", "noteTrash", "groupSettings", "forward", "threadedPost", "growth",
                 ):
-                    await page.screenshot(path=str(root / f"{kind}-{width}.png"))
+                    await page.screenshot(path=str(root / f"{kind}-{width}.png"), scale="css")
             await page.close()
         await browser.close()
     (root / "metrics.json").write_text(json.dumps(results, ensure_ascii=False, indent=2))
@@ -56,7 +58,8 @@ async def review(args):
     close_shapes = [(r["kind"], r["viewport"], b) for r in results for b in r["closeShapes"] if abs(b["w"]-b["h"])>1]
     hint_overlap = [(r["kind"], r["viewport"]) for r in results if r["kind"] in ("journalArmed","journalUpEarly","journalUp") and r["deck"] and r["hint"] and r["hint"]["y"] < r["deck"]["bottom"]-1]
     draft_bounds=[(r["kind"],r["viewport"],r["draftActions"]) for r in results if r.get("draftActions") and r["draftActions"]["bottom"]>r["viewport"][1]+1]
-    print(json.dumps({"cases": len(results), "devices": len(profiles), "overflow": overflow, "offscreenPanels": panels, "blockedArmedCards": blocked,"deckBelowTabs":deck_bounds,"squashedCloseButtons":close_shapes,"overlappingShareHints":hint_overlap,"draftActionsOffscreen":draft_bounds}, ensure_ascii=False), flush=True)
+    note_bounds=[(r["kind"],r["viewport"],b) for r in results for b in r.get("notePanes",[]) if b["bottom"]>r["viewport"][1]+1 or b["y"]<0 or b["h"]<=0 or b["x"]+b["w"]>r["viewport"][0]+1]
+    print(json.dumps({"cases": len(results), "devices": len(profiles), "overflow": overflow, "offscreenPanels": panels, "blockedArmedCards": blocked,"deckBelowTabs":deck_bounds,"squashedCloseButtons":close_shapes,"overlappingShareHints":hint_overlap,"draftActionsOffscreen":draft_bounds,"notePanesOffscreen":note_bounds}, ensure_ascii=False), flush=True)
 
 
 if __name__ == "__main__":

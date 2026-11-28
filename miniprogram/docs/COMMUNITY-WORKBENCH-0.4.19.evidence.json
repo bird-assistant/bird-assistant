@@ -1,0 +1,79 @@
+{
+  "version": "0.4.19",
+  "date": "2026-11-28",
+  "timezone": "Asia/Shanghai",
+  "checkpoint": {
+    "uploadedVersionReportedByUser": "0.4.18",
+    "frozenSource": "1197fc79894d2f4750c9e0e582c259a3d5316128",
+    "teamPR": 30,
+    "teamState": "ready for required review; not merged",
+    "newSourceBranch": "feat/community-workbench-0.4.19"
+  },
+  "client": {
+    "command": "npm run verify",
+    "passed": 446,
+    "failed": 0,
+    "skipped": 0,
+    "wxml": 23,
+    "wxss": 25,
+    "additionalTemplateCompileAfterNullGuard": "passed"
+  },
+  "sourceLayouts": {
+    "cases": 1230,
+    "devices": 30,
+    "overflow": [],
+    "offscreenPanels": [],
+    "blockedArmedCards": [],
+    "deckBelowTabs": [],
+    "squashedCloseButtons": [],
+    "overlappingShareHints": [],
+    "draftActionsOffscreen": []
+  },
+  "prototype": {
+    "prototype": "social-controls-0419.html",
+    "checks": [
+      "owner/member permissions",
+      "rename preview",
+      "remove and undo",
+      "quoted image reply preview",
+      "three viewport widths",
+      "no external requests",
+      "no JS errors"
+    ],
+    "passed": true
+  },
+  "runtimeOperations": {
+    "backendChanged": false,
+    "cloudFunctionsChanged": false,
+    "credentialsChanged": false,
+    "serverRestorationAttempted": false,
+    "cloudbaseActivated": false,
+    "businessRequestsMadeByAgent": false,
+    "messagesSentByAgent": false,
+    "modelsCalled": false,
+    "experienceUploadedByAgent": false
+  },
+  "nativeAcceptance": {
+    "performedHere": false,
+    "pending": [
+      "full DevTools Compile",
+      "Pura 80 normal-motion clouds and outward wave",
+      "short-screen drawer X/backdrop/header drag and scroll isolation",
+      "device filesystem cache eviction and offline image reuse",
+      "two-account friend requests, blocked DM, retry and group invitation",
+      "public-post forward receipt and withdrawn target"
+    ]
+  },
+  "reproduce": [
+    "npm run verify",
+    "BIRD_LAYOUT_OUT=/tmp/bird-layouts node scripts/review-phone-layouts.mjs --workbench",
+    "python scripts/review-layout-projections.py /tmp/bird-layouts --profiles docs/testing/device-profiles.json --browser-config YOUR_BROWSER_CONFIG",
+    "python scripts/build-workbench-review.py /tmp/bird-layouts docs/design/community-workbench-0419.png --browser-config YOUR_BROWSER_CONFIG"
+  ],
+  "limits": [
+    "Browser source projections use original sample illustrations and demo names; not a WeChat emulator.",
+    "Existing business API wiring is tested with fixtures; no live service acceptance is implied.",
+    "Advanced group mutations, image replies and media policies are an offline design only.",
+    "Local notes and drafts do not claim cloud durability."
+  ]
+}

@@ -1,0 +1,1 @@
+{"name":"@bird-assistant/safe-lodash-unset","version":"1.0.0","private":true,"main":"index.cjs","dependencies":{"lodash":"4.18.1"}}

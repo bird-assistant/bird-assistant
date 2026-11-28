@@ -88,7 +88,7 @@ export class LiveVision {
   private revision='';
   constructor(private camera:WechatMiniprogram.CameraContext,private canvas:WechatMiniprogram.Canvas,
     private mode:()=>string,private status:(message:string,keepLastFrame?:boolean)=>void,private result:(frame:LiveFrame)=>void,
-    private failed:(message:string)=>void) {}
+    private failed:(message:string)=>void,private externallyFed=false) {}
 
   async start(){
     try {
@@ -129,7 +129,7 @@ export class LiveVision {
           this.clearFrame();this.ready=true;this.revision=msg.details?.model_revision||'';
           this.status(msg.details?.latitude==null?'正在寻找鸟类 · 未提供定位，候选范围较广':'正在寻找鸟类');
           this.timeout=setTimeout(()=>this.fail('未收到相机画面，可拍照后分析。'),12000);
-          if(!this.listener){this.listener=this.camera.onCameraFrame(frame=>this.frame(frame));this.listener.start({fail:()=>this.fail('无法读取相机帧，可拍照后分析。')});}
+          if(!this.externallyFed&&!this.listener){this.listener=this.camera.onCameraFrame(frame=>this.frame(frame));this.listener.start({fail:()=>this.fail('无法读取相机帧，可拍照后分析。')});}
         }else if(msg.type==='vision.session.closed') this.fail('视觉会话已结束，可重新开启。');
         else if(this.pending && msg.frame_id===this.pending.id){
           const pending=this.pending;this.clearFrame();
@@ -145,6 +145,7 @@ export class LiveVision {
       }catch{this.fail('实时结果无法读取，可重新开启或拍照复核。');}
     });
   }
+  acceptFrame(frame:WechatMiniprogram.OnCameraFrameCallbackResult){this.frame(frame);}
   private frame(frame:WechatMiniprogram.OnCameraFrameCallbackResult){
     if(this.stopped||!this.ready||this.pending||this.upload||Date.now()<this.next||!this.connection)return;
     if(!this.sampling.allow(Date.now(),this.mode(),this.interval,frame.data))return;

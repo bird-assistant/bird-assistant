@@ -1,5 +1,7 @@
 import { getDraft } from './community';
 import { readJournals } from './journal-model';
+import {restoreEditorHistory} from './journal-storage';
+import {postDraftMediaPaths} from './post-draft';
 import { localRepository } from './repository';
 
 const maxFrames = 12;
@@ -21,8 +23,12 @@ function collect(activePaths: string[]) {
     if (record.communityDraft) saved.add(record.communityDraft.path);
   }
   for (const journal of readJournals()) {
-    for (const element of journal.elements) saved.add(element.src);
+    const history=restoreEditorHistory(journal);
+    for(const document of [journal,...history.past.map(step=>step.document),...history.future.map(step=>step.document)]){
+      for (const element of document.elements) saved.add(element.src);
+    }
   }
+  for(const path of postDraftMediaPaths())saved.add(path);
   const active = new Set(activePaths);
   const draft = getDraft();
   if (draft) active.add(draft.path);

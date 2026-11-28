@@ -31,7 +31,7 @@ const targets=new WeakMap<object,MapTargets>();
 const cellQueries=new WeakMap<object,Record<string,unknown>>();
 const icons=new WeakMap<object,MapIconCache>();
 Component({
-  data:{circles:[] as ReturnType<typeof mapRippleCircles>,_rippleTimer:0,_focusSeq:0,recordFocusLocked:false,recordAnchor:'',focusedRecordId:'',filterOpen:false,filterField:'',filterOptions:[] as string[],filterTitle:'',filterSelected:0,savedPlaceNotice:'',_iconSeq:0,_locationSeq:0,locating:false,showUserLocation:false,recordOrder:'recent',orderingNotice:'',focusLabel:'',nativeActive:true,_tripSeq:0,_watchTimer:0,mapMoving:false,_restoreExpanded:true,sheetCollapsed:false,recordsLoading:false,recordsError:'',_recordSeq:0,_moving:false,_motionTimer:0,_recordQuery:{} as Record<string,unknown>,searchHeight:176,drawerWidth:366,searchMore:false,headerHeight:88,fieldHeight:600,toolbarHeight:112,mapHeight:488,sheetHeight:224,sheetHeaderHeight:64,creditReserve:0,compact:false,listHeight:160,listTotal:0,listTitle:'本区域观察',wide:false,searching:false,searchError:'',_searchSeq:0,_visible:true,_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:12,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
+  data:{rotate:0,skew:0,circles:[] as ReturnType<typeof mapRippleCircles>,_rippleTimer:0,_focusSeq:0,recordFocusLocked:false,recordAnchor:'',focusedRecordId:'',filterOpen:false,filterField:'',filterOptions:[] as string[],filterTitle:'',filterSelected:0,savedPlaceNotice:'',_iconSeq:0,_locationSeq:0,locating:false,showUserLocation:false,recordOrder:'recent',orderingNotice:'',focusLabel:'',nativeActive:true,_tripSeq:0,_watchTimer:0,mapMoving:false,_restoreExpanded:true,sheetCollapsed:false,recordsLoading:false,recordsError:'',_recordSeq:0,_moving:false,_motionTimer:0,_recordQuery:{} as Record<string,unknown>,searchHeight:176,drawerWidth:366,searchMore:false,headerHeight:88,fieldHeight:600,toolbarHeight:112,mapHeight:488,sheetHeight:224,sheetHeaderHeight:64,creditReserve:0,compact:false,listHeight:160,listTotal:0,listTitle:'本区域观察',wide:false,searching:false,searchError:'',_searchSeq:0,_visible:true,_seq:0,_viewRead:0,_viewKey:'',_ready:false,_timer:0,_zoom:4,_groups:[] as Cluster[],_query:{} as Record<string,unknown>,_bounds:{} as Partial<Bounds>,cursor:'',listOpen:false,latitude:39.92,longitude:116.4,scale:12,scope:0,scopes:['公开与我的','公开鸟讯','我的标记'],
     origin:0,origins:['全部来源','羽迹鸟友','外部鸟讯'],period:0,periods:['所有日期','近一周','近一月','近一季','近一年'],keyword:'',species:'',speciesLabel:'所有鸟种',matches:[] as any[],
     markers:[] as Array<{id:number;latitude:number;longitude:number;iconPath:string;width:number;height:number}>,selected:[] as Pin[],total:0,error:'',loading:false,dirty:false},
   lifetimes:{attached(){const view=readMapView();if(view)this.setData(view);},ready(){this.resizeMap();this.watchViewport();if(wx.nextTick)wx.nextTick(()=>void this.load());else void this.load();},detached(){this.suspend();icons.get(this)?.close();icons.delete(this);savedTargets.delete(this);searches.delete(this);targets.delete(this);cellQueries.delete(this);hints.delete(this);focuses.delete(this);placeChoices.delete(this);this.data._ready=false;}},
@@ -185,6 +185,7 @@ Component({
       this.queueLoad(0);
       this.data._motionTimer=setTimeout(()=>this.pollMotion(),160);
     },
+    resetPerspective(){this.setData({rotate:0,skew:0});},
     moved(event:WechatMiniprogram.CustomEvent){
       if(!this.data._ready||!this.data._visible)return;
       const type=event.detail?.type||event.type,cause=event.detail?.causedBy||(event as unknown as {causedBy?:string}).causedBy;
@@ -205,6 +206,9 @@ Component({
           clearTimeout(this.data._motionTimer);this.pollMotion();
         }
       }else if(type==='end'){
+        const rotate=Number(detail.rotate),skew=Number(detail.skew);
+        const angle=Number.isFinite(rotate)?((rotate%360)+360)%360:this.data.rotate,tilt=Number.isFinite(skew)?Math.max(0,Math.min(60,skew)):this.data.skew;
+        if(angle!==this.data.rotate||tilt!==this.data.skew)this.setData({rotate:angle,skew:tilt});
         this.data._moving=false;this.setData({mapMoving:false});clearTimeout(this.data._motionTimer);this.data._motionTimer=0;
         clearTimeout(this.data._timer);this.data._timer=0;
         this.data._viewRead++;

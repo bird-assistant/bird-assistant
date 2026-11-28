@@ -1,0 +1,82 @@
+{
+  "version": "0.4.21",
+  "date": "2026-11-28",
+  "timezone": "Asia/Shanghai",
+  "checkpoint": {
+    "stableUploadCandidate": "0.4.20",
+    "userUploadStatus": "intention stated; actual console upload not verified",
+    "sourceParent": "e2548e8811cb83bc5e7c8ce352a7deab630fca61",
+    "clientParent": "d0f492a80e429b7d030964cd0a4001090924b5af",
+    "reviewBranch": "feat/engineering-review-0.4.21"
+  },
+  "client": {
+    "command": "npm run verify",
+    "passed": 475,
+    "newBehaviorTests": 17,
+    "failed": 0,
+    "skipped": 0,
+    "wxml": 25,
+    "wxss": 27
+  },
+  "cloudSDK": {
+    "command": "npm run verify:cloud",
+    "passed": 4,
+    "failed": 0,
+    "audit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "sdkVersions": {
+      "@cloudbase/node-sdk": "4.2.1",
+      "wx-server-sdk": "4.0.2",
+      "axios": "0.34.0",
+      "lodash": "4.18.1"
+    },
+    "metadataDiscovery": "Earlier bootstrap test blocked by automatic approval review; final tests disable external/instance-metadata network and use a direct DB-parser mock. Only the owned loopback fixture is permitted."
+  },
+  "layouts": {
+    "cases": 684,
+    "devices": 38,
+    "overflow": [],
+    "offscreenPanels": [],
+    "blockedArmedCards": [],
+    "deckBelowTabs": [],
+    "squashedCloseButtons": [],
+    "overlappingShareHints": [],
+    "draftActionsOffscreen": [],
+    "notePanesOffscreen": []
+  },
+  "notePaneChecks": {
+    "cases": 152,
+    "profiles": 38,
+    "failures": []
+  },
+  "captionContrast": {
+    "foreground": "#53694c",
+    "ratios": {
+      "#fafbf5": 5.78,
+      "#edf3e5": 5.31,
+      "#fffef9": 5.95
+    }
+  },
+  "operations": {
+    "businessBackendChanged": false,
+    "cloudDeployed": false,
+    "cloudConfigEnabled": false,
+    "environmentSelected": false,
+    "paidPlanChanged": false,
+    "experienceUploadedByAgent": false
+  },
+  "stillOpen": [
+    "native map authentication/network failure",
+    "passive-listener target/reproduction",
+    "full native Compile and keyboard/fold/rotation acceptance",
+    "live CloudBase identity/IAM/two-user checks",
+    "total native startup performance measurement",
+    "R34 complete native auth/idle issue"
+  ]
+}

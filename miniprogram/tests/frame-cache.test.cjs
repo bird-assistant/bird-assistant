@@ -47,3 +47,11 @@ test('unreadable observation metadata leaves the original images intact', () => 
   reclaimFrames([]);
   assert.equal(files.has(path),true);
 });
+
+test('cleanup preserves Undo-only photos and both complete and recovery forum attachments',()=>{
+  const {files,root,storage}=device(),{makeJournal,snapshot}=require('../.test-build/services/journal-model.js'),drafts=require('../.test-build/services/post-draft.js');
+  const paths=Array.from({length:4},(_,i)=>root+'/vision-172000000001'+i+'.jpg');for(const path of paths)files.set(path,80);
+  const current=makeJournal([],'Keep'),old={...structuredClone(current),elements:[element('photo',{src:paths[0]})]};current.editHistory={version:1,past:[snapshot(old,'')],future:[],selected:''};storage.set(JOURNAL_KEY,[current]);
+  const draft=drafts.newPostDraft(),{postImage}=require('../.test-build/services/post-media.js');draft.images=[postImage(paths[1])];storage.set(drafts.POST_DRAFTS_KEY,{version:3,items:[draft],lastId:draft.id});storage.set(drafts.POST_RECOVERIES_KEY,{version:3,items:[{...draft,images:[postImage(paths[2])]}]});
+  reclaimFrames([]);assert.deepEqual([...files.keys()],paths.slice(0,3));
+});

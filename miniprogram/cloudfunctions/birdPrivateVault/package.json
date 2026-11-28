@@ -1,0 +1,23 @@
+{
+  "name": "bird-assistant-private-vault",
+  "version": "0.4.21",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "dependencies": {
+    "@cloudbase/node-sdk": "4.2.1",
+    "wx-server-sdk": "4.0.2",
+    "lodash.set": "file:vendor/lodash-set-safe",
+    "lodash.unset": "file:vendor/lodash-unset-safe"
+  },
+  "overrides": {
+    "axios": "0.34.0",
+    "lodash.set": "$lodash.set",
+    "lodash.unset": "$lodash.unset"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.cjs"
+  }
+}

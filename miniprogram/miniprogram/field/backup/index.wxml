@@ -1,0 +1,15 @@
+<app-header title="收藏与手帐备份" back bindback="back"/>
+<view class="page local-backup">
+  <view class="eyebrow">KEEP YOUR FIELD NOTES</view><view class="title">把原件，留在自己手里</view>
+  <view class="backup-explanation">收藏地点和手帐保留本机保护副本，清理应用内预览不会删除它们。<text>微信清除全部小程序数据仍可能移除所有本机文件；请把备份另存到微信之外。</text></view>
+  <view wx:if="{{error}}" class="note error" role="alert">{{error}}</view><view wx:if="{{status}}" class="backup-status" role="status">{{status}}</view>
+  <view class="card backup-card"><view class="backup-heading"><view>导出完整备份</view><text>不自动上传</text></view><view class="backup-included">{{placeCount}} 个收藏地点 · {{selected}} 份手帐</view><view class="tiny">包含所选手帐的文字、排版、照片原件和可用的撤销历史。不包含账号、私信、社区书签或其他本机记录。</view>
+    <view class="backup-selection-heading"><text>选择手帐</text><button class="text-button" bindtap="all" disabled="{{working}}">{{selected === rows.length ? '取消全选' : '全选'}}</button></view>
+    <scroll-view wx:if="{{rows.length}}" scroll-y class="backup-journal-list"><button wx:for="{{rows}}" wx:key="id" class="backup-journal-row" data-id="{{item.id}}" bindtap="choose" disabled="{{working}}" aria-pressed="{{item.chosen}}"><view class="backup-check {{item.chosen ? 'checked' : ''}}"><image wx:if="{{item.chosen}}" src="/assets/icons/check.png"/></view><text>{{item.title || '未命名手帐'}}</text></button></scroll-view><view wx:else class="tiny">当前没有手帐，可单独备份收藏地点。</view>
+    <view class="tiny spaced">每份备份最多包含64 MiB照片，可分批勾选导出。同一原图只保存一次，照片不压缩。</view><button class="primary wide spaced" bindtap="generate" loading="{{working}}" disabled="{{working || picking}}">{{working ? '正在处理…' : selected ? '生成所选内容的备份' : '仅备份收藏地点'}}</button>
+    <view wx:if="{{readyPath}}" class="backup-ready"><view class="strong">文件已生成 · {{readySize}}</view><text>{{readyPhotos}} 张独立原图。生成到本机仍不等于已存到微信之外。</text><button class="quiet wide spaced" bindtap="share" disabled="{{working}}">发送 / 另存备份文件</button><view>建议发给文件传输助手并在电脑下载保存。确认外部文件存在后，再清除全部小程序数据。</view></view>
+  </view>
+  <view class="card backup-card"><view class="backup-heading"><view>从备份恢复</view><text>保留现有原件</text></view><view class="tiny">选择此前保存的 .birdbackup 文件。会合并收藏与手帐；冲突时新增手帐副本，不覆盖当前资料。</view><button class="quiet wide spaced" bindtap="chooseBackup" loading="{{picking}}" disabled="{{working || picking}}">选择备份文件</button>
+    <view wx:if="{{importInfo}}" class="backup-import-info"><view>{{importInfo.date}}</view><view>{{importInfo.places}} 个地点 · {{importInfo.journals}} 份手帐 · {{importInfo.photos}} 张原图</view><view>{{importInfo.size}}</view><button class="primary wide spaced" bindtap="restore" disabled="{{working}}">校验并合并恢复</button></view>
+  </view><button class="quiet wide spaced" bindtap="cloud" disabled="{{working}}">云端收藏副本</button><button wx:if="{{working}}" class="text-button backup-cancel" bindtap="cancel">取消本次操作</button><view class="tiny">备份包含你的地点和手帐照片，请只保存到可信位置。完整文件备份在本机生成；云端收藏副本由你另行操作。</view>
+</view>

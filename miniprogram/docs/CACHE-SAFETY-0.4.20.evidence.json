@@ -1,0 +1,45 @@
+{
+  "version": "0.4.20",
+  "date": "2026-11-28",
+  "timezone": "Asia/Shanghai",
+  "scope": "Client-only; user chose backup/restore with server work paused",
+  "client": {
+    "command": "npm run verify",
+    "passed": 458,
+    "failed": 0,
+    "skipped": 0,
+    "wxml": 24,
+    "wxss": 26
+  },
+  "sourceLayouts": {
+    "kind": "Browser projection of checked-in WXML/WXSS; not native WeChat acceptance",
+    "devices": 30,
+    "states": 8,
+    "cases": 240,
+    "failures": [],
+    "dateButtonsMeasured": 120,
+    "minimumDateButtonWidth": 125.5,
+    "maximumDateButtonHeight": 36
+  },
+  "newBehaviorTests": 12,
+  "externalRestore": {
+    "fullLocalWipeSimulated": true,
+    "photoBytesPreserved": true,
+    "includesUndoOnlyPhotos": true,
+    "existingDocumentsPreserved": true
+  },
+  "runtimeOperations": {
+    "backendChanged": false,
+    "cloudActivated": false,
+    "serverRequestsForThisFeature": false,
+    "experienceUploadedByAgent": false
+  },
+  "limits": {
+    "mediaBytesPerBackup": 67108864,
+    "archiveMetadataBytes": 2097152,
+    "protectedRecordBytes": 4194304,
+    "streamChunkBytes": 262144
+  },
+  "nativeAcceptance": "Pending: full DevTools Compile, file sharing/picker/permissions, real photo/Undo restore, background and storage-space behavior",
+  "honestBoundary": "All-WeChat user-data deletion can remove all local copies; a separately saved external backup is required. Previously erased unbacked data is not reconstructed."
+}

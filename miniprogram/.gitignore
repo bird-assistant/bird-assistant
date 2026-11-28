@@ -1,4 +1,5 @@
 /node_modules/
+/cloudfunctions/*/node_modules/
 /project.config.json
 /project.private.config.json
 /miniprogram/miniprogram_npm/

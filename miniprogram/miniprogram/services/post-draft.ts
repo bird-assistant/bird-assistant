@@ -56,6 +56,8 @@ function recoveries():PostDraft[] {
   const old=wx.getStorageSync(POST_RECOVERY_KEY);
   return old?[{...checked(old),id:old.id||'legacy-post-draft'}]:[];
 }
+/** Protect both complete saves and newer recovery copies during disposable-frame cleanup. */
+export function postDraftMediaPaths():string[]{const paths=new Set<string>();for(const draft of [...shelf().items,...recoveries()])for(const image of draft.images)if(image.path)paths.add(image.path);return [...paths];}
 export function readPostDrafts():PostDraft[] {
   const base=shelf(),items=base.items;
   for(const recovery of recoveries()){

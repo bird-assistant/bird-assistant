@@ -10,7 +10,7 @@ export class LiveSampling {
     const key=targets.filter(track=>track.appearance!=='lost').map(track=>track.id).sort((a,b)=>a-b).join(',');
     this.stable=key===this.target?this.stable+1:0;this.target=key;
   }
-  interval(mode:string,server:number){return Math.max(server,mode==='wait'?(this.stable>=3?4000:1800):(this.stable>=4?1600:1000));}
+  interval(mode:string,server:number){return Math.max(server,mode==='burst'?500:mode==='wait'?(this.stable>=3?4000:1800):(this.stable>=4?1600:1000));}
   allow(now:number,mode:string,server:number,rgba:ArrayBuffer){
     if(mode!==this.previousMode){this.stable=0;this.previousMode=mode;}
     if(now-this.checked<Math.max(300,server))return false;

@@ -1,0 +1,31 @@
+{
+  "version": "0.4.22",
+  "date": "2026-11-28",
+  "baseCommit": "e324ee1f4a905a8f26b14a42dd7ceb4df944db08",
+  "clientTests": 492,
+  "wxmlCompiled": 25,
+  "wxssCompiled": 27,
+  "sourceLayoutCases": 456,
+  "windows": 38,
+  "states": 12,
+  "sourceLayoutFailures": [],
+  "commands": [
+    "npm run verify",
+    "node scripts/review-phone-layouts.mjs --capture-review",
+    "python scripts/review-capture-layouts.py <projection-directory> --browser-config <local-config>"
+  ],
+  "nativeAcceptance": "pending",
+  "businessServerChanges": false,
+  "cloudActivated": false,
+  "doubaoCalled": false,
+  "freeze": "release/experience-0.4.20",
+  "trackingAdded": [
+    "R117",
+    "R118",
+    "R119",
+    "R120",
+    "R121",
+    "R122",
+    "R123"
+  ]
+}

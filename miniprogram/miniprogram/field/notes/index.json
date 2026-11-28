@@ -1,0 +1,7 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "app-header": "/components/app-header/index"
+  },
+  "pageOrientation": "auto"
+}
